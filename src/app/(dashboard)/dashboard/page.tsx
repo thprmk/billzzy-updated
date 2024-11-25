@@ -1,0 +1,148 @@
+// pages/dashboard/index.tsx
+
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Adjust the path as needed
+import { prisma } from '@/lib/prisma';
+import DashboardStats from '@/components/dashboard/DashboardStats';
+
+// Update your import statements as necessary
+
+async function getDashboardData(organisationId: string) {
+  const today = new Date();
+  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+  const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+  const [
+    todayStats,
+    totalProducts,
+    lowStockProducts,
+    recentTransactions,
+    organisationData,
+    totalCustomers,
+    ordersNeedingTracking,
+    packingOrdersCount,
+    dispatchOrdersCount,
+  ] = await Promise.all([
+    // Today's stats
+    prisma.transactionRecord.aggregate({
+      where: {
+        organisationId: parseInt(organisationId),
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      _sum: {
+        totalPrice: true,
+      },
+      _count: true,
+    }),
+
+    // Total products
+    prisma.product.count({
+      where: {
+        organisationId: parseInt(organisationId),
+      },
+    }),
+
+    // Low stock products
+    prisma.product.findMany({
+      where: {
+        organisationId: parseInt(organisationId),
+        quantity: {
+          lte: 10,
+        },
+      },
+      take: 5,
+    }),
+
+    // Recent transactions
+    prisma.transactionRecord.findMany({
+      where: {
+        organisationId: parseInt(organisationId),
+      },
+      include: {
+        customer: true,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+      take: 10,
+    }),
+
+    // SMS count from organisation
+    prisma.organisation.findUnique({
+      where: {
+        id: parseInt(organisationId),
+      },
+      select: {
+        smsCount: true,
+      },
+    }),
+
+    // Total customers
+    prisma.customer.count({
+      where: {
+        organisationId: parseInt(organisationId),
+      },
+    }),
+
+    // Orders needing tracking numbers
+    prisma.transactionRecord.count({
+      where: {
+        organisationId: parseInt(organisationId),
+        billingMode: 'online',
+        status: 'confirmed',
+        trackingNumber: null,
+      },
+    }),
+
+    // Packing orders count
+    prisma.transactionRecord.count({
+      where: {
+        organisationId: parseInt(organisationId),
+        billingMode: 'online',
+        status: 'packed',
+      },
+    }),
+
+    // Dispatch orders count
+    prisma.transactionRecord.count({
+      where: {
+        organisationId: parseInt(organisationId),
+        billingMode: 'online',
+        status: 'dispatch',
+      },
+    }),
+  ]);
+
+  return {
+    todayStats,
+    totalProducts,
+    lowStockProducts,
+    recentTransactions,
+    smsCount: organisationData?.smsCount || 0,
+    totalCustomers,
+    ordersNeedingTracking,
+    packingOrdersCount,
+    dispatchOrdersCount,
+  };
+}
+
+// pages/dashboard/index.tsx
+
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) return null;
+
+  const data = await getDashboardData(session.user.id);
+
+  return (
+    <div className="h-[100vh] flex flex-col">
+      {/* Main Content */}
+      <div className="flex-1  py-4">
+        <DashboardStats data={{ ...data, organisationId: session.user.id }} />
+      </div>
+    </div>
+  );
+}

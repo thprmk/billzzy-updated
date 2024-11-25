@@ -1,0 +1,213 @@
+// components/dashboard/DashboardStats.tsx
+
+'use client';
+
+import {
+  CurrencyRupeeIcon,
+  ShoppingBagIcon,
+  ExclamationTriangleIcon,
+  DocumentTextIcon,
+  TruckIcon,
+  ClipboardDocumentListIcon,
+  UserGroupIcon,
+  ChatBubbleLeftIcon,
+  InboxArrowDownIcon,
+} from '@heroicons/react/24/outline';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import RecentTransactions from './RecentTransactions';
+import DashboardCharts from './DashboardCharts';
+
+interface Product {
+  id: number;
+  name: string;
+  quantity: number;
+}
+
+interface DashboardStatsProps {
+  data: {
+    todayStats: {
+      _sum: {
+        totalPrice: number | null;
+      };
+      _count: number;
+    };
+    totalProducts: number;
+    lowStockProducts: Product[];
+    recentTransactions: any[];
+    smsCount: number;
+    totalCustomers: number;
+    ordersNeedingTracking: number;
+    packingOrdersCount: number;
+    dispatchOrdersCount: number;
+    organisationId: string;
+  };
+}
+
+export default function DashboardStats({ data }: DashboardStatsProps) {
+  const [showLowStockTooltip, setShowLowStockTooltip] = useState(false);
+
+  const stats = [
+    {
+      name: "Today's Sales",
+      value: `₹${data.todayStats._sum.totalPrice?.toFixed(2) || '0.00'}`,
+      icon: CurrencyRupeeIcon,
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-500',
+      valueColor: 'text-blue-700',
+    },
+    {
+      name: "Today's Orders",
+      value: data.todayStats._count.toString(),
+      icon: DocumentTextIcon,
+      bgColor: 'bg-green-50',
+      iconColor: 'text-green-500',
+      valueColor: 'text-green-700',
+    },
+    {
+      name: 'Total Products',
+      value: data.totalProducts.toString(),
+      icon: ShoppingBagIcon,
+      bgColor: 'bg-purple-50',
+      iconColor: 'text-purple-500',
+      valueColor: 'text-purple-700',
+    },
+    {
+      name: 'Low Stock Items',
+      value: data.lowStockProducts.length.toString(),
+      icon: ExclamationTriangleIcon,
+      bgColor: 'bg-red-50',
+      iconColor: 'text-red-500',
+      valueColor: 'text-red-700',
+    },
+  ];
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-auto">
+        {/* Top Stats */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {stats.map((stat) => (
+            <motion.div
+              key={stat.name}
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              className={`relative rounded-xl shadow-sm ${stat.bgColor}`}
+              onMouseEnter={() =>
+                stat.name === 'Low Stock Items' && setShowLowStockTooltip(true)
+              }
+              onMouseLeave={() => setShowLowStockTooltip(false)}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className={`text-sm font-medium ${stat.iconColor}`}>
+                      {stat.name}
+                    </div>
+                    <div className={`mt-2 text-2xl font-bold ${stat.valueColor}`}>
+                      {stat.value}
+                    </div>
+                  </div>
+                  <div
+                    className={`p-3 rounded-lg ${stat.bgColor} ${stat.iconColor}`}
+                  >
+                    <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
+                  </div>
+                </div>
+
+                {/* Low Stock Tooltip */}
+                {stat.name === 'Low Stock Items' &&
+                  showLowStockTooltip &&
+                  data.lowStockProducts.length > 0 && (
+                    <div className="absolute z-10 w-64 p-4 mt-2 bg-white rounded-lg shadow-xl border border-gray-100 -right-2 top-full">
+                      <h4 className="font-semibold text-gray-900 mb-2">
+                        Low Stock Products:
+                      </h4>
+                      <ul className="space-y-2">
+                        {data.lowStockProducts.map((product) => (
+                          <li
+                            key={product.id}
+                            className="flex justify-between text-sm"
+                          >
+                            <span className="text-gray-600">{product.name}</span>
+                            <span className="font-medium text-red-500">
+                              {product.quantity} left
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+              </div>
+
+              {/* Progress Bar for relevant stats */}
+              {(stat.name === "Today's Sales" || stat.name === "Today's Orders") && (
+                <div className="h-1 w-full bg-gray-200 rounded-b-xl">
+                  <div
+                    className={`h-full ${
+                      stat.name === "Today's Sales" ? 'bg-blue-500' : 'bg-green-500'
+                    } rounded-b-xl`}
+                    style={{ width: '70%' }} // Adjust as needed
+                  />
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Dashboard Charts */}
+        <div className="mt-6">
+          <DashboardCharts organisationId={parseInt(data.organisationId)} />
+        </div>
+      </div>
+
+      {/* Bottom Cards */}
+      <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+        {/* Left: Recent Transactions */}
+        <div className="md:w-1/2 p-2">
+          <div className="bg-white shadow-sm rounded-lg p-4 h-full">
+            <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+            <RecentTransactions data={data.recentTransactions} />
+          </div>
+        </div>
+
+        {/* Right: Tracking, Packing, Dispatch, Customers, SMS */}
+        <div className="md:w-1/2 p-2 flex flex-col space-y-4">
+          {/* Top Row: Tracking Numbers Needed, Packing Orders, Dispatch Orders */}
+          <div className="flex flex-row space-x-4">
+            <div className="w-1/3 bg-indigo-50 text-indigo-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
+              <InboxArrowDownIcon className="h-6 w-6" />
+              <div className="mt-2 text-sm font-medium">Tracking Numbers Needed</div>
+              <div className="text-2xl font-bold text-indigo-700">{data.ordersNeedingTracking}</div>
+            </div>
+            <div className="w-1/3 bg-yellow-50 text-yellow-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
+              <ClipboardDocumentListIcon className="h-6 w-6" />
+              <div className="mt-2 text-sm font-medium">Packing Orders</div>
+              <div className="text-2xl font-bold text-yellow-700">{data.packingOrdersCount}</div>
+            </div>
+            <div className="w-1/3 bg-green-50 text-green-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
+              <TruckIcon className="h-6 w-6" />
+              <div className="mt-2 text-sm font-medium">Dispatch Orders</div>
+              <div className="text-2xl font-bold text-green-700">{data.dispatchOrdersCount}</div>
+            </div>
+          </div>
+
+          {/* Bottom Row: Total Customers and SMS Cost */}
+          <div className="flex flex-row space-x-4">
+            <div className="w-1/2 bg-teal-50 text-teal-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
+              <UserGroupIcon className="h-6 w-6" />
+              <div className="mt-2 text-sm font-medium">Total Customers</div>
+              <div className="text-2xl font-bold text-teal-700">{data.totalCustomers}</div>
+            </div>
+            <div className="w-1/2 bg-pink-50 text-pink-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
+              <ChatBubbleLeftIcon className="h-6 w-6" />
+              <div className="mt-2 text-sm font-medium">Total SMS Cost</div>
+              <div className="text-2xl font-bold text-pink-700">₹{(data.smsCount * 30).toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
