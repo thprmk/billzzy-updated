@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Adjust the path as needed
 import { prisma } from '@/lib/prisma';
 import DashboardStats from '@/components/dashboard/DashboardStats';
+import React from 'react';  // Add this import
 
 // Update your import statements as necessary
 

@@ -6,37 +6,16 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { toast } from 'react-toastify';
+import React from 'react';  // Add this import
 
-interface BillDetails {
-  id: number;
-  billNo: number;
-  customer: {
-    name: string;
-    phone: string;
-    district?: string;
-    state?: string;
-    pincode?: string;
-  };
-  items: Array<{
-    productName: string;
-    quantity: number;
-    totalPrice: number;
-  }>;
-  totalPrice: number;
-  date: string;
-  time: string;
-  trackingNumber?: string | null;
-  weight?: number | null;
-}
+
 
 export default function TrackingPage() {
   const router = useRouter();
   const [billId, setBillId] = useState('');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [weight, setWeight] = useState('');
-  const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
 
 

@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, } from 'framer-motion';
 import { FaArrowRight } from 'react-icons/fa';
 import { ContactModal } from '@/components/settings/ContactModal';
+import React from 'react';  // Add this import
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);

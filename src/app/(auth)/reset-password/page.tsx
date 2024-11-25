@@ -1,7 +1,9 @@
 // app/reset-password/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import React from 'react';  // Add this import
+
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -59,7 +61,7 @@ export default function ResetPasswordPage() {
 
       toast.success('Password reset successfully');
       router.push('/login');
-    } catch (error: any) {
+    } catch (error) {
       toast.error(error.message);
     } finally {
       setIsLoading(false);

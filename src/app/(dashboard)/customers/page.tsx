@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import CustomerList from '@/components/customers/CustomerList';
 import { redirect } from 'next/navigation';
+import React from 'react';  // Add this import
 
 export default async function CustomersPage() {
   const session = await getServerSession(authOptions);

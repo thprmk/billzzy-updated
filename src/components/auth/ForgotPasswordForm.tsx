@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { toast } from 'react-toastify';
+import React from 'react';  // Add this import
 
 export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);

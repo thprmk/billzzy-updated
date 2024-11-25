@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { redirect } from 'next/navigation';
+import React from 'react';  // Add this import
+
 
 export default async function AddCustomerPage() {
   const session = await getServerSession(authOptions);

@@ -4,9 +4,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
-import { sendBillingSMS } from '@/lib/msg91';
 import { z } from 'zod';
-import { getFormattedTime } from '@/lib/utils';
+import { sendBillingSMS } from '@/lib/msg91';
 
 // Define the schema for request validation using zod
 const createBillSchema = z.object({
@@ -248,16 +247,16 @@ const formattedTime = `${hours}:${minutes} ${ampm}`;
     const fullAddress = `${customer.flatNo || ''}, ${customer.street || ''}, ${customer.district || ''}, ${customer.state || ''} - ${customer.pincode || ''}`.trim();
     
     // Send SMS
-    // if (customer.phone) {
-    //   await sendBillingSMS({
-    //     phone: customer.phone,
-    //     companyName: organisation.shopName,
-    //     products: productsString,
-    //     amount: newBill.totalPrice,
-    //     address: fullAddress,
-    //     organisationId: organisation.id
-    //   });
-    // }
+    if (customer.phone) {
+      await sendBillingSMS({
+        phone: customer.phone,
+        companyName: organisation.shopName,
+        products: productsString,
+        amount: newBill.totalPrice,
+        address: fullAddress,
+        organisationId: organisation.id
+      });
+    }
     
 
     // console.log(responseData);

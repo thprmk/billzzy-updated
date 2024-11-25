@@ -2,6 +2,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';  // Add this import
 
 interface TermsModalProps {
   isOpen: boolean;

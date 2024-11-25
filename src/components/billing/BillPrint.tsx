@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { Button } from '@/components/ui/Button';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import React from 'react';  // Add this import
 
 interface BillPrintProps {
   bill: {

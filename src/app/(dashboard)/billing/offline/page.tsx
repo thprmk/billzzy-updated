@@ -10,6 +10,8 @@ import { Select } from '@/components/ui/Select';
 import type { BillItem } from '@/types/billing';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import React from 'react';  // Add this import
+
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },

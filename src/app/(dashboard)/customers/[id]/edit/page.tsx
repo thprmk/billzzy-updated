@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { EditCustomerForm } from '@/components/customers/EditCustomerForm';
 import { notFound, redirect } from 'next/navigation';
+import React from 'react';  // Add this import
 
 interface PageProps {
   params: {

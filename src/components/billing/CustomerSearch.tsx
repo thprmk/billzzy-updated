@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Input } from '@/components/ui/Input';
 import type { CustomerDetails } from '@/types/billing';
+import React from 'react';  // Add this import
 
 interface CustomerFormProps {
   onCustomerChange: (customer: CustomerDetails | null) => void;

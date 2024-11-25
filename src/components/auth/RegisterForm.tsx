@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Select } from '../ui/Select';
-import { FiEye, FiEyeOff, FiArrowLeft } from 'react-icons/fi';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
+import React from 'react';  // Add this import
 
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';

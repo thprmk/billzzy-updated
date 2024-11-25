@@ -2,24 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   Area,
   AreaChart,
   Cell
 } from 'recharts';
+import React from 'react';  // Add this import
+
 import { Card } from '../ui/Card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/ChartSelect';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 interface DashboardChartsProps {
   organisationId: number;

@@ -6,6 +6,7 @@ import { Select } from '@/components/ui/Select';
 import Link from 'next/link';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'react-toastify';
+import React from 'react';  // Add this import
 
 interface Product {
   id: number;

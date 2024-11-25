@@ -1,6 +1,7 @@
 // components/dashboard/RecentTransactions.tsx
 
 import { format } from "date-fns";
+import React from 'react';  // Add this import
 
 interface RecentTransactionsProps {
     data: any[];

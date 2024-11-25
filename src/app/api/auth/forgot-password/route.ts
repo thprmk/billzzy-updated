@@ -6,14 +6,14 @@ import crypto from 'crypto';
 import { addHours } from 'date-fns';
 
 const transporter = nodemailer.createTransport({
-    service: "gmail",
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, 
-    auth: {
-      user: "acupidscorner@gmail.com", 
-      pass: "pcsx ozej dsen krdn", 
-    },
+  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: "acupidscorner@gmail.com",
+    pass: "pcsx ozej dsen krdn",
+  },
 });
 
 export async function POST(request: Request) {

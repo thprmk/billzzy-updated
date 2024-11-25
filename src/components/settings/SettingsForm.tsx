@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { toast } from 'react-toastify';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
+import React from 'react';  // Add this import
 
 interface OrganisationDetails {
   id: number;

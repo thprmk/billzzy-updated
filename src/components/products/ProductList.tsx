@@ -11,6 +11,7 @@ import {
 import {Button} from '../ui/Button';
 import {Modal} from '../ui/Modal';
 import { toast } from 'react-toastify';
+import React from 'react';  // Add this import
 
 interface Product {
   id: number;

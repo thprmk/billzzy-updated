@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import type { BillItem } from '@/types/billing';
-import { Select } from '@/components/ui/Select';
+import React from 'react';  // Add this import
 
 interface Product {
   id: number;
@@ -135,7 +135,7 @@ export function ProductTable({ onChange }: ProductTableProps) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, index) => (
+          {rows.map((row,) => (
             <tr key={row.id}>
               {/* Product Search/Select */}
               <td className="px-4 py-2 border relative">

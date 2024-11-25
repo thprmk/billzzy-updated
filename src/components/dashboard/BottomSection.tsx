@@ -1,5 +1,6 @@
 import { Card } from '../ui/Card';
 // import  ScrollArea  from '../ui/ScrollArea';
+import React from 'react';  // Add this import
 
 interface RecentTransaction {
   id: number;
@@ -44,7 +45,7 @@ export default function BottomSection({ customerCount, smsCount }: BottomSection
       <Card className="lg:col-span-2 bg-white">
         <div className="p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">Recent Transactions</h2>
-          <ScrollArea className="h-[40vh]">
+          <div className="h-[40vh]">
             <div className="space-y-4">
               {mockTransactions.map((transaction) => (
                 <div
@@ -71,7 +72,7 @@ export default function BottomSection({ customerCount, smsCount }: BottomSection
                 </div>
               ))}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </Card>
 

@@ -3,6 +3,7 @@
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import type { BillItem } from '@/types/billing';
+import React from 'react';  // Add this import
 
 interface BillPreviewProps {
   items: BillItem[];

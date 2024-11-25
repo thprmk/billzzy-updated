@@ -1,6 +1,8 @@
 import RegisterForm from "@/components/auth/RegisterForm";
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
+import React from 'react';  // Add this import
+
 
 // app/register/page.tsx
 export default function RegisterPage() {

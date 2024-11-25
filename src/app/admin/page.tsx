@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma'; // Adjust the import path based on your project structure
 import { Organisation } from '@prisma/client';
 import AdminDashboard from '@/components/admin/AdminTable';
+import React from 'react';  // Add this import
 
 interface OrganisationWithRemainingDays extends Organisation {
   remainingDays: number;

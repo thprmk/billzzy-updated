@@ -1,5 +1,7 @@
 import LoginForm from '@/components/auth/LoginForm';
 import Link from 'next/link';
+import React from 'react';  // Add this import
+
 import { FiArrowLeft } from 'react-icons/fi';
 
 export default function LoginPage() {
@@ -27,7 +29,7 @@ export default function LoginPage() {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
+                Dont have an account?{' '}
                 <Link
                   href="/register"
                   className="font-medium text-indigo-600 hover:text-indigo-500"

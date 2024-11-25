@@ -6,6 +6,7 @@ import { SessionProvider as NextAuthSessionProvider } from 'next-auth/react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import React from 'react';  // Add this import
 
 interface SessionProviderProps {
   children: React.ReactNode;

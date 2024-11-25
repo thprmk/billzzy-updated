@@ -89,7 +89,7 @@ export default function OnlineBillPage() {
 
   function generateAndPrintBill(data) {
     // Open a new window for printing
-    let printWindow = window.open("", "_blank");
+    const printWindow = window.open("", "_blank");
 
     if (!printWindow) {
       alert("Unable to open print window. Please disable your pop-up blocker and try again.");
@@ -101,20 +101,20 @@ export default function OnlineBillPage() {
       return `${index + 1}. ${product.productName} (Qty: ${product.quantity})`;
     }).join(", ");
 
-    let billId = data.bill_id.toString();
+    const billId = data.bill_id.toString();
 
     // Create a canvas element and generate the barcode
-    let canvas = document.createElement('canvas');
+    const canvas = document.createElement('canvas');
     JsBarcode(canvas, billId, {
       format: "CODE128",
       width: 1,
       height: 20,
       displayValue: false
     });
-    let barcodeDataUrl = canvas.toDataURL("image/png");
+    const barcodeDataUrl = canvas.toDataURL("image/png");
 
     // CSS Styles using template literals
-    let styles = `
+    const styles = `
       <style>
         @media print {
           @page {
@@ -224,7 +224,7 @@ export default function OnlineBillPage() {
     `;
 
     // HTML Content using template literals
-    let labelContent = `
+    const labelContent = `
       <!DOCTYPE html>
       <html lang="en">
       <head>

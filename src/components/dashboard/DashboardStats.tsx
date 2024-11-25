@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import RecentTransactions from './RecentTransactions';
 import DashboardCharts from './DashboardCharts';
+import React from 'react';  // Add this import
 
 interface Product {
   id: number;

@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import  CategoryForm  from '@/components/products/CategoryForm';
 import { Button } from '@/components/ui/Button';
+import React from 'react';  // Add this import
 
 interface Category {
  id: number;

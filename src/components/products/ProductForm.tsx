@@ -7,6 +7,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { toast } from 'react-toastify';
+import React from 'react';  // Add this import
 
 interface Category {
   id: number;

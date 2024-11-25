@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Organisation } from '@prisma/client';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
-import { signIn } from 'next-auth/react';
+import React from 'react';  // Add this import
 
 interface OrganisationWithRemainingDays extends Organisation {
   remainingDays: number;

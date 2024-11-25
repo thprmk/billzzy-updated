@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Input } from './Input';
 import { LoadingSpinner } from './LoadingSpinner';
 import { useDebounce } from '@/hooks/useDebounce';
+import React from 'react';  // Add this import
 
 interface Product {
   id: number;

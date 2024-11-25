@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import React from 'react';  // Add this import
 
 interface CategoryFormProps {
   initialData?: {

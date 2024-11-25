@@ -3,7 +3,7 @@
 
 import React, { useState } from "react"
 import { Dialog } from "@headlessui/react"
-import { HiUserCircle, HiCheckCircle, HiXCircle } from "react-icons/hi"
+import { HiUserCircle, HiCheckCircle,  } from "react-icons/hi"
 import { cn } from "@/lib/utils"
 import { signOut } from "next-auth/react" // Adjust import based on your auth setup
 import { FiLogOut } from "react-icons/fi"

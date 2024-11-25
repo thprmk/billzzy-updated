@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import {Input} from './Input';
 import {Button} from './Button';
+import React from 'react';  // Add this import
 
 interface Customer {
   id: number;

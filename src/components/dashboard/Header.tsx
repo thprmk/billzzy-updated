@@ -9,6 +9,7 @@ import {
   UserCircleIcon 
 } from '@heroicons/react/24/outline';
 import { signOut } from 'next-auth/react';
+import React from 'react';  // Add this import
 
 interface HeaderProps {
   openSidebar: () => void;

@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiCheck } from 'react-icons/fi';
+import React from 'react';  // Add this import
 
 interface TrialModalProps {
   isOpen: boolean;

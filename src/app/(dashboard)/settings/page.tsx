@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import SettingsForm from '@/components/settings/SettingsForm';
+import React from 'react';  // Add this import
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);

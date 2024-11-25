@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import React from 'react';  // Add this import
 
 export function Protected({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, checkSubscription } = useAuth();

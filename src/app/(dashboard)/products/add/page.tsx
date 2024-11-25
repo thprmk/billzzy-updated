@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import  ProductForm  from '@/components/products/ProductForm';
+import React from 'react';  // Add this import
 
 export default function AddProductPage() {
   const [categories, setCategories] = useState([]);

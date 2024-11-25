@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
 import Sidebar from '../dashboard/Sidebar';
-import Header from '../dashboard/Header';
+import React from 'react';  // Add this import
 
 export default function DashboardLayout({ 
   children 
@@ -11,7 +10,6 @@ export default function DashboardLayout({
   children: React.ReactNode 
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { data: session } = useSession();
 
   return (
     <div className="h-screen flex overflow-hidden bg-gray-100">

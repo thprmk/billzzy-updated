@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import React from 'react';  // Add this import
 
 interface ModalProps {
   isOpen: boolean;

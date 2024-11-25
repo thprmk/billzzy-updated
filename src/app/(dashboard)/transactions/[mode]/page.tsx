@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
 import {BillList} from '@/components/billing/BillList';
+import React from 'react';  // Add this import
 
 interface PageProps {
   params: {

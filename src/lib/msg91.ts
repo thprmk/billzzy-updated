@@ -101,11 +101,7 @@ interface SMSConfig {
     }
   }
   
-  // Function to send order status updates
-  interface OrderStatusSMSParams extends BillingSMSParams {
-    status:  'packed' | 'shipped' | 'delivered';
-    trackingId?: string;
-  }
+
   export async function sendOrderStatusSMS({
     phone,
     organisationId,
