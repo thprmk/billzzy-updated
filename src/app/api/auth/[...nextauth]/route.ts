@@ -6,8 +6,8 @@ import bcrypt from "bcryptjs";
 import { compare } from "bcryptjs";
 import NextAuth from "next-auth/next";
 
-const ADMIN_EMAIL = "admin@billz.com";
-const ADMIN_PASSWORD = "billz$2012"; 
+const ADMIN_EMAIL = process.env.ADMIN_USERNAME
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD; 
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),

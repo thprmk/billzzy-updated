@@ -1,5 +1,7 @@
 // components/dashboard/RecentTransactions.tsx
 
+import { format } from "date-fns";
+
 interface RecentTransactionsProps {
     data: any[];
   }
@@ -26,7 +28,7 @@ interface RecentTransactionsProps {
               {data.map((transaction: any) => (
                 <tr key={transaction.id}>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(transaction.date).toLocaleDateString()}
+                  {format(new Date(transaction.date), 'MM/dd/yyyy')}
                   </td>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                     {transaction.customer?.name || 'N/A'}

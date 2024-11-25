@@ -9,6 +9,9 @@ import { FiEye, FiEyeOff, FiArrowLeft } from 'react-icons/fi';
 import Link from 'next/link';
 import {toast} from 'react-toastify'
 
+const ADMIN_EMAIL = process.env.ADMIN_USERNAME
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD; 
+
 export default function LoginForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +39,7 @@ export default function LoginForm() {
         return;
       }
 
-      if (email === 'admin@billz.com' && password === 'billz$2012') {
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
         router.push('/admin');
         return;
       }

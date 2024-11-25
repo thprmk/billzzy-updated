@@ -138,7 +138,7 @@ export default async function DashboardPage() {
   const data = await getDashboardData(session.user.id);
 
   return (
-    <div className="h-[100vh] flex flex-col">
+    <div className="h-[100vh]  flex flex-col">
       {/* Main Content */}
       <div className="flex-1  py-4">
         <DashboardStats data={{ ...data, organisationId: session.user.id }} />
