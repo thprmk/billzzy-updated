@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ message: 'Organisation deleted successfully' });
   } catch (error) {
-    console.error('Error deleting organisation:', error);
+    console.error('Error deleting organisation:', error.message);
     return NextResponse.json({ error: 'Failed to delete organisation' }, { status: 500 });
   }
 }

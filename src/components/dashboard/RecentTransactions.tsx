@@ -6,9 +6,9 @@ interface RecentTransactionsProps {
   
   export default function RecentTransactions({ data }: RecentTransactionsProps) {
     return (
-      <div className="h-full overflow-y-auto">
+      <div className=" overflow-y-auto h-[26vh]">
         {data.length > 0 ? (
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y   divide-gray-200">
             <thead>
               <tr>
                 <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">

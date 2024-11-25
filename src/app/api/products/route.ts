@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         quantity,
         categoryId,
         organisationId: parseInt(session.user.id),
-        seller: "", // Add this required field
+        // seller: "", // Add this required field
 
       },
       include: {

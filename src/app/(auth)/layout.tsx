@@ -12,9 +12,9 @@ export default async function Layout({
 console.log(session);
 
   // Redirect to dashboard if already logged in
-  if (session&&session.user.name!=='Admin User') {    
-    redirect('/dashboard');
-  }
+  // if (session&&session.user.name!=='Admin User') {    
+  //   redirect('/dashboard');
+  // }
 
   return (
     <div className="h-[100vh] flex flex-col justify-center items-center  from-indigo-600 via-purple-600 to-pink-500">

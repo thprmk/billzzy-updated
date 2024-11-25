@@ -18,11 +18,11 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const token = searchParams?.get('token');
 
-  useEffect(() => {
-    if (!token) {
-      router.push('/login');
-    }
-  }, [token, router]);
+  // useEffect(() => {
+  //   if (!token) {
+  //     router.push('/login');
+  //   }
+  // }, [token, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
