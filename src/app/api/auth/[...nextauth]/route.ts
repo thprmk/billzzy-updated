@@ -115,8 +115,40 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-  },
+    async redirect({ url, baseUrl }) {
+      // List of protected routes
+      const protectedPaths = [
+        '/dashboard',
+        '/products',
+        '/customers',
+        '/billing',
+        '/transactions',
+        '/settings'
+      ];
+
+      // If url starts with base url or is relative
+      if (url.startsWith(baseUrl) || url.startsWith('/')) {
+        // Get the path part of the URL
+        const path = url.startsWith(baseUrl) 
+          ? url.substring(baseUrl.length) 
+          : url;
+
+        // If it's a protected path, allow it
+        if (protectedPaths.some(protectedPath => 
+          path.startsWith(protectedPath)
+        )) {
+          return url;
+        }
+      }
+
+      // Default redirect to dashboard
+      return `${baseUrl}/dashboard`;
+    }
+  }
 };
+
+
+  
 
 const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

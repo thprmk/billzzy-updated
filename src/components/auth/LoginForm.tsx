@@ -29,10 +29,12 @@ export default function LoginForm() {
 
     try {
       const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
+        email: email,
+        password: password,
+        redirect: true,
+        callbackUrl: '/dashboard'
       });
+  
 
       if (result?.error) {
         setError(result.error);
