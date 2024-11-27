@@ -104,7 +104,8 @@ export default function ViewProductsPage() {
     }
   };
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading||!products) return <div>Loading...</div>;
+console.log(products);
 
   return (
     <div className="space-y-6 mt-8">
@@ -164,7 +165,7 @@ export default function ViewProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {products.map((product) => (
+              {(products).map((product) => (
                 <tr key={product.id}>
                   <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{product.SKU}</td>

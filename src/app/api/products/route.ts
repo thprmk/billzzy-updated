@@ -3,6 +3,50 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '../auth/[...nextauth]/route';
 
+import { cache } from 'react';
+
+// Cache the product search results
+const getProductsFromDb = cache(async (userId: string, searchTerm?: string, categoryId?: string) => {
+  const where = {
+    organisationId: parseInt(userId),
+    ...(searchTerm && {
+      OR: [
+        { SKU: { contains: searchTerm } },
+        { name: { contains: searchTerm } }
+      ]
+    }),
+    ...(categoryId && { categoryId: parseInt(categoryId) })
+  };
+
+  return await prisma.$transaction(async (tx) => {
+    const products = await tx.product.findMany({
+      where,
+      include: {
+        category: true,
+        inventory: {
+          where: { organisationId: parseInt(userId) },
+          take: 1
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    return products.map(product => ({
+      id: product.id,
+      name: product.name,
+      SKU: product.SKU,
+      netPrice: product.netPrice,
+      sellingPrice: product.sellingPrice,
+      quantity: product.inventory[0]?.quantity ?? product.quantity,
+      category: product.category
+    }));
+  }, {
+    maxWait: 5000,
+    timeout: 10000,
+    isolationLevel: 'ReadCommitted'
+  });
+});
+
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -11,38 +55,27 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const sku = searchParams.get('sku');
+    const searchTerm = searchParams.get('sku') || '';
+    const categoryId = searchParams.get('category') || '';
 
-    
-
-    const where = {
-      organisationId: parseInt(session.user.id),
-      SKU: {
-        contains: sku || '',
-      },
-    };
-
-    const products = await prisma.product.findMany({
-      where,
-      include: {
-        category: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+    const products = await getProductsFromDb(session.user.id, searchTerm, categoryId);
 
     return NextResponse.json(products);
+
   } catch (error) {
-    console.error('Error details:', {
-      name: error.name,
+    console.error('Product search error:', {
       message: error.message,
       stack: error.stack
     });
 
+    if (error.code === 'P2024') {
+      return NextResponse.json({
+        error: 'Connection timed out. Please try again.'
+      }, { status: 408 });
+    }
+
     return NextResponse.json({
-      success: false,
-      error: 'Failed to create product',
+      error: 'Failed to fetch products',
       details: error.message
     }, { status: 500 });
   }

@@ -1,11 +1,9 @@
-// components/billing/ProductTable.tsx
-'use client';
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useDebounce } from '@/hooks/useDebounce';
 import type { BillItem } from '@/types/billing';
-import React from 'react';  // Add this import
+import React from 'react';
 
 interface Product {
   id: number;
@@ -16,7 +14,7 @@ interface Product {
 }
 
 interface ProductRow {
-  id: string; // Unique identifier for the row
+  id: string;
   productId: number | null;
   productName: string;
   availableQuantity: number;
@@ -31,10 +29,27 @@ interface ProductTableProps {
 }
 
 export function ProductTable({ onChange }: ProductTableProps) {
-  const [rows, setRows] = useState<ProductRow[]>([]);
+  const [rows, setRows] = useState<ProductRow[]>([{
+    id: Math.random().toString(36).substring(2, 9),
+    productId: null,
+    productName: '',
+    availableQuantity: 0,
+    sellingPrice: 0,
+    quantity: 1,
+    total: 0,
+    productOptions: [],
+  }]);
+  
+  const [searchTerm, setSearchTerm] = useState<{ id: string; term: string }>({ id: '', term: '' });
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
   useEffect(() => {
-    // Update parent component whenever rows change
+    if (debouncedSearchTerm.term) {
+      handleProductSearch(debouncedSearchTerm.id, debouncedSearchTerm.term);
+    }
+  }, [debouncedSearchTerm]);
+
+  useEffect(() => {
     const items = rows
       .filter((row) => row.productId && row.quantity > 0)
       .map((row) => ({
@@ -46,39 +61,27 @@ export function ProductTable({ onChange }: ProductTableProps) {
     onChange(items);
   }, [rows, onChange]);
 
-  const addRow = () => {
-    setRows((prevRows) => [
-      ...prevRows,
-      {
-        id: Math.random().toString(36).substring(2, 9),
-        productId: null,
-        productName: '',
-        availableQuantity: 0,
-        sellingPrice: 0,
-        quantity: 1,
-        total: 0,
-        productOptions: [],
-      },
-    ]);
+  const handleInputChange = (rowId: string, value: string) => {
+    setRows(prevRows =>
+      prevRows.map(row =>
+        row.id === rowId ? { ...row, productName: value } : row
+      )
+    );
+    
+    handleProductSearch(rowId, value);
   };
-
-  const removeRow = (id: string) => {
-    setRows((prevRows) => prevRows.filter((row) => row.id !== id));
-  };
-
+  
   const handleProductSearch = async (rowId: string, query: string) => {
     try {
-      const response = await fetch(
-        `/api/products?sku=${encodeURIComponent(query)}`
-      );
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.message);
-
-      setRows((prevRows) =>
-        prevRows.map((row) =>
+      const response = await fetch(`/api/products?sku=${encodeURIComponent(query)}`);
+      if (!response.ok) throw new Error('Search failed');
+  
+      const products = await response.json();
+      
+      setRows(prevRows =>
+        prevRows.map(row =>
           row.id === rowId
-            ? { ...row, productOptions: data.slice(0, 10) } // Limit options to 10
+            ? { ...row, productOptions: products }
             : row
         )
       );
@@ -98,7 +101,7 @@ export function ProductTable({ onChange }: ProductTableProps) {
               availableQuantity: product.quantity,
               sellingPrice: product.sellingPrice,
               quantity: 1,
-              total: product.sellingPrice * 1,
+              total: product.sellingPrice,
               productOptions: [],
             }
           : row
@@ -108,17 +111,39 @@ export function ProductTable({ onChange }: ProductTableProps) {
 
   const handleQuantityChange = (rowId: string, quantityStr: string) => {
     const quantity = parseInt(quantityStr, 10);
+    if (isNaN(quantity) || quantity < 0) return;
+
     setRows((prevRows) =>
       prevRows.map((row) =>
         row.id === rowId
           ? {
               ...row,
-              quantity: isNaN(quantity) ? 0 : quantity,
-              total: row.sellingPrice * (isNaN(quantity) ? 0 : quantity),
+              quantity,
+              total: row.sellingPrice * quantity,
             }
           : row
       )
     );
+  };
+
+  const addRow = () => {
+    const newRow: ProductRow = {
+      id: Math.random().toString(36).substring(2, 9),
+      productId: null,
+      productName: '',
+      availableQuantity: 0,
+      sellingPrice: 0,
+      quantity: 1,
+      total: 0,
+      productOptions: [],
+    };
+    setRows((prevRows) => [...prevRows, newRow]);
+  };
+
+  const removeRow = (id: string) => {
+    if (rows.length > 1) {
+      setRows((prevRows) => prevRows.filter((row) => row.id !== id));
+    }
   };
 
   return (
@@ -135,25 +160,14 @@ export function ProductTable({ onChange }: ProductTableProps) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row,) => (
+          {rows.map((row) => (
             <tr key={row.id}>
-              {/* Product Search/Select */}
               <td className="px-4 py-2 border relative">
                 <Input
                   type="text"
                   placeholder="Search product..."
                   value={row.productName}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setRows((prevRows) =>
-                      prevRows.map((r) =>
-                        r.id === row.id
-                          ? { ...r, productName: value }
-                          : r
-                      )
-                    );
-                    handleProductSearch(row.id, value);
-                  }}
+                  onChange={(e) => handleInputChange(row.id, e.target.value)}
                 />
                 {row.productOptions.length > 0 && (
                   <ul className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
@@ -175,39 +189,34 @@ export function ProductTable({ onChange }: ProductTableProps) {
                   </ul>
                 )}
               </td>
-              {/* Available Quantity */}
               <td className="px-4 py-2 border text-center">
                 {row.availableQuantity}
               </td>
-              {/* Quantity Input */}
               <td className="px-4 py-2 border">
                 <Input
                   type="number"
                   min="1"
                   value={row.quantity}
-                  onChange={(e) =>
-                    handleQuantityChange(row.id, e.target.value)
-                  }
+                  onChange={(e) => handleQuantityChange(row.id, e.target.value)}
                   disabled={!row.productId}
                 />
               </td>
-              {/* Price */}
               <td className="px-4 py-2 border text-right">
                 ₹{row.sellingPrice.toFixed(2)}
               </td>
-              {/* Total */}
               <td className="px-4 py-2 border text-right">
                 ₹{row.total.toFixed(2)}
               </td>
-              {/* Remove Button */}
               <td className="px-4 py-2 border text-center">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => removeRow(row.id)}
-                >
-                  Remove
-                </Button>
+                {rows.length > 1 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => removeRow(row.id)}
+                  >
+                    Remove
+                  </Button>
+                )}
               </td>
             </tr>
           ))}
