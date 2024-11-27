@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import {BillList} from '@/components/billing/BillList';
 import React from 'react';  // Add this import
+import { format } from 'date-fns';
 
 interface PageProps {
   params: {
@@ -47,12 +48,13 @@ export default async function BillsPage({ params }: PageProps) {
       }
     });
 
-    console.log(bills);
     
 
     const formattedBills = bills.map((bill) => {
     
-      const date = new Date(bill.time);
+      const time = new Date(bill.time);
+      const date =format(new Date(bill.date), 'dd/MM/yyyy')
+
 
 // Options for 12-hour format with AM/PM
 const options = {
@@ -62,13 +64,13 @@ const options = {
 };
 
 // Extract and format the time
-const formattedTime = date.toLocaleTimeString('en-US', options);
+const formattedTime = time.toLocaleTimeString('en-US', options);
 
 console.log(formattedTime); // Output: "7:53 PM"
       return {
         id: bill.id,
         billNo: bill.billNo,
-        date: bill.date, // 'YYYY-MM-DD'
+        date: date, // 'YYYY-MM-DD'
         time: formattedTime, // 'HH:MM AM/PM'
         totalPrice: bill.totalPrice,
         status: bill.status,

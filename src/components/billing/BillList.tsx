@@ -66,7 +66,6 @@ export function BillList({ initialBills, mode }: BillListProps) {
 
   useEffect(() => {
     fetchBills(currentPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, dateFilter, statusFilter, hasTrackingFilter]);
 
   const fetchBills = async (page: number) => {
