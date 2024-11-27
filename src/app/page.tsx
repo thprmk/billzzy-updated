@@ -7,7 +7,6 @@ import { motion, } from 'framer-motion';
 import { FaArrowRight } from 'react-icons/fa';
 import { ContactModal } from '@/components/settings/ContactModal';
 import React from 'react';  // Add this import
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,11 +75,11 @@ export default function HomePage() {
           <div className="md:w-1/2 mt-8 md:mt-0">
             <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ duration: 1 }}>
               {/* Replace with your SVG or Lottie animation */}
-              <DotLottieReact
+              {/* <DotLottieReact
                 src="https://lottie.host/fc65b1de-e629-440b-b462-43760711d928/gfzPi6hKY6.lottie"
                 loop
                 autoplay
-              />
+              /> */}
             </motion.div>
           </div>
         </div>
