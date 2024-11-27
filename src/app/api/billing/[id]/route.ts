@@ -1,4 +1,3 @@
-// app/api/billing/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
@@ -19,18 +18,38 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid bill ID' }, { status: 400 });
     }
 
-    await prisma.transactionRecord.delete({
-      where: {
-        id: billId,
-        organisationId: parseInt(session.user.id)
-      }
+    // Use a transaction to ensure data consistency
+    await prisma.$transaction(async (tx) => {
+      // First, delete all related transaction items
+      await tx.transactionItem.deleteMany({
+        where: {
+          transactionId: billId
+        }
+      });
+
+      // Then delete the transaction record
+      await tx.transactionRecord.delete({
+        where: {
+          id: billId,
+          organisationId: parseInt(session.user.id)
+        }
+      });
+    }, {
+      timeout: 30000 // 30 second timeout
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: 'Bill and related records deleted successfully'
+    });
+
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to delete bill' },
-      { status: 500 }
-    );
+    console.error('Delete bill error:', error);
+    
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to delete bill',
+      details: error.message
+    }, { status: 500 });
   }
 }

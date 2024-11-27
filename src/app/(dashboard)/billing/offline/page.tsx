@@ -129,6 +129,8 @@ export default function OfflineBillingPage() {
   
       // Extract organisation details from API response
       const organisation = data.organisation;
+      console.log(organisation);
+      
   
       if (!organisation) {
         toast.error('Organisation details are missing in the response.');
@@ -153,8 +155,8 @@ export default function OfflineBillingPage() {
         MOBILE: ${organisation.phone}
       `;
   
-      const websiteLine = organisation.website_address
-        ? `<h4 class="text-center">${organisation.website_address}</h4>`
+      const websiteLine = organisation.websiteAddress
+        ? `<h5 class="text-center">${organisation.websiteAddress}</h5>`
         : '';
   
       const billContent = `

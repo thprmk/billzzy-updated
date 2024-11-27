@@ -79,6 +79,10 @@ export async function PUT(
     }
 
     const { id } = params;
+    if (!id) {
+      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    }
+
     const body = await request.json();
     const {
       name,
@@ -89,36 +93,60 @@ export async function PUT(
       category,
     } = body;
 
-    
-
-    const updatedProduct = await prisma.product.update({
+    // Verify the product exists before updating
+    const existingProduct = await prisma.product.findUnique({
       where: {
         id: parseInt(id),
         organisationId: parseInt(session.user.id),
       },
-      data: {
-        name,
-        SKU,
-        netPrice,
-        sellingPrice,
-        quantity,
-        categoryId: category.id || null,
-      },
     });
 
-    // Update the corresponding inventory record
-    await prisma.inventory.updateMany({
-      where: {
-        productId: parseInt(id),
-        organisationId: parseInt(session.user.id),
-      },
-      data: {
-        quantity,
-        categoryId: category.id || null,
-      },
+    if (!existingProduct) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    // Safely determine the category ID
+    const categoryId = category && typeof category === 'object' ? category.id : null;
+
+    // Use a transaction to ensure both updates succeed or fail together
+    const result = await prisma.$transaction(async (tx) => {
+      const updatedProduct = await tx.product.update({
+        where: {
+          id: parseInt(id),
+          organisationId: parseInt(session.user.id),
+        },
+        data: {
+          name,
+          SKU,
+          netPrice: parseFloat(netPrice),
+          sellingPrice: parseFloat(sellingPrice),
+          quantity: parseInt(quantity),
+          categoryId,
+        },
+      });
+
+      await tx.inventory.updateMany({
+        where: {
+          productId: parseInt(id),
+          organisationId: parseInt(session.user.id),
+        },
+        data: {
+          quantity: parseInt(quantity),
+          categoryId,
+        },
+      });
+
+      return updatedProduct;
+    }, {
+      timeout: 30000 // 30 second timeout
     });
 
-    return NextResponse.json(updatedProduct);
+    return NextResponse.json({
+      success: true,
+      data: result,
+      message: 'Product updated successfully'
+    });
+
   } catch (error) {
     console.error('Error details:', {
       name: error.name,
@@ -126,17 +154,28 @@ export async function PUT(
       stack: error.stack,
     });
 
-    return NextResponse.json(
-      {
+    // Provide more specific error messages based on error type
+    if (error.code === 'P2025') {
+      return NextResponse.json({
         success: false,
-        error: 'Failed to update product',
-        details: error.message,
-      },
-      { status: 500 }
-    );
+        error: 'Product not found or you do not have permission to update it'
+      }, { status: 404 });
+    }
+
+    if (error.code === 'P2002') {
+      return NextResponse.json({
+        success: false,
+        error: 'A product with this SKU already exists'
+      }, { status: 409 });
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to update product',
+      details: error.message,
+    }, { status: 500 });
   }
 }
-
 // DELETE endpoint
 export async function DELETE(
   request: Request,
