@@ -66,8 +66,8 @@ export async function processTransaction(data: BillRequest, organisationId: numb
         balance: data.paymentDetails.amountPaid - data.total,
         organisationId,
         customerId: customer.id,
-        date: new Date(),
-        time: new Date(),
+        date: new Date(data.date),
+        time:new Date(`1970-01-01T${data.time}.000Z`),
         status: 'confirmed',
       },
     });

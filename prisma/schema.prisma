@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://admin:Vaseegrah%242024Tech@billz.c3su6oogocya.ap-south-1.rds.amazonaws.com:3306/billz?connection_limit=5&pool_timeout=2"
+  url      = env("DATABASE_URL")
 }
 
 // url      = "mysql://admin:Vaseegrah%242024Tech@billz.c3su6oogocya.ap-south-1.rds.amazonaws.com:3306/billz"

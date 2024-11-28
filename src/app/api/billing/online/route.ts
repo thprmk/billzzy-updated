@@ -6,8 +6,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { z } from 'zod';
 import { sendBillingSMS } from '@/lib/msg91';
+import moment from 'moment-timezone';
 
-// Define Zod schema for request validation
 const createBillSchema = z.object({
   customerId: z.number().int().positive(),
   items: z.array(
@@ -21,7 +21,6 @@ const createBillSchema = z.object({
   billingMode: z.string().optional().default('online'),
 });
 
-// Define interfaces for clarity and type safety
 interface TransactionOptions {
   timeout?: number;
   maxRetries?: number;
@@ -42,7 +41,6 @@ interface TransactionItemData {
   totalPrice: number;
 }
 
-// Retry mechanism to handle transient errors
 async function executeWithRetry<T>(
   operation: () => Promise<T>,
   options: TransactionOptions = {}
@@ -59,7 +57,7 @@ async function executeWithRetry<T>(
         error.message.includes('Transaction already closed') ||
         error.code === 'P2034' ||
         error.code === 'P2025' ||
-        error.code === 'P2002'; // Add more transient error codes as needed
+        error.code === 'P2002';
 
       if (attempts === maxRetries || !isTransient) {
         throw error;
@@ -73,24 +71,19 @@ async function executeWithRetry<T>(
   throw new Error('Maximum retry attempts reached');
 }
 
-// Process all items in bulk
 async function processItems(
   tx: any,
   items: any[],
   organisationId: number
 ): Promise<{ productDetails: ProcessedItem[]; totalPrice: number; transactionItemsData: TransactionItemData[] }> {
   const productIds = items.map((item) => item.productId);
-
-  // Batch fetch all products
   const dbProducts = await tx.product.findMany({
     where: { id: { in: productIds }, organisationId },
   });
 
-  // Create a map for quick lookup
   const productMap = new Map<number, any>();
   dbProducts.forEach((product) => productMap.set(product.id, product));
 
-  // Validate all items
   const processedItems: ProcessedItem[] = [];
   let totalPrice = 0;
   const transactionItemsData: TransactionItemData[] = [];
@@ -119,7 +112,6 @@ async function processItems(
 
     totalPrice += calculatedTotal;
 
-    // Prepare data for bulk update and insertion
     transactionItemsData.push({
       productId,
       quantity,
@@ -135,7 +127,6 @@ async function processItems(
     });
   }
 
-  // Batch update product quantities
   const updatePromises = items.map((item) =>
     tx.product.update({
       where: { id: item.productId },
@@ -148,7 +139,6 @@ async function processItems(
   return { productDetails: processedItems, totalPrice, transactionItemsData };
 }
 
-// Create a new transaction record
 async function createTransactionRecord(
   tx: any,
   organisationId: number,
@@ -162,6 +152,16 @@ async function createTransactionRecord(
 
   const newBillNo = (lastBill?.billNo || 0) + 1;
 
+  // Get current Indian date and time
+  const indianDateTime = moment().tz('Asia/Kolkata');
+  
+  // Format date as YYYY-MM-DD
+  const indianDate = indianDateTime.format('YYYY-MM-DD');
+  
+  // Format time as HH:mm:ss
+  const indianTime = indianDateTime.format('HH:mm:ss');
+  console.log(indianDate,indianTime,"time and date");
+
   return await tx.transactionRecord.create({
     data: {
       billNo: newBillNo,
@@ -171,24 +171,21 @@ async function createTransactionRecord(
       billingMode,
       organisationId,
       customerId,
-      date: new Date(),
-      time: new Date(),
+      date: new Date(indianDate), // Store the date
+      time: new Date(`1970-01-01T${indianTime}.000Z`), // Store the time
       status: 'confirmed',
       paymentMethod: 'pending',
     },
   });
 }
 
-// Main POST handler
 export async function POST(request: Request) {
   try {
-    // Authenticate the user
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Parse and validate the request body
     const body = await request.json();
     const parsedData = createBillSchema.safeParse(body);
 
@@ -209,10 +206,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Execute the transaction with retry logic
     const result = await executeWithRetry(async () => {
       return await prisma.$transaction(async (tx) => {
-        // Fetch customer
         const customer = await tx.customer.findUnique({
           where: { id: customerId },
         });
@@ -225,13 +220,9 @@ export async function POST(request: Request) {
           throw new Error('Customer does not belong to your organisation.');
         }
 
-        // Process items
         const { productDetails, totalPrice, transactionItemsData } = await processItems(tx, items, organisationId);
-
-        // Create transaction record
         const newBill = await createTransactionRecord(tx, organisationId, customer.id, totalPrice, billingMode);
 
-        // Bulk create transaction items
         await tx.transactionItem.createMany({
           data: transactionItemsData.map((item) => ({
             transactionId: newBill.id,
@@ -242,19 +233,11 @@ export async function POST(request: Request) {
         });
 
         return { newBill, customer, productDetails };
-      }, {
-        timeout: 60000, // Adjust as needed
-        isolationLevel: 'Serializable',
       });
-    }, {
-      timeout: 60000,
-      maxRetries: 3,
-      retryDelay: 2000,
     });
 
     const { newBill, customer, productDetails } = result;
 
-    // Fetch organisation details
     const organisation = await prisma.organisation.findUnique({
       where: { id: organisationId },
     });
@@ -263,22 +246,18 @@ export async function POST(request: Request) {
       throw new Error('Organisation not found');
     }
 
-    // Format date and time
-    const billDatetime = new Date(newBill.date);
-    const time = new Date(newBill.time);
-    const hours = time.getHours() % 12 || 12;
-    const minutes = String(time.getMinutes()).padStart(2, '0');
-    const ampm = time.getHours() >= 12 ? 'PM' : 'AM';
-    const formattedTime = `${hours}:${minutes} ${ampm}`;
+    // Format date and time in Indian timezone
+    const indianDateTime = moment(newBill.date).tz('Asia/Kolkata');
+    const formattedDate = indianDateTime.format('YYYY-MM-DD');
+    const formattedTime = indianDateTime.format('hh:mm A');
 
-    // Prepare response data
     const responseData = {
       success: true,
       message: 'Online bill created successfully! Please review the bill before finalizing.',
       bill_id: newBill.id,
       bill_details: {
         bill_no: newBill.billNo,
-        date: billDatetime.toISOString().split('T')[0],
+        date: formattedDate,
         time: formattedTime,
         total_amount: newBill.totalPrice,
       },
@@ -308,7 +287,6 @@ export async function POST(request: Request) {
       total_amount: newBill.totalPrice,
     };
 
-    // Send SMS if customer has a phone number
     try {
       if (customer.phone) {
         const productsString = productDetails
@@ -336,10 +314,8 @@ export async function POST(request: Request) {
       }
     } catch (smsError) {
       console.error('SMS sending failed:', smsError);
-      // Continue processing even if SMS fails
     }
 
-    // Return the successful response
     return NextResponse.json(responseData, { status: 200 });
   } catch (error: any) {
     console.error('Error details:', {

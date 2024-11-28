@@ -90,6 +90,8 @@ export function BillList({ initialBills, mode }: BillListProps) {
       }
 
       const data = await response.json();
+      console.log(data);
+      
       setBills(data.bills);
       setTotalCount(data.totalCount);
       setCurrentPage(page);

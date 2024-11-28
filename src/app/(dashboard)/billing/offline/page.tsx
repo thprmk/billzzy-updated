@@ -46,17 +46,7 @@ export default function OfflineBillingPage() {
     return Math.max(0, amountPaid - total);
   };
 
-  const formatDateTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
+
 
   const generateBillContent = (billData: any) => {
     const { organisation, customer, items, billNo, date, totalPrice } = billData;
@@ -70,7 +60,13 @@ export default function OfflineBillingPage() {
       0
     );
 
-    const formattedDateTime = formatDateTime(date);
+    const formattedDate = new Date(date).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    
+    
     const amountPaid = parseFloat(paymentDetails.amountPaid);
     const balance = calculateBalance();
 
@@ -115,7 +111,7 @@ export default function OfflineBillingPage() {
           table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
           }
           th, td {
             border: 1px solid #ddd;
@@ -126,13 +122,19 @@ export default function OfflineBillingPage() {
             background-color: #f8f8f8;
           }
           .totals {
-            text-align: right;
-            margin-bottom: 20px;
+
+
+            display:flex; 
+            justify-content:space-between;
           }
           .footer {
             text-align: center;
-            margin-top: 30px;
+            margin-top: 15px;
           }
+            .t1,.t2{
+            margin:0;
+            padding:0;
+            }
         </style>
       </head>
       <body>
@@ -150,7 +152,7 @@ export default function OfflineBillingPage() {
           <div class="bill-info">
             <div>
               <strong>Bill No:</strong> ${billNo}<br>
-              <strong>Date:</strong> ${formattedDateTime}
+               <strong>Date:</strong> ${formattedDate}
             </div>
             <div>
               <strong>Customer:</strong> ${customer.name}<br>
@@ -179,11 +181,17 @@ export default function OfflineBillingPage() {
             </tbody>
           </table>
 
-          <div class="totals">
-            <p><strong>Total Quantity:</strong> ${totalQuantity}</p>
-            <p><strong>Total Amount:</strong> ₹${totalPrice.toFixed(2)}</p>
-            <p><strong>Amount Paid:</strong> ₹${amountPaid.toFixed(2)}</p>
-            <p><strong>Balance:</strong> ₹${balance.toFixed(2)}</p>
+       
+
+               <div class="bill-info">
+            <div>
+              <strong>Total Quantity:</strong> ${totalQuantity}<br>
+               <strong>Date:</strong> ₹${totalPrice.toFixed(2)}
+            </div>
+            <div>
+              <strong>Amount Paid:</strong> ₹${amountPaid.toFixed(2)}<br>
+              <strong>Balance:</strong> ₹${balance.toFixed(2)}
+            </div>
           </div>
 
           <div class="footer">

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { Prisma } from '@prisma/client';
 import { processTransaction } from '@/lib/transaction';
+import moment from 'moment-timezone';
 
 interface BillItem {
   productId: number;
@@ -40,10 +41,36 @@ function serializeDecimal(value: any): number {
 function serializeDate(date: Date | null): string {
   if (!date) return '';
   try {
-    return new Date(date).toISOString();
+    // Convert to Indian timezone and format
+    return moment(date).tz('Asia/Kolkata').format('YYYY-MM-DD');
   } catch {
     return '';
   }
+}
+
+function serializeTime(time: Date | null): string {
+  if (!time) return '';
+  try {
+    return moment(time).tz('Asia/Kolkata').format('hh:mm A');
+  } catch {
+    return '';
+  }
+}
+
+function getCurrentIndianDateTime() {
+  const indianDateTime = moment().tz('Asia/Kolkata');
+    // Get current Indian date and time
+  
+    // Format date as YYYY-MM-DD
+    const indianDate = indianDateTime.format('YYYY-MM-DD');
+    
+    // Format time as HH:mm:ss
+    const indianTime = indianDateTime.format('HH:mm:ss');
+    console.log(indianDate,indianTime,"time and date");
+  return {
+    date:indianDate,
+    time: indianTime
+  };
 }
 
 export async function POST(request: Request) {
@@ -61,7 +88,6 @@ export async function POST(request: Request) {
 
     const data: BillRequest = await request.json();
 
-    // Validate request data
     if (!data.items?.length || !data.customerDetails || !data.paymentDetails || !data.total) {
       return NextResponse.json(
         {
@@ -74,8 +100,18 @@ export async function POST(request: Request) {
 
     const organisationId = parseInt(session.user.id, 10);
 
-    // Process the transaction and get bill details
-    const transactionId = await processTransaction(data, organisationId);
+    // Get current Indian date and time
+    const { date, time } = getCurrentIndianDateTime();
+console.log(date,time,"time and date");
+
+    // Add date and time to the transaction data
+    const transactionData = {
+      ...data,
+      date,
+      time
+    };
+
+    const transactionId = await processTransaction(transactionData, organisationId);
 
     const bill = await prisma.transactionRecord.findUnique({
       where: { id: transactionId },
@@ -94,13 +130,12 @@ export async function POST(request: Request) {
       throw new Error('Failed to retrieve bill details');
     }
 
-    // Format the response data
     const response = {
       id: bill.id,
       billNo: bill.billNo,
       totalPrice: serializeDecimal(bill.totalPrice),
       date: serializeDate(bill.date),
-      time: serializeDate(bill.time),
+      time: serializeTime(bill.time), // Using the new time serializer
       status: bill.status,
       organisation: bill.organisation
         ? {
@@ -133,10 +168,8 @@ export async function POST(request: Request) {
       })),
     };
 
-    // Log the response for debugging purposes
     console.log('Serialized Response:', JSON.stringify(response));
 
-    // Ensure the response is serializable
     const serializableResponse = JSON.parse(JSON.stringify(response));
 
     return NextResponse.json(

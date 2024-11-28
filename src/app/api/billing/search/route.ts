@@ -178,19 +178,33 @@ export async function GET(request: Request) {
             take: pageSize,
         });
 
+        console.log(bills);
+        
+
         const formattedBills: BillResponse[] = bills.map((bill) => {
             const dateObj = new Date(bill.date);
             const timeObj = new Date(bill.time);
-            const formattedDate = dateObj.toISOString().split('T')[0];
-            const formattedTime = timeObj.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-            });
+            // const timeObj = new Date(bill.time);
+
+            // Define options for 12-hour format
+            const options = {
+              hour: 'numeric',
+              minute: 'numeric',
+              hour12: true,
+              timeZone: 'UTC' // Change to your desired timezone if needed
+            };
+            
+            // Format the time
+            const formattedTime = new Intl.DateTimeFormat('en-US', options).format(timeObj);
+            
+
+            console.log(formattedTime);
+            
 
             return {
                 id: bill.id,
                 billNo: bill.billNo,
-                date: formattedDate,
+                date: dateObj,
                 time: formattedTime,
                 totalPrice: bill.totalPrice,
                 status: bill.status,
