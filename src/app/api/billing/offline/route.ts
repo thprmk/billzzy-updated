@@ -149,13 +149,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json(billWithDetails, { status: 201 });
   } catch (error) {
-    console.error('Offline billing error:', error);
+    console.error('Offline billing error:', error.message);
     
     if (error.message.includes('Insufficient quantity')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json(
+    
       { error: error.message || 'Failed to create bill' },
       { status: 500 }
     );

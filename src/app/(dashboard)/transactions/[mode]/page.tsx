@@ -20,10 +20,6 @@ export default async function BillsPage({ params }: PageProps) {
     redirect('/login');
   }
 
-  // Given Date Object
-
-
-
   try {
     const bills = await prisma.transactionRecord.findMany({
       where: {
@@ -39,7 +35,12 @@ export default async function BillsPage({ params }: PageProps) {
         },
         items: {
           include: {
-            product: true
+            product: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
           }
         }
       },
@@ -48,45 +49,53 @@ export default async function BillsPage({ params }: PageProps) {
       }
     });
 
-    
-
     const formattedBills = bills.map((bill) => {
-    
-      const time = new Date(bill.time);
-      const date =format(new Date(bill.date), 'dd/MM/yyyy')
+      // Ensure date and time are valid before formatting
+      let formattedDate = '';
+      let formattedTime = '';
+      
+      try {
+        formattedDate = bill.date ? format(new Date(bill.date), 'dd/MM/yyyy') : '';
+        
+        if (bill.time) {
+          const time = new Date(bill.time);
+          formattedTime = time.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+        }
+      } catch (error) {
+        console.error('Date formatting error:', error);
+      }
 
-
-// Options for 12-hour format with AM/PM
-const options = {
-  hour: 'numeric',
-  minute: '2-digit',
-  hour12: true,
-};
-
-// Extract and format the time
-const formattedTime = time.toLocaleTimeString('en-US', options);
-
-console.log(formattedTime); // Output: "7:53 PM"
+      // Ensure all values are serializable
       return {
         id: bill.id,
         billNo: bill.billNo,
-        date: date, // 'YYYY-MM-DD'
-        time: formattedTime, // 'HH:MM AM/PM'
-        totalPrice: bill.totalPrice,
-        status: bill.status,
+        date: formattedDate,
+        time: formattedTime,
+        totalPrice: Number(bill.totalPrice),
+        status: bill.status || 'pending',
         billingMode: bill.billingMode,
-        customer: bill.customer || { name: 'Walk-in Customer', phone: '-' },
+        customer: bill.customer ? {
+          name: bill.customer.name || 'Walk-in Customer',
+          phone: bill.customer.phone || '-'
+        } : {
+          name: 'Walk-in Customer',
+          phone: '-'
+        },
         paymentMethod: bill.paymentMethod || '-',
-        amountPaid: bill.amountPaid || 0,
-        balance: bill.balance || 0,
+        amountPaid: Number(bill.amountPaid || 0),
+        balance: Number(bill.balance || 0),
         trackingNumber: bill.trackingNumber || null,
-        weight: bill.weight || null,
+        weight: bill.weight ? Number(bill.weight) : null,
         items: bill.items.map((item) => ({
           id: item.id,
-          productName: item.product.name,
-          quantity: item.quantity,
-          totalPrice: item.totalPrice,
-        })),
+          productName: item.product?.name || 'Unknown Product',
+          quantity: Number(item.quantity),
+          totalPrice: Number(item.totalPrice),
+        }))
       };
     });
 
@@ -101,7 +110,6 @@ console.log(formattedTime); // Output: "7:53 PM"
               Manage your {params.mode} transactions
             </p>
           </div>
-          
         </div>
 
         <BillList
@@ -112,11 +120,14 @@ console.log(formattedTime); // Output: "7:53 PM"
     );
   } catch (error) {
     console.error('Error fetching bills:', error);
+    // Return a proper component instead of null
     return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-red-600">
-          Error loading bills. Please try again later.
-        </p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <p className="text-red-600">
+            Error loading bills. Please try again later.
+          </p>
+        </div>
       </div>
     );
   }
