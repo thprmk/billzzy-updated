@@ -1,4 +1,3 @@
-// pages/billing/offline.tsx
 'use client';
 
 import { useState } from 'react';
@@ -7,17 +6,21 @@ import { ProductTable } from '@/components/billing/ProductTable';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import type { BillItem } from '@/types/billing';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import React from 'react';  // Add this import
-
+import React from "react";
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
   { value: 'card', label: 'Card' },
   { value: 'upi', label: 'UPI' },
 ];
+
+interface BillItem {
+  productId: number;
+  quantity: number;
+  total: number;
+}
 
 export default function OfflineBillingPage() {
   const router = useRouter();
@@ -29,53 +32,209 @@ export default function OfflineBillingPage() {
   const [paymentDetails, setPaymentDetails] = useState({
     method: 'cash',
     amountPaid: '',
-    total: 0,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-
-  
-  // Update quantity of a specific item
-
-  // Remove an item from the bill
-
-  // Calculate total price of the bill
   const calculateTotal = () => {
     return items.reduce((sum, item) => sum + item.total, 0);
   };
 
-  // Calculate balance based on amount paid
   const calculateBalance = () => {
     const total = calculateTotal();
-    const amountPaidStr = paymentDetails.amountPaid;
-    if (!amountPaidStr) {
-      return 0;
-    }
-    const paid = parseFloat(amountPaidStr);
-    if (isNaN(paid)) {
-      return 0;
-    }
-    const balance = paid - total;
-    return balance >= 0 ? balance : 0;
+    const amountPaid = parseFloat(paymentDetails.amountPaid) || 0;
+    return Math.max(0, amountPaid - total);
   };
 
-  // Handle form submission
+  const formatDateTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const generateBillContent = (billData: any) => {
+    const { organisation, customer, items, billNo, date, totalPrice } = billData;
+    
+    if (!organisation) {
+      throw new Error('Organisation details missing');
+    }
+
+    const totalQuantity = items.reduce(
+      (sum: number, item: any) => sum + item.quantity,
+      0
+    );
+
+    const formattedDateTime = formatDateTime(date);
+    const amountPaid = parseFloat(paymentDetails.amountPaid);
+    const balance = calculateBalance();
+
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <title>Bill #${billNo}</title>
+        <style>
+          @media print {
+            @page { margin: 10mm; }
+            body { margin: 0; }
+          }
+          body { 
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+          }
+          .container { 
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          .shop-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          .address {
+            margin-bottom: 15px;
+          }
+          .bill-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+          th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+          }
+          th {
+            background-color: #f8f8f8;
+          }
+          .totals {
+            text-align: right;
+            margin-bottom: 20px;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 30px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="shop-name">${organisation.shopName}</div>
+            <div class="address">
+              ${organisation.flatNo}, ${organisation.street}<br>
+              ${organisation.district}, ${organisation.state} - ${organisation.pincode}<br>
+              Phone: ${organisation.phone}
+              ${organisation.websiteAddress ? `<br>Website: ${organisation.websiteAddress}` : ''}
+            </div>
+          </div>
+
+          <div class="bill-info">
+            <div>
+              <strong>Bill No:</strong> ${billNo}<br>
+              <strong>Date:</strong> ${formattedDateTime}
+            </div>
+            <div>
+              <strong>Customer:</strong> ${customer.name}<br>
+              <strong>Phone:</strong> ${customer.phone}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map((item: any) => `
+                <tr>
+                  <td>${item.product.name}</td>
+                  <td>${item.quantity}</td>
+                  <td>₹${item.product.sellingPrice.toFixed(2)}</td>
+                  <td>₹${item.totalPrice.toFixed(2)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="totals">
+            <p><strong>Total Quantity:</strong> ${totalQuantity}</p>
+            <p><strong>Total Amount:</strong> ₹${totalPrice.toFixed(2)}</p>
+            <p><strong>Amount Paid:</strong> ₹${amountPaid.toFixed(2)}</p>
+            <p><strong>Balance:</strong> ₹${balance.toFixed(2)}</p>
+          </div>
+
+          <div class="footer">
+            <p>Thank you for your business!</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  const handlePrintBill = (billData: any) => {
+    try {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error('Failed to open print window');
+      }
+
+      const billContent = generateBillContent(billData);
+      printWindow.document.write(billContent);
+      printWindow.document.close();
+
+      printWindow.onload = () => {
+        setTimeout(() => {
+          try {
+            printWindow.print();
+            printWindow.close();
+          } catch (error) {
+            console.error('Print error:', error);
+            toast.error('Failed to print bill');
+          }
+        }, 500);
+      };
+    } catch (error) {
+      console.error('Bill generation error:', error);
+      toast.error('Failed to generate bill');
+    }
+  };
+
   const handleSubmit = async () => {
     if (items.length === 0) {
-      setError('Please add at least one item');
       toast.error('Please add at least one item');
       return;
     }
 
     if (!customerDetails.name || !customerDetails.phone) {
-      setError('Please enter customer details');
       toast.error('Please enter customer details');
       return;
     }
 
     if (!paymentDetails.amountPaid) {
-      setError('Please enter amount paid');
       toast.error('Please enter amount paid');
       return;
     }
@@ -94,240 +253,32 @@ export default function OfflineBillingPage() {
             ...paymentDetails,
             amountPaid: parseFloat(paymentDetails.amountPaid),
           },
-          billingMode: 'offline',
           total: calculateTotal(),
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create bill');
+        throw new Error(result.error || 'Failed to create bill');
       }
 
-      // Generate and print the bill
-      generateAndPrintBill(data, paymentDetails);
+      if (!result.success || !result.data) {
+        throw new Error('Invalid response from server');
+      }
+
+      handlePrintBill(result.data);
+      toast.success('Bill created successfully');
+      router.push('/billing/offline');
+
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to create bill';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create bill';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
-
-    /**
-   * Print Functionality
-   */
-    const generateAndPrintBill = (data: any, formData: any) => {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        toast.error('Failed to open print window');
-        return;
-      }
-  
-      // Extract organisation details from API response
-      const organisation = data.organisation;
-      console.log(organisation);
-      
-  
-      if (!organisation) {
-        toast.error('Organisation details are missing in the response.');
-        return;
-      }
-  
-      const totalQuantity = data.items.reduce(
-        (sum: number, item: any) => sum + item.quantity,
-        0
-      );
-      const balance = calculateBalance(); // Use the frontend's calculateBalance function
-      const formattedDate = new Date(data.date).toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-  
-      const addressLines = `
-        ${organisation.flatNo}, ${organisation.street}<br>
-        ${organisation.district}, ${organisation.state}<br>
-        ${organisation.pincode}<br>
-        MOBILE: ${organisation.phone}
-      `;
-  
-      const websiteLine = organisation.websiteAddress
-        ? `<h5 class="text-center">${organisation.websiteAddress}</h5>`
-        : '';
-  
-      const billContent = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <title>Billing Invoice - Bill No: ${data.billNo}</title>
-          <style>
-            @media print {
-              @page {
-                size: 4in 6in; /* Adjust size as needed */
-                margin: 10mm;
-              }
-              body {
-                margin: 0;
-                padding: 0;
-              }
-              .container {
-                width: 100%;
-                height: 100%;
-                padding: 10px;
-                box-sizing: border-box;
-              }
-            }
-            body { 
-              font-family: Arial, sans-serif; 
-              margin: 0; 
-              padding: 0; 
-              font-size: 12px;
-            }
-            .container { 
-              max-width: 800px; 
-              margin: 0 auto; 
-              padding: 10px; 
-            }
-            h2, h4, h5, h6 { 
-              text-align: center; 
-              margin-bottom: 5px; 
-            }
-            .address { 
-              margin-bottom: 10px;
-            }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin-bottom: 10px; 
-              font-size: 12px;
-            }
-            th, td { 
-              border: 1px solid #ddd; 
-              padding: 5px; 
-              text-align: left; 
-            }
-            th { 
-              background-color: #f2f2f2; 
-            }
-            .label-container { 
-              display: flex; 
-              justify-content: space-between; 
-              margin-bottom: 5px; 
-            }
-            .footer { 
-              text-align: center; 
-              margin-top: 10px; 
-            }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h2>${organisation.shopName}</h2>
-            <h6 class="address">
-              ${addressLines}
-            </h6>
-            ${websiteLine}
-            <h5>Bill No: ${data.billNo}</h5>
-            <div class="label-container">
-              <div>
-                <strong>Name:</strong> ${data.customer.name}<br>
-                <strong>Ph No:</strong> ${data.customer.phone}
-              </div>
-              <div>
-                <strong>Payment:</strong> ${capitalizeFirstLetter(
-                  data.paymentMethod
-                )}<br>
-                <strong>Date:</strong> ${formattedDate}
-              </div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Product Name</th>
-                  <th>Qty</th>
-                  <th>Price (Rs.)</th>
-                  <th>Total (Rs.)</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${data.items
-                  .map(
-                    (item: any) => `
-                  <tr>
-                    <td>${item.product.name}</td>
-                    <td>${item.quantity}</td>
-                    <td>${parseFloat(item.product.sellingPrice).toFixed(2)}</td>
-                    <td>${parseFloat(item.totalPrice).toFixed(2)}</td>
-                  </tr>
-                `
-                  )
-                  .join('')}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="2"><strong>Total Quantity</strong></td>
-                  <td colspan="2"><strong>${totalQuantity}</strong></td>
-                </tr>
-                <tr>
-                  <td colspan="2"><strong>Total</strong></td>
-                  <td colspan="2"><strong>${parseFloat(data.totalPrice).toFixed(
-                    2
-                  )}</strong></td>
-                </tr>
-              </tfoot>
-            </table>
-            <div class="label-container">
-              <div>
-                <strong>Amount Paid:</strong> Rs.${parseFloat(
-                  formData.amountPaid
-                ).toFixed(2)}
-              </div>
-              <div>
-                <strong>Balance:</strong> Rs.${balance.toFixed(2)}
-              </div>
-            </div>
-            <div class="footer">
-              <p>Thank you for your business!</p>
-              <p>Visit Us Again!</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-  
-      printWindow.document.open();
-      printWindow.document.write(billContent);
-      printWindow.document.close();
-  
-      // Print when content is loaded
-      printWindow.onload = function () {
-        setTimeout(() => {
-          try {
-            printWindow.focus();
-            printWindow.print();
-          } catch (error) {
-            console.error('Print error:', error);
-            alert('There was an error while trying to print. Please try again.');
-          } finally {
-            printWindow.close();
-          }
-        }, 500); // Slight delay to ensure all resources are loaded
-      };
-    };
-  
-    /**
-     * Utility Functions
-     */
-  
-    // Capitalize the first letter of a string
-    const capitalizeFirstLetter = (string: string) => {
-      return string.charAt(0).toUpperCase() + string.slice(1);
-    };
 
 
 
