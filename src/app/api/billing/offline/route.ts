@@ -90,34 +90,34 @@ async function processTransaction(data: BillRequest, organisationId: number) {
     });
 
     // Process each item in the bill
-    for (const item of data.items) {
-      const product = await tx.product.findUnique({
-        where: { id: item.productId }
-      });
+    // for (const item of data.items) {
+    //   const product = await tx.product.findUnique({
+    //     where: { id: item.productId }
+    //   });
 
-      if (!product) {
-        throw new Error(`Product not found: ${item.productId}`);
-      }
+    //   if (!product) {
+    //     throw new Error(`Product not found: ${item.productId}`);
+    //   }
 
-      if (product.quantity < item.quantity) {
-        throw new Error(`Insufficient stock for ${product.name}`);
-      }
+    //   if (product.quantity < item.quantity) {
+    //     throw new Error(`Insufficient stock for ${product.name}`);
+    //   }
 
-      // Update product quantity and create transaction item
-      await tx.product.update({
-        where: { id: item.productId },
-        data: { quantity: { decrement: item.quantity } }
-      });
+    //   // Update product quantity and create transaction item
+    //   await tx.product.update({
+    //     where: { id: item.productId },
+    //     data: { quantity: { decrement: item.quantity } }
+    //   });
 
-      await tx.transactionItem.create({
-        data: {
-          transactionId: transaction.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          totalPrice: item.total
-        }
-      });
-    }
+    //   await tx.transactionItem.create({
+    //     data: {
+    //       transactionId: transaction.id,
+    //       productId: item.productId,
+    //       quantity: item.quantity,
+    //       totalPrice: item.total
+    //     }
+    //   });
+    // }
 
     return transaction.id;
   }, {
