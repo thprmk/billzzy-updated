@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../auth/[...nextauth]/route'; // Adjust the path as necessary
+import { authOptions } from '@/lib/auth-options';
 
 export async function GET(request: NextRequest) {
   // Retrieve the session
@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
 
   try {
     // Assuming the session.user.id corresponds to organisation.id
-    console.log(session);
     
     const orgId = session.user.id;
 

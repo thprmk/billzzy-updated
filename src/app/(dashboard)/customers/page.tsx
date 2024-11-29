@@ -1,6 +1,6 @@
 // app/customers/page.tsx
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import CustomerList from '@/components/customers/CustomerList';
 import { redirect } from 'next/navigation';

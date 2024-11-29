@@ -10,6 +10,8 @@ interface OrganisationWithRemainingDays extends Organisation {
 }
 
 const AdminPage = async () => {
+
+
   const organisations = await prisma.organisation.findMany({
     select: {
       id: true,

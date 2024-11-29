@@ -1,7 +1,7 @@
 // pages/dashboard/index.tsx
 
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'; // Adjust the path as needed
+import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import React from 'react';  // Add this import
@@ -135,6 +135,7 @@ async function getDashboardData(organisationId: string) {
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return null;
+console.log(session,"db");
 
   const data = await getDashboardData(session.user.id);
 

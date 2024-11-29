@@ -1,6 +1,6 @@
 // app/customers/[id]/edit/page.tsx
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { EditCustomerForm } from '@/components/customers/EditCustomerForm';
 import { notFound, redirect } from 'next/navigation';

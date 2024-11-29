@@ -9,8 +9,7 @@ import { FiEye, FiEyeOff } from 'react-icons/fi';
 import {toast} from 'react-toastify'
 import React from 'react';  // Add this import
 
-const ADMIN_EMAIL = process.env.ADMIN_USERNAME
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD; 
+
 
 export default function LoginForm() {
   const router = useRouter();
@@ -26,16 +25,12 @@ export default function LoginForm() {
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    if (email === 'admin@billz.com' && password === 'billz$2012') {
-      router.push('/admin');
-      return;
-    } 
+
     try {
       const result = await signIn('credentials', {
-        email: email,
-        password: password,
-        redirect: true,
-        callbackUrl: '/dashboard'
+        email,
+        password,
+        redirect: false
       });
   
 
@@ -45,8 +40,20 @@ export default function LoginForm() {
       }
 
   
-      router.push('/dashboard');
+      // router.push('/dashboard');
       router.refresh();
+
+
+           // Check role and redirect accordingly
+           const response = await fetch('/api/auth/session');
+           const session = await response.json();
+          console.log(session);
+          
+           if (session?.user?.role === 'admin') {
+             router.push('/admin');
+           } else {
+             router.push('/dashboard');
+           }
     } catch (error) {
       setError('An error occurred during login');
     } finally {

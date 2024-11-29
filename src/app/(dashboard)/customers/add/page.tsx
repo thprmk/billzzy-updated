@@ -1,6 +1,6 @@
 // app/customers/add/page.tsx
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { redirect } from 'next/navigation';
 import React from 'react';  // Add this import

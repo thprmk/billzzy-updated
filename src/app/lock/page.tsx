@@ -36,6 +36,7 @@ export default function LockPage() {
         router.push('/dashboard');
       }
     }
+ 
   }, [session, router]);
 
   const amounts = calculateAmount();

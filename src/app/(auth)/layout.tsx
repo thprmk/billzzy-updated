@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth-options';
 import React from 'react';  // Add this import
 
 export default async function Layout({
@@ -7,8 +7,6 @@ export default async function Layout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions);
-console.log(session);
 
   // Redirect to dashboard if already logged in
   // if (session&&session.user.name!=='Admin User') {    
