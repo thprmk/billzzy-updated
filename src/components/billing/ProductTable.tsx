@@ -40,7 +40,7 @@ import { toast } from 'react-toastify';
 import React from "react";
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 
-export function ProductTable({ onChange, maxRows = 10 }: ProductTableProps) {
+export function ProductTable({ onChange, maxRows = 20 }: ProductTableProps) {
   const [rows, setRows] = useState<ProductRow[]>([createInitialRow()]);
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
   const [searchTerm, setSearchTerm] = useState<{ id: string; term: string }>({ id: '', term: '' });
