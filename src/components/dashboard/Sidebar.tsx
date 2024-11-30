@@ -17,6 +17,9 @@ import useSWR from 'swr';
 import EnhancedLogoutButton from '../ui/LogoutBtn';
 import { differenceInCalendarDays, parseISO, isAfter } from 'date-fns'; // Import date-fns functions
 import React from 'react';  // Add this import
+import RazorpayConnect from '../ui/RazorpayConnect';
+// import { useRazorpayConnect } from '@/hooks/useRazorpayConnect';
+
 
 interface Organisation {
   id: number;
@@ -87,6 +90,7 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const [openItems, setOpenItems] = useState<{ [key: string]: boolean }>({});
+  // const { initiateConnect, isConnected } = useRazorpayConnect();
 
   const toggleItem = (name: string) => {
     setOpenItems((prev) => ({ ...prev, [name]: !prev[name] }));
@@ -264,6 +268,8 @@ export default function Sidebar({
             })}
           </nav>
         </div>
+
+            {/* <RazorpayConnect/> */}
 
         {/* Bottom section for subscription info and logout */}
         <div className="px-4 py-6 border-t border-gray-200">

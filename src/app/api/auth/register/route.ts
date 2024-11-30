@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         password: hashedPassword,
         name,
         phone,
-        companySize,
+        companySize:'0',
         shopName,
         flatNo,
         street,

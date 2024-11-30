@@ -31,8 +31,8 @@ interface SMSConfig {
     organisationId
   }: BillingSMSParams) {
     try {
-      const url = 'https://control.msg91.com/api/v5/flow/';
-      // const url = 'https://control.msg91.';
+      // const url = 'https://control.msg91.com/api/v5/flow/';
+      const url = 'https://control.msg91.';
 
       
       // Split address into three parts
@@ -126,8 +126,8 @@ interface SMSConfig {
     }
   
     try {
-      const url = 'https://control.msg91.com/api/v5/flow/';
-      // const url = 'https://control.msg91.';
+      // const url = 'https://control.msg91.com/api/v5/flow/';
+      const url = 'https://control.msg91.';
 
       const response = await fetch(url, {
         method: 'POST',

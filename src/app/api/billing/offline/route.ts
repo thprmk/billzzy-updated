@@ -1,10 +1,11 @@
 // app/api/billing/route.ts
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import { Prisma } from '@prisma/client';
-import { processTransaction } from '@/lib/transaction';
+import { processTransaction } from '@/lib/transaction'; // Ensure the correct import path
 import moment from 'moment-timezone';
 
 interface BillItem {
@@ -59,17 +60,16 @@ function serializeTime(time: Date | null): string {
 
 function getCurrentIndianDateTime() {
   const indianDateTime = moment().tz('Asia/Kolkata');
-    // Get current Indian date and time
-  
-    // Format date as YYYY-MM-DD
-    const indianDate = indianDateTime.format('YYYY-MM-DD');
-    
-    // Format time as HH:mm:ss
-    const indianTime = indianDateTime.format('HH:mm:ss');
-    console.log(indianDate,indianTime,"time and date");
+
+  // Format date as YYYY-MM-DD
+  const indianDate = indianDateTime.format('YYYY-MM-DD');
+
+  // Format time as HH:mm:ss
+  const indianTime = indianDateTime.format('HH:mm:ss');
+
   return {
-    date:indianDate,
-    time: indianTime
+    date: indianDate,
+    time: indianTime,
   };
 }
 
@@ -102,17 +102,18 @@ export async function POST(request: Request) {
 
     // Get current Indian date and time
     const { date, time } = getCurrentIndianDateTime();
-console.log(date,time,"time and date");
 
     // Add date and time to the transaction data
     const transactionData = {
       ...data,
       date,
-      time
+      time,
     };
 
+    // Process the transaction
     const transactionId = await processTransaction(transactionData, organisationId);
 
+    // Retrieve the bill details
     const bill = await prisma.transactionRecord.findUnique({
       where: { id: transactionId },
       include: {
@@ -130,12 +131,13 @@ console.log(date,time,"time and date");
       throw new Error('Failed to retrieve bill details');
     }
 
+    // Prepare the response data
     const response = {
       id: bill.id,
       billNo: bill.billNo,
       totalPrice: serializeDecimal(bill.totalPrice),
       date: serializeDate(bill.date),
-      time: serializeTime(bill.time), // Using the new time serializer
+      time: serializeTime(bill.time),
       status: bill.status,
       organisation: bill.organisation
         ? {
@@ -168,10 +170,10 @@ console.log(date,time,"time and date");
       })),
     };
 
-    console.log('Serialized Response:', JSON.stringify(response));
-
+    // Ensure the response is serializable
     const serializableResponse = JSON.parse(JSON.stringify(response));
 
+    // Send the response
     return NextResponse.json(
       {
         success: true,

@@ -1,35 +1,28 @@
-import "next-auth";
+// types/next-auth.d.ts
+import { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      email: string;
-      name: string;
+      role: string;
       shopName: string;
       endDate: Date;
       subscriptionType: string;
       smsCount: number;
-    }
+    } & DefaultSession["user"];
+    razorpayState?: string;
+    razorpayStateTimestamp?: number;
   }
 
-  interface User {
-    id: string;
-    email: string;
-    name: string;
-    shopName: string;
-    endDate: Date;
-    subscriptionType: string;
-    smsCount: number;
-  }
-}
-
-declare module "next-auth/jwt" {
   interface JWT {
     id: string;
+    role: string;
     shopName: string;
     endDate: Date;
     subscriptionType: string;
     smsCount: number;
+    razorpayState?: string;
+    razorpayStateTimestamp?: number;
   }
 }

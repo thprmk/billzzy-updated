@@ -1,7 +1,6 @@
 // lib/auth-options.ts
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
 import { compare } from "bcryptjs";
 
@@ -17,6 +16,9 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Please enter your email and password");
         }
+
+        console.log(credentials);
+        
 
         // Admin check
         if (
@@ -86,8 +88,21 @@ export const authOptions: NextAuthOptions = {
         token.subscriptionType = user.subscriptionType;
         token.smsCount = user.smsCount;
       }
+
+      // Add Razorpay state management
+      if (token.razorpayState) {
+        const stateTimestamp = token.razorpayStateTimestamp as number;
+        const isStateExpired = Date.now() - stateTimestamp > 600000; // 10 minutes
+
+        if (isStateExpired) {
+          delete token.razorpayState;
+          delete token.razorpayStateTimestamp;
+        }
+      }
+
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
@@ -96,6 +111,12 @@ export const authOptions: NextAuthOptions = {
         session.user.endDate = token.endDate;
         session.user.subscriptionType = token.subscriptionType;
         session.user.smsCount = token.smsCount;
+
+        // Include Razorpay state in session if present
+        if (token.razorpayState) {
+          session.razorpayState = token.razorpayState;
+          session.razorpayStateTimestamp = token.razorpayStateTimestamp;
+        }
       }
       return session;
     },
