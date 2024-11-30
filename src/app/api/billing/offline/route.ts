@@ -50,7 +50,7 @@ function serializeDate(date: Date | null): string {
 function serializeTime(time: Date | null): string {
   if (!time) return '';
   try {
-    return moment(time).tz('Asia/Kolkata').format('HH:mm:ss');
+    return moment(time).tz('Asia/Kolkata').format('hh:mm A');
   } catch {
     return '';
   }
@@ -58,9 +58,11 @@ function serializeTime(time: Date | null): string {
 
 function getCurrentIndianDateTime() {
   const indianDateTime = moment().tz('Asia/Kolkata');
+  const indianDate = indianDateTime.format('YYYY-MM-DD');
+  const indianTime = indianDateTime.format('HH:mm:ss');
   return {
-    date: indianDateTime.format('YYYY-MM-DD'),
-    time: indianDateTime.format('HH:mm:ss')
+    date: indianDate,
+    time: indianTime
   };
 }
 
@@ -85,22 +87,27 @@ export async function POST(request: Request) {
 
     const organisationId = parseInt(session.user.id, 10);
     const { date, time } = getCurrentIndianDateTime();
-
     const transactionData = { ...data, date, time };
+
     const transactionId = await processTransaction(transactionData, organisationId);
 
-    const bill = await prisma.transactionRecord.findUnique({
-      where: { id: transactionId },
-      include: {
-        organisation: true,
-        customer: true,
-        items: {
-          include: {
-            product: true,
+    const bill = await Promise.race([
+      prisma.transactionRecord.findUnique({
+        where: { id: transactionId },
+        include: {
+          organisation: true,
+          customer: true,
+          items: {
+            include: {
+              product: true,
+            },
           },
         },
-      },
-    });
+      }),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database query timeout')), 15000)
+      )
+    ]);
 
     if (!bill) {
       throw new Error('Failed to retrieve bill details');
@@ -154,7 +161,22 @@ export async function POST(request: Request) {
     console.error('API Error:', {
       message: error.message,
       stack: error.stack,
+      data: error.data
     });
+
+    if (error.code === 'P2002') {
+      return NextResponse.json({
+        success: false,
+        error: 'Duplicate entry detected',
+      }, { status: 409 });
+    }
+
+    if (error.message.includes('Insufficient stock')) {
+      return NextResponse.json({
+        success: false,
+        error: 'Insufficient stock available',
+      }, { status: 400 });
+    }
 
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return NextResponse.json(
