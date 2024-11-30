@@ -1,4 +1,4 @@
-// lib/transaction.ts
+// lib/processTransaction.ts
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
@@ -23,11 +23,7 @@ interface BillRequest {
   customerDetails: CustomerDetails;
   paymentDetails: PaymentDetails;
   total: number;
-  date: string;
-  time: string;
 }
-
-const BATCH_SIZE = 50;
 
 async function generateBillNumber(tx: Prisma.TransactionClient): Promise<number> {
   const lastBill = await tx.transactionRecord.findFirst({
@@ -36,67 +32,9 @@ async function generateBillNumber(tx: Prisma.TransactionClient): Promise<number>
   return (lastBill?.billNo ?? 0) + 1;
 }
 
-async function validateProducts(tx: Prisma.TransactionClient, items: BillItem[]) {
-  const productIds = [...new Set(items.map(item => item.productId))];
-  const products = await tx.product.findMany({
-    where: { id: { in: productIds } },
-    select: { id: true, name: true, quantity: true }
-  });
-
-  const productMap = new Map(products.map(p => [p.id, p]));
-  const quantityMap = new Map<number, number>();
-
-  items.forEach(item => {
-    const currentTotal = quantityMap.get(item.productId) || 0;
-    quantityMap.set(item.productId, currentTotal + item.quantity);
-  });
-
-  for (const [productId, totalQuantity] of quantityMap) {
-    const product = productMap.get(productId);
-    if (!product) {
-      throw new Error(`Product not found: ${productId}`);
-    }
-    if (product.quantity < totalQuantity) {
-      throw new Error(`Insufficient stock for ${product.name}`);
-    }
-  }
-
-  return { productMap, quantityMap };
-}
-
-async function processBatch(
-  tx: Prisma.TransactionClient,
-  items: BillItem[],
-  transactionId: number
-) {
-  const updatePromises = items.map(item =>
-    tx.product.update({
-      where: {
-        id: item.productId,
-        quantity: { gte: item.quantity }
-      },
-      data: {
-        quantity: { decrement: item.quantity }
-      }
-    })
-  );
-
-  const transactionItemPromises = items.map(item =>
-    tx.transactionItem.create({
-      data: {
-        transactionId,
-        productId: item.productId,
-        quantity: item.quantity,
-        totalPrice: item.total
-      }
-    })
-  );
-
-  await Promise.all([...updatePromises, ...transactionItemPromises]);
-}
-
 export async function processTransaction(data: BillRequest, organisationId: number) {
   return await prisma.$transaction(async (tx) => {
+    // 1. Find or Create Customer
     let customer = await tx.customer.findFirst({
       where: {
         phone: data.customerDetails.phone,
@@ -114,9 +52,10 @@ export async function processTransaction(data: BillRequest, organisationId: numb
       });
     }
 
-    await validateProducts(tx, data.items);
+    // 2. Generate Bill Number
     const billNo = await generateBillNumber(tx);
 
+    // 3. Create Transaction Record
     const transaction = await tx.transactionRecord.create({
       data: {
         billNo,
@@ -128,25 +67,59 @@ export async function processTransaction(data: BillRequest, organisationId: numb
         organisationId,
         customerId: customer.id,
         date: new Date(data.date),
-        time: new Date(`1970-01-01T${data.time}.000Z`),
-        status: 'processing',
+        time:new Date(`1970-01-01T${data.time}.000Z`),
+        status: 'confirmed',
       },
     });
 
-    for (let i = 0; i < data.items.length; i += BATCH_SIZE) {
-      const batch = data.items.slice(i, i + BATCH_SIZE);
-      await processBatch(tx, batch, transaction.id);
+    // 4. Batch Fetch Products
+    const productIds = data.items.map((item) => item.productId);
+    const products = await tx.product.findMany({
+      where: {
+        id: { in: productIds },
+      },
+    });
+
+    const productMap = new Map<number, any>();
+    products.forEach((product) => {
+      productMap.set(product.id, product);
+    });
+
+    // 5. Validate Products and Stock
+    for (const item of data.items) {
+      const product = productMap.get(item.productId);
+      if (!product) {
+        throw new Error(`Product not found: ${item.productId}`);
+      }
+      if (product.quantity < item.quantity) {
+        throw new Error(`Insufficient stock for ${product.name}`);
+      }
     }
 
-    await tx.transactionRecord.update({
-      where: { id: transaction.id },
-      data: { status: 'confirmed' }
+    // 6. Update Product Quantities in Parallel
+    await Promise.all(
+      data.items.map((item) =>
+        tx.product.update({
+          where: { id: item.productId },
+          data: { quantity: { decrement: item.quantity } },
+        })
+      )
+    );
+
+    // 7. Create Transaction Items in Bulk
+    await tx.transactionItem.createMany({
+      data: data.items.map((item) => ({
+        transactionId: transaction.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        totalPrice: item.total,
+      })),
     });
 
     return transaction.id;
   }, {
-    maxWait: 15000,
-    timeout: 60000,
+    maxWait: 5000,
+    timeout: 10000,
     isolationLevel: 'Serializable',
   });
 }
