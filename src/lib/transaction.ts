@@ -27,11 +27,72 @@ interface BillRequest {
   time: string;
 }
 
+const BATCH_SIZE = 50;
+
 async function generateBillNumber(tx: Prisma.TransactionClient): Promise<number> {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
   });
   return (lastBill?.billNo ?? 0) + 1;
+}
+
+async function validateProducts(tx: Prisma.TransactionClient, items: BillItem[]) {
+  const productIds = [...new Set(items.map(item => item.productId))];
+  const products = await tx.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true, name: true, quantity: true }
+  });
+
+  const productMap = new Map(products.map(p => [p.id, p]));
+  const quantityMap = new Map<number, number>();
+
+  items.forEach(item => {
+    const currentTotal = quantityMap.get(item.productId) || 0;
+    quantityMap.set(item.productId, currentTotal + item.quantity);
+  });
+
+  for (const [productId, totalQuantity] of quantityMap) {
+    const product = productMap.get(productId);
+    if (!product) {
+      throw new Error(`Product not found: ${productId}`);
+    }
+    if (product.quantity < totalQuantity) {
+      throw new Error(`Insufficient stock for ${product.name}`);
+    }
+  }
+
+  return { productMap, quantityMap };
+}
+
+async function processBatch(
+  tx: Prisma.TransactionClient,
+  items: BillItem[],
+  transactionId: number
+) {
+  const updatePromises = items.map(item =>
+    tx.product.update({
+      where: {
+        id: item.productId,
+        quantity: { gte: item.quantity }
+      },
+      data: {
+        quantity: { decrement: item.quantity }
+      }
+    })
+  );
+
+  const transactionItemPromises = items.map(item =>
+    tx.transactionItem.create({
+      data: {
+        transactionId,
+        productId: item.productId,
+        quantity: item.quantity,
+        totalPrice: item.total
+      }
+    })
+  );
+
+  await Promise.all([...updatePromises, ...transactionItemPromises]);
 }
 
 export async function processTransaction(data: BillRequest, organisationId: number) {
@@ -53,6 +114,7 @@ export async function processTransaction(data: BillRequest, organisationId: numb
       });
     }
 
+    await validateProducts(tx, data.items);
     const billNo = await generateBillNumber(tx);
 
     const transaction = await tx.transactionRecord.create({
@@ -67,57 +129,24 @@ export async function processTransaction(data: BillRequest, organisationId: numb
         customerId: customer.id,
         date: new Date(data.date),
         time: new Date(`1970-01-01T${data.time}.000Z`),
-        status: 'confirmed',
+        status: 'processing',
       },
     });
 
-    const productIds = data.items.map((item) => item.productId);
-    const products = await tx.product.findMany({
-      where: {
-        id: { in: productIds },
-      },
-    });
-
-    const productMap = new Map<number, any>();
-    products.forEach((product) => {
-      productMap.set(product.id, product);
-    });
-
-    for (const item of data.items) {
-      const product = productMap.get(item.productId);
-      if (!product) {
-        throw new Error(`Product not found: ${item.productId}`);
-      }
-      if (product.quantity < item.quantity) {
-        throw new Error(`Insufficient stock for ${product.name}`);
-      }
+    for (let i = 0; i < data.items.length; i += BATCH_SIZE) {
+      const batch = data.items.slice(i, i + BATCH_SIZE);
+      await processBatch(tx, batch, transaction.id);
     }
 
-    for (const item of data.items) {
-      await tx.product.update({
-        where: { 
-          id: item.productId,
-          quantity: { gte: item.quantity }
-        },
-        data: { 
-          quantity: { decrement: item.quantity }
-        },
-      });
-    }
-
-    await tx.transactionItem.createMany({
-      data: data.items.map((item) => ({
-        transactionId: transaction.id,
-        productId: item.productId,
-        quantity: item.quantity,
-        totalPrice: item.total,
-      })),
+    await tx.transactionRecord.update({
+      where: { id: transaction.id },
+      data: { status: 'confirmed' }
     });
 
     return transaction.id;
   }, {
-    maxWait: 10000,
-    timeout: 30000,
+    maxWait: 15000,
+    timeout: 60000,
     isolationLevel: 'Serializable',
   });
 }

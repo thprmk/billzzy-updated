@@ -1,166 +1,208 @@
 // app/api/billing/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
+import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
-import { DatabaseService } from '@/lib/database-service';
-
-
-// lib/utils.ts
+import { Prisma } from '@prisma/client';
+import { processTransaction } from '@/lib/transaction';
 import moment from 'moment-timezone';
 
-export function getCurrentIndianDateTime() {
-    const indianDateTime = moment().tz('Asia/Kolkata');
-    return {
-        date: indianDateTime.format('YYYY-MM-DD'),
-        time: indianDateTime.format('HH:mm:ss')
-    };
-}
-
-export interface BillItem {
+interface BillItem {
   productId: number;
   quantity: number;
   total: number;
 }
 
-export interface CustomerDetails {
+interface CustomerDetails {
   name: string;
   phone: string;
 }
 
-export interface PaymentDetails {
+interface PaymentDetails {
   method: string;
   amountPaid: number;
 }
 
-export interface BillRequest {
+interface BillRequest {
   items: BillItem[];
   customerDetails: CustomerDetails;
   paymentDetails: PaymentDetails;
   total: number;
 }
 
+function serializeDecimal(value: any): number {
+  if (typeof value === 'object' && value !== null && typeof value.toNumber === 'function') {
+    return value.toNumber();
+  }
+  const num = Number(value);
+  return isNaN(num) ? 0 : num;
+}
+
+function serializeDate(date: Date | null): string {
+  if (!date) return '';
+  try {
+    // Convert to Indian timezone and format
+    return moment(date).tz('Asia/Kolkata').format('YYYY-MM-DD');
+  } catch {
+    return '';
+  }
+}
+
+function serializeTime(time: Date | null): string {
+  if (!time) return '';
+  try {
+    return moment(time).tz('Asia/Kolkata').format('hh:mm A');
+  } catch {
+    return '';
+  }
+}
+
+function getCurrentIndianDateTime() {
+  const indianDateTime = moment().tz('Asia/Kolkata');
+    // Get current Indian date and time
+  
+    // Format date as YYYY-MM-DD
+    const indianDate = indianDateTime.format('YYYY-MM-DD');
+    
+    // Format time as HH:mm:ss
+    const indianTime = indianDateTime.format('HH:mm:ss');
+    console.log(indianDate,indianTime,"time and date");
+  return {
+    date:indianDate,
+    time: indianTime
+  };
+}
+
 export async function POST(request: Request) {
-    const dbService = DatabaseService.getInstance();
-    const prisma = dbService.getPrisma();
-
-    try {
-        const session = await getServerSession(authOptions);
-        if (!session?.user?.id) {
-            return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        const data: BillRequest = await request.json();
-        const organisationId = parseInt(session.user.id, 10);
-        const { date, time } = getCurrentIndianDateTime();
-
-        const result = await dbService.executeTransaction(async () => {
-            // Find or create customer
-            let customer = await prisma.customer.findFirst({
-                where: {
-                    phone: data.customerDetails.phone,
-                    organisationId,
-                }
-            });
-
-            if (!customer) {
-                customer = await prisma.customer.create({
-                    data: {
-                        name: data.customerDetails.name,
-                        phone: data.customerDetails.phone,
-                        organisationId,
-                    }
-                });
-            }
-
-            // Generate bill number
-            const lastBill = await prisma.transactionRecord.findFirst({
-                orderBy: { billNo: 'desc' },
-            });
-            const billNo = (lastBill?.billNo ?? 0) + 1;
-
-            // Create transaction record
-            const transaction = await prisma.transactionRecord.create({
-                data: {
-                    billNo,
-                    totalPrice: data.total,
-                    billingMode: 'offline',
-                    paymentMethod: data.paymentDetails.method,
-                    amountPaid: data.paymentDetails.amountPaid,
-                    balance: data.paymentDetails.amountPaid - data.total,
-                    organisationId,
-                    customerId: customer.id,
-                    date: new Date(date),
-                    time: new Date(`1970-01-01T${time}.000Z`),
-                    status: 'confirmed',
-                }
-            });
-
-            // Process items and update inventory
-            for (const item of data.items) {
-                const product = await prisma.product.findUnique({
-                    where: { id: item.productId }
-                });
-
-                if (!product) {
-                    throw new Error(`Product not found: ${item.productId}`);
-                }
-
-                if (product.quantity < item.quantity) {
-                    throw new Error(`Insufficient stock for ${product.name}`);
-                }
-
-                await prisma.product.update({
-                    where: { 
-                        id: item.productId,
-                        quantity: { gte: item.quantity }
-                    },
-                    data: { 
-                        quantity: { decrement: item.quantity }
-                    }
-                });
-
-                await prisma.transactionItem.create({
-                    data: {
-                        transactionId: transaction.id,
-                        productId: item.productId,
-                        quantity: item.quantity,
-                        totalPrice: item.total
-                    }
-                });
-            }
-
-            return transaction;
-        });
-
-        // Fetch complete bill details
-        const bill = await prisma.transactionRecord.findUnique({
-            where: { id: result.id },
-            include: {
-                organisation: true,
-                customer: true,
-                items: {
-                    include: {
-                        product: true,
-                    },
-                },
-            },
-        });
-
-        return NextResponse.json({
-            success: true,
-            data: bill
-        });
-
-    } catch (error: any) {
-        console.error('Transaction Error:', error);
-        
-        return NextResponse.json({
-            success: false,
-            error: 'Transaction processing failed',
-            details: error.message
-        }, { status: 500 });
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+        },
+        { status: 401 }
+      );
     }
+
+    const data: BillRequest = await request.json();
+
+    if (!data.items?.length || !data.customerDetails || !data.paymentDetails || !data.total) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid request data',
+        },
+        { status: 400 }
+      );
+    }
+
+    const organisationId = parseInt(session.user.id, 10);
+
+    // Get current Indian date and time
+    const { date, time } = getCurrentIndianDateTime();
+console.log(date,time,"time and date");
+
+    // Add date and time to the transaction data
+    const transactionData = {
+      ...data,
+      date,
+      time
+    };
+
+    const transactionId = await processTransaction(transactionData, organisationId);
+
+    const bill = await prisma.transactionRecord.findUnique({
+      where: { id: transactionId },
+      include: {
+        organisation: true,
+        customer: true,
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!bill) {
+      throw new Error('Failed to retrieve bill details');
+    }
+
+    const response = {
+      id: bill.id,
+      billNo: bill.billNo,
+      totalPrice: serializeDecimal(bill.totalPrice),
+      date: serializeDate(bill.date),
+      time: serializeTime(bill.time), // Using the new time serializer
+      status: bill.status,
+      organisation: bill.organisation
+        ? {
+            name: bill.organisation.name || '',
+            shopName: bill.organisation.shopName || '',
+            flatNo: bill.organisation.flatNo || '',
+            street: bill.organisation.street || '',
+            district: bill.organisation.district || '',
+            state: bill.organisation.state || '',
+            pincode: bill.organisation.pincode || '',
+            phone: bill.organisation.mobileNumber || '',
+            websiteAddress: bill.organisation.websiteAddress || '',
+          }
+        : null,
+      customer: {
+        id: bill.customer?.id,
+        name: bill.customer?.name || 'Walk-in Customer',
+        phone: bill.customer?.phone || '-',
+      },
+      items: bill.items.map((item) => ({
+        id: item.id,
+        quantity: serializeDecimal(item.quantity),
+        totalPrice: serializeDecimal(item.totalPrice),
+        product: {
+          id: item.product.id,
+          name: item.product.name || '',
+          SKU: item.product.SKU || '',
+          sellingPrice: serializeDecimal(item.product.sellingPrice),
+        },
+      })),
+    };
+
+    console.log('Serialized Response:', JSON.stringify(response));
+
+    const serializableResponse = JSON.parse(JSON.stringify(response));
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: serializableResponse,
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error('API Error:', {
+      message: error.message,
+      stack: error.stack,
+    });
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database operation failed',
+          code: error.code,
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to create bill',
+        details: error instanceof Error ? error.message : 'An unexpected error occurred',
+      },
+      { status: 500 }
+    );
+  }
 }
