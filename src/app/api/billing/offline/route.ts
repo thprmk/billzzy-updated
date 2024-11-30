@@ -1,11 +1,10 @@
 // app/api/billing/route.ts
-
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 import { Prisma } from '@prisma/client';
-import { processTransaction } from '@/lib/transaction'; // Ensure the correct import path
+import { processTransaction } from '@/lib/transaction';
 import moment from 'moment-timezone';
 
 interface BillItem {
@@ -42,7 +41,6 @@ function serializeDecimal(value: any): number {
 function serializeDate(date: Date | null): string {
   if (!date) return '';
   try {
-    // Convert to Indian timezone and format
     return moment(date).tz('Asia/Kolkata').format('YYYY-MM-DD');
   } catch {
     return '';
@@ -52,7 +50,7 @@ function serializeDate(date: Date | null): string {
 function serializeTime(time: Date | null): string {
   if (!time) return '';
   try {
-    return moment(time).tz('Asia/Kolkata').format('hh:mm A');
+    return moment(time).tz('Asia/Kolkata').format('HH:mm:ss');
   } catch {
     return '';
   }
@@ -60,16 +58,9 @@ function serializeTime(time: Date | null): string {
 
 function getCurrentIndianDateTime() {
   const indianDateTime = moment().tz('Asia/Kolkata');
-
-  // Format date as YYYY-MM-DD
-  const indianDate = indianDateTime.format('YYYY-MM-DD');
-
-  // Format time as HH:mm:ss
-  const indianTime = indianDateTime.format('HH:mm:ss');
-
   return {
-    date: indianDate,
-    time: indianTime,
+    date: indianDateTime.format('YYYY-MM-DD'),
+    time: indianDateTime.format('HH:mm:ss')
   };
 }
 
@@ -78,10 +69,7 @@ export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Unauthorized',
-        },
+        { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
@@ -90,30 +78,17 @@ export async function POST(request: Request) {
 
     if (!data.items?.length || !data.customerDetails || !data.paymentDetails || !data.total) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid request data',
-        },
+        { success: false, error: 'Invalid request data' },
         { status: 400 }
       );
     }
 
     const organisationId = parseInt(session.user.id, 10);
-
-    // Get current Indian date and time
     const { date, time } = getCurrentIndianDateTime();
 
-    // Add date and time to the transaction data
-    const transactionData = {
-      ...data,
-      date,
-      time,
-    };
-
-    // Process the transaction
+    const transactionData = { ...data, date, time };
     const transactionId = await processTransaction(transactionData, organisationId);
 
-    // Retrieve the bill details
     const bill = await prisma.transactionRecord.findUnique({
       where: { id: transactionId },
       include: {
@@ -131,7 +106,6 @@ export async function POST(request: Request) {
       throw new Error('Failed to retrieve bill details');
     }
 
-    // Prepare the response data
     const response = {
       id: bill.id,
       billNo: bill.billNo,
@@ -170,15 +144,10 @@ export async function POST(request: Request) {
       })),
     };
 
-    // Ensure the response is serializable
     const serializableResponse = JSON.parse(JSON.stringify(response));
 
-    // Send the response
     return NextResponse.json(
-      {
-        success: true,
-        data: serializableResponse,
-      },
+      { success: true, data: serializableResponse },
       { status: 201 }
     );
   } catch (error: any) {
