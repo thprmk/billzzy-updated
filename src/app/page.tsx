@@ -6,7 +6,6 @@ import Home from '@/components/index/Home';
 
  const page = async() => {
   const session = await getServerSession(authOptions);
-  myUndefinedFunction();
     // Redirect to dashboard if already logged in
     if (session&&session.user.name) {    
       redirect('/dashboard');

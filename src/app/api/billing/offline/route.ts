@@ -1,5 +1,4 @@
 // app/api/billing/route.ts
-import * as Sentry from "@sentry/nextjs";
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
@@ -29,8 +28,6 @@ interface BillRequest {
   customerDetails: CustomerDetails;
   paymentDetails: PaymentDetails;
   total: number;
-  date?: string;
-  time?: string;
 }
 
 function serializeDecimal(value: any): number {
@@ -44,6 +41,7 @@ function serializeDecimal(value: any): number {
 function serializeDate(date: Date | null): string {
   if (!date) return '';
   try {
+    // Convert to Indian timezone and format
     return moment(date).tz('Asia/Kolkata').format('YYYY-MM-DD');
   } catch {
     return '';
@@ -61,70 +59,59 @@ function serializeTime(time: Date | null): string {
 
 function getCurrentIndianDateTime() {
   const indianDateTime = moment().tz('Asia/Kolkata');
+    // Get current Indian date and time
+  
+    // Format date as YYYY-MM-DD
+    const indianDate = indianDateTime.format('YYYY-MM-DD');
+    
+    // Format time as HH:mm:ss
+    const indianTime = indianDateTime.format('HH:mm:ss');
+    console.log(indianDate,indianTime,"time and date");
   return {
-    date: indianDateTime.format('YYYY-MM-DD'),
-    time: indianDateTime.format('HH:mm:ss')
+    date:indianDate,
+    time: indianTime
   };
 }
 
 export async function POST(request: Request) {
-  const transaction = Sentry.startTransaction({
-    name: "create-bill",
-    op: "billing"
-  });
-
-  Sentry.configureScope(scope => {
-    scope.setSpan(transaction);
-  });
-
   try {
-    const sessionSpan = transaction.startChild({
-      op: "auth",
-      description: "Check authentication"
-    });
-
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
-      sessionSpan.setStatus("unauthorized");
-      sessionSpan.finish();
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+        },
+        { status: 401 }
+      );
     }
-    sessionSpan.finish();
 
     const data: BillRequest = await request.json();
 
-    Sentry.setContext("bill-request", {
-      itemCount: data.items?.length,
-      total: data.total,
-      paymentMethod: data.paymentDetails?.method
-    });
-
     if (!data.items?.length || !data.customerDetails || !data.paymentDetails || !data.total) {
-      Sentry.captureMessage("Invalid request data", "warning");
-      return NextResponse.json({ success: false, error: 'Invalid request data' }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid request data',
+        },
+        { status: 400 }
+      );
     }
 
     const organisationId = parseInt(session.user.id, 10);
-    const { date, time } = getCurrentIndianDateTime();
 
+    // Get current Indian date and time
+    const { date, time } = getCurrentIndianDateTime();
+console.log(date,time,"time and date");
+
+    // Add date and time to the transaction data
     const transactionData = {
       ...data,
       date,
       time
     };
 
-    const processSpan = transaction.startChild({
-      op: "process-transaction",
-      description: "Process billing transaction"
-    });
-
     const transactionId = await processTransaction(transactionData, organisationId);
-    processSpan.finish();
-
-    const retrieveSpan = transaction.startChild({
-      op: "retrieve-bill",
-      description: "Retrieve bill details"
-    });
 
     const bill = await prisma.transactionRecord.findUnique({
       where: { id: transactionId },
@@ -139,8 +126,6 @@ export async function POST(request: Request) {
       },
     });
 
-    retrieveSpan.finish();
-
     if (!bill) {
       throw new Error('Failed to retrieve bill details');
     }
@@ -150,19 +135,21 @@ export async function POST(request: Request) {
       billNo: bill.billNo,
       totalPrice: serializeDecimal(bill.totalPrice),
       date: serializeDate(bill.date),
-      time: serializeTime(bill.time),
+      time: serializeTime(bill.time), // Using the new time serializer
       status: bill.status,
-      organisation: bill.organisation ? {
-        name: bill.organisation.name || '',
-        shopName: bill.organisation.shopName || '',
-        flatNo: bill.organisation.flatNo || '',
-        street: bill.organisation.street || '',
-        district: bill.organisation.district || '',
-        state: bill.organisation.state || '',
-        pincode: bill.organisation.pincode || '',
-        phone: bill.organisation.mobileNumber || '',
-        websiteAddress: bill.organisation.websiteAddress || '',
-      } : null,
+      organisation: bill.organisation
+        ? {
+            name: bill.organisation.name || '',
+            shopName: bill.organisation.shopName || '',
+            flatNo: bill.organisation.flatNo || '',
+            street: bill.organisation.street || '',
+            district: bill.organisation.district || '',
+            state: bill.organisation.state || '',
+            pincode: bill.organisation.pincode || '',
+            phone: bill.organisation.mobileNumber || '',
+            websiteAddress: bill.organisation.websiteAddress || '',
+          }
+        : null,
       customer: {
         id: bill.customer?.id,
         name: bill.customer?.name || 'Walk-in Customer',
@@ -181,36 +168,41 @@ export async function POST(request: Request) {
       })),
     };
 
-    transaction.finish();
-    return NextResponse.json({ success: true, data: response }, { status: 201 });
+    console.log('Serialized Response:', JSON.stringify(response));
 
+    const serializableResponse = JSON.parse(JSON.stringify(response));
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: serializableResponse,
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
-    Sentry.captureException(error, {
-      extra: {
-        message: error.message,
-        stack: error.stack,
-        prismaError: error instanceof Prisma.PrismaClientKnownRequestError ? {
-          code: error.code,
-          meta: error.meta
-        } : undefined
-      }
+    console.error('API Error:', {
+      message: error.message,
+      stack: error.stack,
     });
 
-    transaction.setStatus("error");
-    transaction.finish();
-
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      return NextResponse.json({
-        success: false,
-        error: 'Database operation failed',
-        code: error.code,
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database operation failed',
+          code: error.code,
+        },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to create bill',
-      details: error instanceof Error ? error.message : 'An unexpected error occurred',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to create bill',
+        details: error instanceof Error ? error.message : 'An unexpected error occurred',
+      },
+      { status: 500 }
+    );
   }
 }
