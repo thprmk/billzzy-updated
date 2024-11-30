@@ -28,7 +28,7 @@ export function TrialModal({ isOpen, onClose, onConfirm }: TrialModalProps) {
           >
             <div className="bg-indigo-500 text-white p-6 text-center">
               <h2 className="text-2xl font-bold mb-2">Free Trial</h2>
-              <p className="text-sm opacity-80">Try our premium features for 14 days</p>
+              <p className="text-sm opacity-80">Try our premium features for 7 days</p>
             </div>
             
             <div className="p-6">

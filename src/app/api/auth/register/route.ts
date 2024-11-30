@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         gstNumber,
         subscriptionType: 'trial',
         // Set end date to yesterday for testing
-        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // +14 days from now
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 days from now
         smsCount: 0,
         smsCost: 0,
       },
