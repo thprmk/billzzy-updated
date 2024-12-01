@@ -1,6 +1,7 @@
 // lib/processTransaction.ts
-import { Prisma } from '@prisma/client';
+
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 interface BillItem {
   productId: number;
@@ -23,19 +24,45 @@ interface BillRequest {
   customerDetails: CustomerDetails;
   paymentDetails: PaymentDetails;
   total: number;
+  date: string;
+  time: string;
 }
 
-async function generateBillNumber(tx: Prisma.TransactionClient): Promise<number> {
-  const lastBill = await tx.transactionRecord.findFirst({
-    orderBy: { billNo: 'desc' },
-  });
-  return (lastBill?.billNo ?? 0) + 1;
+async function generateBillNumber(): Promise<number> {
+  try {
+    const lastBill = await prisma.transactionRecord.findFirst({
+      orderBy: { billNo: 'desc' },
+    });
+    
+    const newBillNumber = (lastBill?.billNo ?? 0) + 1;
+    
+    logger.info('Generated new bill number', {
+      newBillNumber,
+      previousBillNumber: lastBill?.billNo
+    });
+    
+    return newBillNumber;
+  } catch (error) {
+    logger.error('Failed to generate bill number', error, {
+      operation: 'generateBillNumber'
+    });
+    throw error;
+  }
 }
 
 export async function processTransaction(data: BillRequest, organisationId: number) {
-  return await prisma.$transaction(async (tx) => {
-    // 1. Find or Create Customer
-    let customer = await tx.customer.findFirst({
+  const transactionId = crypto.randomUUID();
+  const traceId = crypto.randomUUID();
+
+  try {
+    logger.info('Starting transaction processing', {
+      traceId,
+      transactionId,
+      organisationId,
+      customerPhone: data.customerDetails.phone
+    });
+
+    let customer = await prisma.customer.findFirst({
       where: {
         phone: data.customerDetails.phone,
         organisationId,
@@ -43,7 +70,13 @@ export async function processTransaction(data: BillRequest, organisationId: numb
     });
 
     if (!customer) {
-      customer = await tx.customer.create({
+      logger.info('Creating new customer', {
+        traceId,
+        transactionId,
+        phone: data.customerDetails.phone
+      });
+
+      customer = await prisma.customer.create({
         data: {
           name: data.customerDetails.name,
           phone: data.customerDetails.phone,
@@ -52,74 +85,119 @@ export async function processTransaction(data: BillRequest, organisationId: numb
       });
     }
 
-    // 2. Generate Bill Number
-    const billNo = await generateBillNumber(tx);
-
-    // 3. Create Transaction Record
-    const transaction = await tx.transactionRecord.create({
-      data: {
-        billNo,
-        totalPrice: data.total,
-        billingMode: 'offline',
-        paymentMethod: data.paymentDetails.method,
-        amountPaid: data.paymentDetails.amountPaid,
-        balance: data.paymentDetails.amountPaid - data.total,
-        organisationId,
-        customerId: customer.id,
-        date: new Date(data.date),
-        time:new Date(`1970-01-01T${data.time}.000Z`),
-        status: 'confirmed',
-      },
+    const billNo = await generateBillNumber();
+    const productIds = data.items.map((item) => item.productId);
+    
+    logger.info('Fetching products', {
+      traceId,
+      transactionId,
+      productIds,
+      billNo
     });
 
-    // 4. Batch Fetch Products
-    const productIds = data.items.map((item) => item.productId);
-    const products = await tx.product.findMany({
+    const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
       },
     });
 
-    const productMap = new Map<number, any>();
-    products.forEach((product) => {
-      productMap.set(product.id, product);
-    });
+    const productMap = new Map(products.map(product => [product.id, product]));
 
-    // 5. Validate Products and Stock
+    // Validate products and stock
     for (const item of data.items) {
       const product = productMap.get(item.productId);
+      
       if (!product) {
+        logger.error('Product not found', null, {
+          traceId,
+          transactionId,
+          productId: item.productId
+        });
         throw new Error(`Product not found: ${item.productId}`);
       }
+
       if (product.quantity < item.quantity) {
+        logger.error('Insufficient stock', null, {
+          traceId,
+          transactionId,
+          productId: item.productId,
+          requestedQuantity: item.quantity,
+          availableQuantity: product.quantity,
+          productName: product.name
+        });
         throw new Error(`Insufficient stock for ${product.name}`);
       }
     }
 
-    // 6. Update Product Quantities in Parallel
-    await Promise.all(
-      data.items.map((item) =>
-        tx.product.update({
-          where: { id: item.productId },
-          data: { quantity: { decrement: item.quantity } },
-        })
-      )
-    );
-
-    // 7. Create Transaction Items in Bulk
-    await tx.transactionItem.createMany({
-      data: data.items.map((item) => ({
-        transactionId: transaction.id,
-        productId: item.productId,
-        quantity: item.quantity,
-        totalPrice: item.total,
-      })),
+    logger.info('Starting database transaction', {
+      traceId,
+      transactionId,
+      billNo,
+      totalItems: data.items.length,
+      totalAmount: data.total
     });
 
-    return transaction.id;
-  }, {
-    maxWait: 5000,
-    timeout: 10000,
-    isolationLevel: 'Serializable',
-  });
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const transaction = await tx.transactionRecord.create({
+          data: {
+            billNo,
+            totalPrice: data.total,
+            billingMode: 'offline',
+            paymentMethod: data.paymentDetails.method,
+            amountPaid: data.paymentDetails.amountPaid,
+            balance: data.paymentDetails.amountPaid - data.total,
+            organisationId,
+            customerId: customer!.id,
+            date: new Date(data.date),
+            time: new Date(`1970-01-01T${data.time}.000Z`),
+            status: 'confirmed',
+          },
+        });
+
+        // Update product quantities
+        for (const item of data.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { quantity: { decrement: item.quantity } },
+          });
+        }
+
+        // Create transaction items
+        await tx.transactionItem.createMany({
+          data: data.items.map((item) => ({
+            transactionId: transaction.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            totalPrice: item.total,
+          })),
+        });
+
+        logger.info('Transaction completed successfully', {
+          traceId,
+          transactionId,
+          billNo,
+          transactionRecordId: transaction.id
+        });
+
+        return transaction.id;
+      },
+      {
+        maxWait: 5000,
+        timeout: 10000,
+      }
+    );
+
+    return result;
+
+  } catch (error) {
+    logger.error('Transaction processing failed', error, {
+      traceId,
+      transactionId,
+      organisationId,
+      customerPhone: data.customerDetails.phone,
+      totalAmount: data.total
+    });
+    throw error;
+  }
 }
