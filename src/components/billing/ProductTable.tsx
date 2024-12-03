@@ -214,7 +214,7 @@ export function ProductTable({ onChange, maxRows = 20 }: ProductTableProps) {
                   type="text"
                   placeholder="Search product..."
                   value={row.productName}
-                  onChange={(e) => handleInputChange(row.id, e.target.value)}
+                  onChange={(e) => handleInputChange(row.id, e.target.value.toUpperCase())}
                   disabled={loading[row.id]}
                 />
                 {loading[row.id] && (

@@ -42,7 +42,7 @@ export async function GET(request: Request) {
           take: 1
         }
       },
-      take: 10, // Limit results
+      // take: 10, // Limit results
       orderBy: { name: 'asc' }
     });
 
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: false,
-      error: 'Failed to create product',
+      error: error.message,
       details: error.message
     }, { status: 500 });
   }

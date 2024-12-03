@@ -93,7 +93,6 @@ export async function PUT(
       category,
     } = body;
 
-    // Verify the product exists before updating
     const existingProduct = await prisma.product.findUnique({
       where: {
         id: parseInt(id),
@@ -105,24 +104,29 @@ export async function PUT(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    // Safely determine the category ID
     const categoryId = category && typeof category === 'object' ? category.id : null;
 
-    // Use a transaction to ensure both updates succeed or fail together
+    // Create an updateData object without netPrice initially
+    const updateData: any = {
+      name,
+      SKU,
+      sellingPrice: parseFloat(sellingPrice),
+      quantity: parseInt(quantity),
+      categoryId,
+    };
+
+    // Only add netPrice to updateData if it exists
+    if (netPrice !== undefined && netPrice !== null) {
+      updateData.netPrice = parseFloat(netPrice);
+    }
+
     const result = await prisma.$transaction(async (tx) => {
       const updatedProduct = await tx.product.update({
         where: {
           id: parseInt(id),
           organisationId: parseInt(session.user.id),
         },
-        data: {
-          name,
-          SKU,
-          netPrice: parseFloat(netPrice),
-          sellingPrice: parseFloat(sellingPrice),
-          quantity: parseInt(quantity),
-          categoryId,
-        },
+        data: updateData,
       });
 
       await tx.inventory.updateMany({
@@ -138,7 +142,7 @@ export async function PUT(
 
       return updatedProduct;
     }, {
-      timeout: 30000 // 30 second timeout
+      timeout: 30000
     });
 
     return NextResponse.json({
@@ -154,7 +158,6 @@ export async function PUT(
       stack: error.stack,
     });
 
-    // Provide more specific error messages based on error type
     if (error.code === 'P2025') {
       return NextResponse.json({
         success: false,
@@ -171,9 +174,9 @@ export async function PUT(
 
     return NextResponse.json({
       success: false,
-      error: 'Failed to update product',
+      error: error.message,
       details: error.message,
-    }, { status: 500 });
+    }, { status: 409 });
   }
 }
 // DELETE endpoint

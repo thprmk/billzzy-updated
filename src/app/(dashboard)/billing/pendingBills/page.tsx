@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface CustomerSubmission {
   id: number;
@@ -42,8 +43,7 @@ export default function PendingBillsPage() {
   }
 
   if (!data) {
-    return <div className="p-4">Loading pending bills...</div>;
-  }
+<div className='h-[100vh] w-[100%]  flex items-center justify-center'><LoadingSpinner/></div>  }
 
   const submissions = data.submissions;
 

@@ -95,6 +95,8 @@ export default function ProductForm({ initialData, categories }: ProductFormProp
       return data;
 
     } catch (error: any) {
+      
+      toast.error(error.message)
       const errorMessage = error.message || 'Failed to save product';
       setError(errorMessage);
     } finally {

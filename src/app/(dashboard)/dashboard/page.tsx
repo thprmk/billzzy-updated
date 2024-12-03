@@ -142,7 +142,7 @@ console.log(session,"db");
   return (
     <div className="h-[100vh]  flex flex-col">
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden py-4">
+      <div className="flex-1  py-4">
         <DashboardStats data={{ ...data, organisationId: session.user.id }} />
       </div>
     </div>

@@ -46,17 +46,19 @@ export default function ProductList({ products: initialProducts }: ProductListPr
         body: JSON.stringify(products),
       });
 
-      
+      alert('triggered')
 
       if (response) {
         toast.success('Product updated successfully');
         router.push('/products'); // Redirect to the products list
       } else {
-        throw new Error('Failed to update product');
+        toast.error(response.data.message);
+
+        // throw new Error('Failed to update product');
       }
     } catch (error) {
       console.error('Error updating product:', error);
-      toast.error('Failed to update product');
+      toast.error(error.message);
     }
   };
 
@@ -96,7 +98,7 @@ export default function ProductList({ products: initialProducts }: ProductListPr
         </Link>
       </div>
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
+      <div className="bg-white shadow-md rounded-lg ">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

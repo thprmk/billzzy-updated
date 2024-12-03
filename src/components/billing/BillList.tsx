@@ -90,8 +90,8 @@ export function BillList({ initialBills, mode }: BillListProps) {
       }
 
       const data = await response.json();
-      console.log(data);
-      
+      console.log(data.bills);
+
       setBills(data.bills);
       setTotalCount(data.totalCount);
       setCurrentPage(page);
@@ -187,11 +187,11 @@ export function BillList({ initialBills, mode }: BillListProps) {
         bills.map((bill) =>
           bill.id === trackingBillId
             ? {
-                ...bill,
-                status: 'shipped',
-                trackingNumber,
-                weight: weight ? parseFloat(weight) : null,
-              }
+              ...bill,
+              status: 'shipped',
+              trackingNumber,
+              weight: weight ? parseFloat(weight) : null,
+            }
             : bill
         )
       );
@@ -209,7 +209,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
   };
 
   console.log(bills);
-  
+
 
   const handleDelete = async (billId: number) => {
     setIsLoading(true);
@@ -277,31 +277,31 @@ export function BillList({ initialBills, mode }: BillListProps) {
             <option value="week">This Week</option>
             <option value="month">This Month</option>
           </Select>
-      {mode==="online"&&(
-        <>
-        
-    <Select
-    value={statusFilter}
-    onChange={handleStatusFilterChange}
-    className="w-40"
-  >
-    <option value="all">All Status</option>
-    <option value="created">Created</option>
-    <option value="packed">Packed</option>
-    <option value="dispatch">Dispatch</option>
-    <option value="shipped">Shipped</option>
-  </Select>
-  <Select
-    value={hasTrackingFilter}
-    onChange={handleHasTrackingFilterChange}
-    className="w-40"
-  >
-    <option value="all">All Tracking</option>
-    <option value="true">With Tracking</option>
-    <option value="false">Without Tracking</option>
-  </Select>
-        </>
-      )}
+          {mode === "online" && (
+            <>
+
+              <Select
+                value={statusFilter}
+                onChange={handleStatusFilterChange}
+                className="w-40"
+              >
+                <option value="all">All Status</option>
+                <option value="created">Created</option>
+                <option value="packed">Packed</option>
+                <option value="dispatch">Dispatch</option>
+                <option value="shipped">Shipped</option>
+              </Select>
+              <Select
+                value={hasTrackingFilter}
+                onChange={handleHasTrackingFilterChange}
+                className="w-40"
+              >
+                <option value="all">All Tracking</option>
+                <option value="true">With Tracking</option>
+                <option value="false">Without Tracking</option>
+              </Select>
+            </>
+          )}
         </div>
         <Button
           variant="destructive"
@@ -389,10 +389,11 @@ export function BillList({ initialBills, mode }: BillListProps) {
                     <div className="space-y-1">
                       {bill.items.map((item) => (
                         <div key={item.id} className="text-sm">
-                          {item.productName} × {item.quantity} = ₹{item.totalPrice}
-                        </div>
+                          <span className='cursor-default' title={item.productName}>
+                            {item.SKU} × {item.quantity} = ₹{item.totalPrice}
+                          </span>                        </div>
                       ))}
-                     Total price : {bill.totalPrice}
+                      Total price : {bill.totalPrice}
                     </div>
                   </td>
 

@@ -4,6 +4,7 @@ import './globals.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import React from 'react';  // Add this import
+import OfflineMessage from '@/components/layouts/OfflineMessage';
 
 
 const inter = Inter({ subsets: ['latin'] });
@@ -24,6 +25,7 @@ export default function RootLayout({
 
         <SessionProvider>
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar />
+        <OfflineMessage /> {/* Add the component here */}
 
           {children}
 

@@ -167,7 +167,7 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
       <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
         {/* Left: Recent Transactions */}
         <div className="md:w-1/2 p-2">
-          <div className="bg-white shadow-sm rounded-lg p-4 h-[31vh]">
+          <div className="bg-white shadow-sm rounded-lg p-4 overflow-y-scroll h-[31vh]">
             <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
             <RecentTransactions data={data.recentTransactions} />
           </div>

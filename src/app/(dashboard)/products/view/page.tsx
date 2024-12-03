@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'react-toastify';
 import React from 'react';  // Add this import
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface Product {
   id: number;
@@ -63,6 +64,8 @@ export default function ViewProductsPage() {
 
       if (response.ok) {
         fetchProducts(selectedCategory);
+        toast.success('Product deleted successfully');
+
       } else {
         alert('Failed to delete product');
       }
@@ -90,21 +93,27 @@ export default function ViewProductsPage() {
         body: JSON.stringify(editingProduct),
       });
 
+      
+      console.log(response);
+
       if (response.ok) {
         setShowEditModal(false);
         toast.success('Product updated successfully');
         fetchProducts(selectedCategory);
       } else {
-        alert('Failed to update product');
+        toast.error('Failed to update');
       }
 
     } catch (error) {
       console.error('Error:', error);
-      alert('Failed to update product');
+      toast.error('Failed to update');
     }
   };
 
-  if (isLoading||!products) return <div>Loading...</div>;
+  console.log(products);
+  
+
+  if (isLoading||!products) return <div className='h-[100vh] w-[100%]  flex items-center justify-center'><LoadingSpinner/></div>;
 
   return (
     <div className="space-y-6 mt-8">
@@ -136,7 +145,7 @@ export default function ViewProductsPage() {
           </Select>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -146,9 +155,7 @@ export default function ViewProductsPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   SKU
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Net Price
-                </th>
+             
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                   Selling Price
                 </th>
@@ -168,9 +175,7 @@ export default function ViewProductsPage() {
                 <tr key={product.id}>
                   <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{product.SKU}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    ₹{product.netPrice}
-                  </td>
+                 
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     ₹{product.sellingPrice}
                   </td>
