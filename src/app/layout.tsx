@@ -4,8 +4,8 @@ import './globals.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import React from 'react';  // Add this import
-import OfflineMessage from '@/components/layouts/OfflineMessage';
-
+import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -25,6 +25,8 @@ export default function RootLayout({
 
         <SessionProvider>
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar />
+        <SpeedInsights />
+        <Analytics/>
 
           {children}
 
