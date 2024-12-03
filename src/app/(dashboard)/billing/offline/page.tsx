@@ -270,7 +270,8 @@ export default function OfflineBillingPage() {
 
       if (!response.ok) {
         console.log(result);
-        
+        toast.error(result);
+
         throw new Error(result.details || 'Failed to create bill');
       }
 
@@ -284,8 +285,7 @@ export default function OfflineBillingPage() {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create bill';
-      setError(errorMessage);
-      toast.error(errorMessage);
+   
     } finally {
       setIsLoading(false);
     }

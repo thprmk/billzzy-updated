@@ -58,11 +58,11 @@ console.log(id);
       });
 
       const data = await response.json();
-      console.log(data);
       
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to create bill');
+        toast.error(data.details)
+        return
       }
 
       // Generate and print the bill
@@ -79,7 +79,7 @@ console.log(id);
       router.push('/dashboard');
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create bill');
+      // toast.error(error instanceof Error ? error.message : 'Failed to create bill');
     } finally {
       setIsLoading(false);
     }
