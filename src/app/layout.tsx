@@ -25,7 +25,6 @@ export default function RootLayout({
 
         <SessionProvider>
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar />
-        <OfflineMessage /> {/* Add the component here */}
 
           {children}
 

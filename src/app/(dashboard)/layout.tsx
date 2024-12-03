@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import React from 'react';  // Add this import
+import OfflineMessage from '@/components/layouts/OfflineMessage';
 
 export default async function Layout({
   children,
@@ -24,5 +25,6 @@ export default async function Layout({
     }
   }
 
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return <DashboardLayout>        <OfflineMessage /> {/* Add the component here */}
+{children}</DashboardLayout>;
 }
