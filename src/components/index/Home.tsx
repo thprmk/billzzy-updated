@@ -24,7 +24,7 @@ export default  function Home() {
               transition={{ duration: 1 }}
               className="text-3xl font-bold text-white"
             >
-              Billz
+              Billzzy
             </motion.div>
             <div className="space-x-4">
             <ContactModal 
@@ -45,7 +45,7 @@ export default  function Home() {
               transition={{ duration: 1 }}
               className="text-5xl md:text-7xl font-bold mb-6"
             >
-              Enhance Your Business Operations with Billz!
+              Enhance Your Business Operations with Billzzy!
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, x: -50 }}
@@ -92,7 +92,7 @@ export default  function Home() {
       <footer className="bg-transparent w-[100%] absolute bottom-3">
         <div className="container mx-auto px-6 py-4">
           <div className="text-center text-white">
-            <p>© 2024 Billz. All rights reserved.</p>
+            <p>© 2024 Billzzy. All rights reserved.</p>
           </div>
         </div>
       </footer>

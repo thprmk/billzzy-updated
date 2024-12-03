@@ -30,7 +30,7 @@ export function TermsModal({ isOpen, onClose }: TermsModalProps) {
             <h2 className="text-2xl font-bold mb-4">Terms and Conditions</h2>
             <div className="prose">
               {/* Add your terms and conditions content here */}
-              <p>Welcome to Billz. By creating an account, you agree to the following terms:</p>
+              <p>Welcome to Billzzy. By creating an account, you agree to the following terms:</p>
               <ul>
                 <li>You will maintain the confidentiality of your account.</li>
                 <li>The services are intended solely for business use.</li>

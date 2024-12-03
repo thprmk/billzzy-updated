@@ -13,7 +13,7 @@ interface CategoryFormProps {
   };
 }
 
-export default function CategoryForm({ initialData }: CategoryFormProps) {
+export default function CategoryForm({ initialData,setChange,change }: CategoryFormProps) {
   const router = useRouter();
   const [name, setName] = useState(initialData?.name || '');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,11 +41,9 @@ export default function CategoryForm({ initialData }: CategoryFormProps) {
       if (!response.ok) {
         throw new Error(data.error);
       }
-
+      setChange(!change)
       setSuccess("Category added successfully!")
       setName('')
-      // router.push('/categories');
-      router.refresh();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to save category');
     } finally {

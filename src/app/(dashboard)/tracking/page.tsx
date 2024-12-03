@@ -43,6 +43,9 @@ export default function TrackingPage() {
         const error = await response.json();
         throw new Error(error.message);
       }
+      setBillId('')
+      setTrackingNumber('')
+      setWeight('')
 
       toast.success('Tracking details updated successfully');
       router.push('/tracking');
@@ -89,7 +92,7 @@ export default function TrackingPage() {
                       <Input
                         type="text"
                         value={trackingNumber}
-                        onChange={(e) => setTrackingNumber(e.target.value)}
+                        onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
                         required
                         placeholder="Enter tracking number"
                       />

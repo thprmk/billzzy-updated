@@ -58,6 +58,12 @@ export default function ProductForm({ initialData, categories }: ProductFormProp
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    if (formData.SKU.length < 2) {
+      toast.error('SKU must have 2 letters')
+      setIsLoading(false);
+
+      return
+    }
 
     try {
       const url = initialData?.id ? `/api/products/${initialData.id}` : '/api/products';
@@ -81,11 +87,11 @@ export default function ProductForm({ initialData, categories }: ProductFormProp
         toast.error(data.error || 'Failed to save product');
         return;
       }
-        setSuccess('Product was Added Successfully')
-        resetForm();
+      setSuccess('Product was Added Successfully')
+      resetForm();
 
-        router.refresh();
-      
+      router.refresh();
+
       return data;
 
     } catch (error: any) {

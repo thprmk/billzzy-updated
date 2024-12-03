@@ -199,7 +199,7 @@ console.log(date,time,"time and date");
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create bill',
+        error: error.message,
         details: error instanceof Error ? error.message : 'An unexpected error occurred',
       },
       { status: 500 }

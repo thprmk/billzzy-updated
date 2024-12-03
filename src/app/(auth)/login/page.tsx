@@ -43,7 +43,7 @@ export default function LoginPage() {
       </div>
 
       <footer className="py-4 text-center text-white">
-        <p>© 2024 Billz. All rights reserved.</p>
+        <p>© 2024 Billzzy. All rights reserved.</p>
       </footer>
     </div>
   );

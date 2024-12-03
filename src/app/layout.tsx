@@ -9,7 +9,7 @@ import React from 'react';  // Add this import
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Billz',
+  title: 'Billzzy',
   description: 'Billing and Inventory Management System',
 };
 

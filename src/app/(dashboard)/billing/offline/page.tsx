@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/Select';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import React from "react";
+import GenerateLinkPage from '../generateLink/page';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -268,7 +269,9 @@ export default function OfflineBillingPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create bill');
+        console.log(result);
+        
+        throw new Error(result.details || 'Failed to create bill');
       }
 
       if (!result.success || !result.data) {
@@ -294,20 +297,11 @@ export default function OfflineBillingPage() {
     <>
       <div className="space-y-6 mt-6">
         {/* Customer Details Section */}
+        {/* <GenerateLinkPage/> */}
         <div className="bg-white shadow-sm rounded-lg p-6">
           <h2 className="text-lg font-medium mb-4">Customer Details</h2>
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Customer Name"
-              value={customerDetails.name}
-              onChange={(e) =>
-                setCustomerDetails((prev) => ({
-                  ...prev,
-                  name: e.target.value,
-                }))
-              }
-              required
-            />
+ 
             <Input
               label="Phone Number"
               value={customerDetails.phone}
@@ -318,6 +312,17 @@ export default function OfflineBillingPage() {
                 }))
               }
               pattern="[0-9]{10}"
+              required
+            />
+                       <Input
+              label="Customer Name"
+              value={customerDetails.name}
+              onChange={(e) =>
+                setCustomerDetails((prev) => ({
+                  ...prev,
+                  name: e.target.value,
+                }))
+              }
               required
             />
           </div>

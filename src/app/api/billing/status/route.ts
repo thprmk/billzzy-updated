@@ -127,7 +127,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(bill);
   } catch (error) {
-    console.error('Status update error:', error);
+    console.error('Status update error:', error.message);
     return NextResponse.json(
       { error: 'Failed to update status' },
       { status: 500 }

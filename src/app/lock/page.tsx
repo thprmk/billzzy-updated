@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { ContactModal } from '@/components/settings/ContactModal';
+import React from 'react';  // Add this import
 
 export default function LockPage() {
   const { data: session } = useSession();
@@ -117,7 +118,7 @@ export default function LockPage() {
       {/* Footer */}
       <footer className="p-4">
         <div className="container mx-auto text-center text-white">
-          <p>© 2024 Billz. All rights reserved.</p>
+          <p>© 2024 Billzzy. All rights reserved.</p>
         </div>
       </footer>
 

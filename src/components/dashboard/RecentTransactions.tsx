@@ -9,7 +9,7 @@ interface RecentTransactionsProps {
   
   export default function RecentTransactions({ data }: RecentTransactionsProps) {
     return (
-      <div className=" overflow-y-auto h-[26vh]">
+      <div className=" overflow-y-auto ">
         {data.length > 0 ? (
           <table className="min-w-full divide-y   divide-gray-200">
             <thead>

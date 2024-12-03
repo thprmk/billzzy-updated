@@ -84,7 +84,7 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
   ];
 
   return (
-    <div className="flex flex-col h-full ">
+    <div className="flex flex-col  h-full ">
       {/* Scrollable Content */}
       <div className="flex-1 ">
         {/* Top Stats */}
@@ -167,16 +167,16 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
       <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
         {/* Left: Recent Transactions */}
         <div className="md:w-1/2 p-2">
-          <div className="bg-white shadow-sm rounded-lg p-4 h-full">
+          <div className="bg-white shadow-sm rounded-lg p-4 h-[31vh]">
             <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
             <RecentTransactions data={data.recentTransactions} />
           </div>
         </div>
 
         {/* Right: Tracking, Packing, Dispatch, Customers, SMS */}
-        <div className="md:w-1/2 p-2 flex flex-col space-y-4">
+        <div className="md:w-1/2 p-2   flex flex-col space-y-4">
           {/* Top Row: Tracking Numbers Needed, Packing Orders, Dispatch Orders */}
-          <div className="flex flex-row space-x-4">
+          <div className="flex flex-row h-[15vh] space-x-4">
             <div className="w-1/3 bg-indigo-50 text-indigo-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
               <InboxArrowDownIcon className="h-6 w-6" />
               <div className="mt-2 text-sm font-medium">Tracking Numbers Needed</div>

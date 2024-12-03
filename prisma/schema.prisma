@@ -10,50 +10,69 @@ datasource db {
 // url      = "mysql://admin:Vaseegrah%242024Tech@billz.c3su6oogocya.ap-south-1.rds.amazonaws.com:3306/billz"
 
 model Organisation {
-  id               Int       @id @default(autoincrement())
-  password         String
-  resetToken       String?   @map("reset_token")
-  resetTokenExpiry DateTime? @map("reset_token_expiry")
-  email            String    @unique
-  phone            String
-  name             String
-  companySize      String    @map("company_size")
-  shopName         String    @map("shop_name")
-  flatNo           String    @map("flatno")
-  street           String
-  district         String
-  city             String?
-  state            String
-  smsCount         Int       @default(0) @map("sms_count")
-  smsCost          Float     @default(0) @map("sms_cost")
-  country          String
-  pincode          String
-  mobileNumber     String    @map("mobile_number")
-  landlineNumber   String?   @map("landline_number")
-  websiteAddress   String?   @map("website_address")
-  gstNumber        String?   @map("gst_number")
-  subscriptionType String    @map("subscription_type")
-  endDate          DateTime  @map("end_date")
-  whatsappNumber   String?   @map("whatsapp_number")
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  razorpayAccessToken    String? @map("razorpay_access_token") @db.Text
-  razorpayRefreshToken   String? @map("razorpay_refresh_token") @db.Text
-  razorpayTokenExpiresAt   DateTime? @map("razorpay_token_expires_at")
-  razorpayAccountId        String?   @map("razorpay_account_id")
-  razorpayState          String?   @map("razorpay_state")
-  razorpayStateExpiresAt DateTime? @map("razorpay_state_expires_at")
+  id                     Int                  @id @default(autoincrement())
+  password               String
+  resetToken             String?              @map("reset_token")
+  resetTokenExpiry       DateTime?            @map("reset_token_expiry")
+  email                  String               @unique
+  phone                  String
+  name                   String
+  companySize            String               @map("company_size")
+  shopName               String               @map("shop_name")
+  flatNo                 String               @map("flatno")
+  street                 String
+  district               String
+  city                   String?
+  state                  String
+  smsCount               Int                  @default(0) @map("sms_count")
+  smsCost                Float                @default(0) @map("sms_cost")
+  country                String
+  pincode                String
+  mobileNumber           String               @map("mobile_number")
+  landlineNumber         String?              @map("landline_number")
+  websiteAddress         String?              @map("website_address")
+  gstNumber              String?              @map("gst_number")
+  subscriptionType       String               @map("subscription_type")
+  endDate                DateTime             @map("end_date")
+  whatsappNumber         String?              @map("whatsapp_number")
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  razorpayAccessToken    String?              @map("razorpay_access_token") @db.Text
+  razorpayRefreshToken   String?              @map("razorpay_refresh_token") @db.Text
+  razorpayTokenExpiresAt DateTime?            @map("razorpay_token_expires_at")
+  razorpayAccountId      String?              @map("razorpay_account_id")
+  razorpayState          String?              @map("razorpay_state")
+  razorpayStateExpiresAt DateTime?            @map("razorpay_state_expires_at")
   // Relations
-  productCategories ProductCategory[]
-  products          Product[]
-  sellers           Seller[]
-  transactions      TransactionRecord[]
-  customers         Customer[]
-  inventory         Inventory[]
-  
+  productCategories      ProductCategory[]
+  products               Product[]
+  sellers                Seller[]
+  transactions           TransactionRecord[]
+  customers              Customer[]
+  inventory              Inventory[]
+  CustomerSubmission     CustomerSubmission[]
 
   @@index([resetToken])
   @@map("organisation")
+}
+
+// prisma/schema.prisma
+
+model CustomerSubmission {
+  id             Int      @id @default(autoincrement())
+  token          String   @unique
+  organisationId Int
+  customerId     Int? // New field to link to Customer
+  notes          String?
+  status         String   @default("pending") // 'pending', 'processed'
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  organisation Organisation @relation(fields: [organisationId], references: [id])
+  customers    Customer?    @relation(fields: [customerId], references: [id])
+
+  @@index([organisationId])
 }
 
 model ProductCategory {
@@ -151,8 +170,9 @@ model Customer {
   organisationId Int     @map("organisation_id")
 
   // Relations
-  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  transactions TransactionRecord[]
+  organisation       Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  transactions       TransactionRecord[]
+  CustomerSubmission CustomerSubmission[]
 
   @@map("customers")
 }

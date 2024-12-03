@@ -1,92 +1,86 @@
-// app/billing/OnlineBillPage.tsx
+// File: app/billing/process_submission/[id]/page.tsx
 
 'use client';
 
-import React, { useState } from 'react';
-import { CustomerForm } from '@/components/billing/CustomerSearch';
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { ProductTable } from '@/components/billing/ProductTable';
 import { Button } from '@/components/ui/Button';
-import type { CustomerDetails, BillItem } from '@/types/billing';
-import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
+import type { BillItem } from '@/types/billing';
 import JsBarcode from 'jsbarcode';
 
-
-export default function OnlineBillPage() {
+export default function ProcessSubmissionPage() {
+  const { id } = useParams();
   const router = useRouter();
-  const [customer, setCustomer] = useState<CustomerDetails | null>(null);
+  const [submission, setSubmission] = useState(null);
   const [items, setItems] = useState<BillItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+console.log(id);
 
+  useEffect(() => {
+    // Fetch the submission details
+    const fetchSubmission = async () => {
+      try {
+        const response = await fetch(`/api/billing/customerSubmission/${id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch submission');
+        }
+        const data = await response.json();
+        setSubmission(data.submission);
+      } catch (error) {
+        console.error(error);
+        toast.error('Failed to fetch submission');
+      }
+    };
 
-
+    fetchSubmission();
+  }, [id]);
 
   const handleSubmit = async () => {
-    if (!customer) {
-      setError('Please enter customer details.');
-      toast.error('Please enter customer details.');
-      return;
-    }
-
     if (items.length === 0) {
-      setError('Please add at least one item.');
       toast.error('Please add at least one item.');
       return;
     }
 
     setIsLoading(true);
-    setError(null);
 
     try {
-      let customerId = customer.id;
-
-      // If customer is new (no id), create the customer first
-      if (!customer.id) {
-        const createCustomerResponse = await fetch('/api/customers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(customer),
-        });
-
-        const createCustomerData = await createCustomerResponse.json();
-
-        if (!createCustomerResponse.ok) {
-          throw new Error(createCustomerData.message || 'Failed to create customer');
-        }
-
-        customerId = createCustomerData.id;
-      }
-
-      // Now, create the bill
+      // Create bill
       const response = await fetch('/api/billing/online', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customerId,
+          customerId: submission.customerId,
           items,
-          billingMode: 'online'
-        })
+          billingMode: 'online',
+        }),
       });
 
       const data = await response.json();
-
+      console.log(data);
+      
 
       if (!response.ok) {
-        console.log(data);
-        
-        throw new Error(data.details || 'Failed to create bill');
+        throw new Error(data.message || 'Failed to create bill');
       }
 
-      // Trigger print
+      // Generate and print the bill
       generateAndPrintBill(data);
 
-    } catch (error) {
+      // Update submission status to 'processed'
+      await fetch(`/api/billing/customerSubmission/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'processed' }),
+      });
 
-      console.log(error);
-      
-      setError(error instanceof Error ? error.message : 'Failed to create bill');
+      toast.success('Bill created and printed successfully!');
+      router.push('/dashboard');
+    } catch (error) {
+      console.error(error);
       toast.error(error instanceof Error ? error.message : 'Failed to create bill');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -302,31 +296,29 @@ export default function OnlineBillPage() {
     };
   }
 
+  if (!submission) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className="space-y-6 p-4 ">
-      {/* Customer Details Section */}
+    <div className="p-4">
+      <h1 className="text-xl font-bold mb-4">Process Submission</h1>
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h2 className="text-lg font-medium mb-4">Customer Details</h2>
-        <CustomerForm onCustomerChange={setCustomer} />
+        <div className="space-y-2">
+          <div><strong>Name:</strong> {submission.customer.name}</div>
+          <div><strong>Phone:</strong> {submission.customer.phone}</div>
+          <div><strong>Address:</strong> {`${submission.customer.flatNo || ''}, ${submission.customer.street || ''}, ${submission.customer.district || ''}, ${submission.customer.state || ''}, ${submission.customer.pincode || ''}`}</div>
+          <div><strong>Notes:</strong> {submission.notes}</div>
+        </div>
       </div>
 
-      {/* Product Selection Section */}
-      <div className="bg-white shadow-sm rounded-lg p-6">
+      <div className="bg-white shadow-sm rounded-lg p-6 mt-6">
         <h2 className="text-lg font-medium mb-4">Add Products</h2>
         <ProductTable onChange={setItems} />
-
       </div>
 
-      {/* Error Message */}
-      {/* {error && (
-        <div className="bg-red-50 text-red-500 p-4 rounded-md">
-          {error}
-        </div>
-      )} */}
-
-      {/* Action Buttons */}
-      <div className="flex justify-end space-x-4">
+      <div className="flex justify-end space-x-4 mt-6">
         <Button
           variant="secondary"
           onClick={() => router.back()}
@@ -337,7 +329,7 @@ export default function OnlineBillPage() {
         <Button
           onClick={handleSubmit}
           isLoading={isLoading}
-          disabled={!customer || items.length === 0 || isLoading}
+          disabled={items.length === 0 || isLoading}
         >
           {isLoading ? 'Creating Bill...' : 'Create Bill'}
         </Button>

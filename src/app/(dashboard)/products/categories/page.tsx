@@ -17,10 +17,10 @@ interface Category {
 export default function AddCategoryPage() {
  const [categories, setCategories] = useState<Category[]>([]);
  const [isLoading, setIsLoading] = useState(true);
-
+ const [change, setChange] = useState(true)
  useEffect(() => {
    fetchCategories();
- }, []);
+ }, [change]);
 
  const fetchCategories = async () => {
    try {
@@ -58,7 +58,7 @@ export default function AddCategoryPage() {
    <div className="flex flex-col mt-12 gap-y-6 h-[100vh]  ">
      <div className="bg-white rounded-lg shadow p-6">
        <h2 className="text-xl font-semibold mb-4">Add New Category</h2>
-       <CategoryForm onSuccess={fetchCategories} />
+       <CategoryForm onSuccess={fetchCategories} change={change} setChange={setChange} />
      </div>
 
      <div className="bg-white rounded-lg shadow p-6">
