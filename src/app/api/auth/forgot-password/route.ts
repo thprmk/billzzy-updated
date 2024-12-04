@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     });
 
     // Create reset password link
-    const resetLink = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`;
+    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}`;
 
     // Email template
     const mailOptions = {
