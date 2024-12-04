@@ -1,5 +1,3 @@
-// app/api/extendSubscription/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -20,7 +18,11 @@ export async function POST(request: NextRequest) {
 
     await prisma.organisation.update({
       where: { id: Number(id) },
-      data: { endDate: newEndDate,subscriptionType:"pro" },
+      data: { 
+        endDate: newEndDate,
+        subscriptionType: "pro",
+        smsCount: 0
+      },
     });
 
     return NextResponse.json({ message: 'Subscription extended successfully' });

@@ -9,7 +9,6 @@ import { Select } from '@/components/ui/Select';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import React from "react";
-import GenerateLinkPage from '../generateLink/page';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },

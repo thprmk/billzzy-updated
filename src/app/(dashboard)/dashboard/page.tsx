@@ -54,7 +54,6 @@ async function getDashboardData(organisationId: string) {
           lte: 10,
         },
       },
-      take: 5,
     }),
 
     // Recent transactions
@@ -103,7 +102,7 @@ async function getDashboardData(organisationId: string) {
       where: {
         organisationId: parseInt(organisationId),
         billingMode: 'online',
-        status: 'packed',
+        status: 'created',
       },
     }),
 
@@ -112,9 +111,11 @@ async function getDashboardData(organisationId: string) {
       where: {
         organisationId: parseInt(organisationId),
         billingMode: 'online',
-        status: 'dispatch',
+        status: {
+          in: ['created', 'packing']
+        }
       },
-    }),
+    })
   ]);
 
   return {
