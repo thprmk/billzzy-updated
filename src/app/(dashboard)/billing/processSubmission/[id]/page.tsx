@@ -88,22 +88,21 @@ console.log(id);
 
 
   function generateAndPrintBill(data) {
-    // Open a new window for printing
     const printWindow = window.open("", "_blank");
-
+  
     if (!printWindow) {
       alert("Unable to open print window. Please disable your pop-up blocker and try again.");
       return;
     }
-
-    // Generate the items list
-    let itemsList = data.product_details.map((product, index) => {
-      return `${index + 1}. ${product.productName} (Qty: ${product.quantity})`;
-    }).join(", ");
-
+  
+    // Format items list with line breaks for better readability
+    const itemsList = data.product_details.map((product) => 
+      `${product.productName} x ${product.quantity}`
+    ).join("\n");
+  
     const billId = data.bill_id.toString();
-
-    // Create a canvas element and generate the barcode
+  
+    // Create barcode
     const canvas = document.createElement('canvas');
     JsBarcode(canvas, billId, {
       format: "CODE128",
@@ -112,8 +111,7 @@ console.log(id);
       displayValue: false
     });
     const barcodeDataUrl = canvas.toDataURL("image/png");
-
-    // CSS Styles using template literals
+  
     const styles = `
       <style>
         @media print {
@@ -129,11 +127,6 @@ console.log(id);
             width: 100%;
             height: 100%;
             page-break-after: always;
-          }
-          .label {
-            width: 100%;
-            height: 100%;
-            margin: 5px;
           }
         }
         body {
@@ -169,6 +162,7 @@ console.log(id);
           margin: 0 !important;
           border-bottom: 1px solid black;
           padding: 4px 6px;
+          min-height: 45px;
           box-sizing: border-box;
         }
         .logo {
@@ -179,32 +173,42 @@ console.log(id);
           border-bottom: 1px solid black;
           padding: 6px;
           font-size: 12px;
+          flex: 0 0 auto;
         }
         .address-box p {
-          font-size: 16px !important;
+          font-size: 14px !important;
           padding: 0 !important;
           margin: 6px 0;
         }
         .address-box h2 {
           margin: 0 0 0.05in 0;
-          font-size: 18px;
+          font-size: 16px;
         }
         .sender-details {
           display: flex;
           justify-content: space-between;
-          padding: 0.1in;
+          padding: 6px;
           border-bottom: 1px solid black;
           box-sizing: border-box;
+          flex: 0 0 auto;
+          font-size: 11px;
         }
         .sender-details div strong {
           font-size: 12px;
         }
         .items {
+          padding: 6px;
+          overflow: hidden;
           display: flex;
         }
-        .items p, .items h4 {
-          margin: 0;
-          padding: 5px;
+        .items-header {
+          font-weight: bold;
+          margin-bottom: 4px;
+        }
+        .items-content {
+         
+          display:flex;
+          flex-direction:row;          
         }
         .barcode {
           text-align: center;
@@ -215,15 +219,13 @@ console.log(id);
         .barcode img {
           height: 40px;
           padding: 0 !important;
-          background-color: #000;
           margin: 0 !important;
           display: block;
           vertical-align: middle;
         }
       </style>
     `;
-
-    // HTML Content using template literals
+  
     const labelContent = `
       <!DOCTYPE html>
       <html lang="en">
@@ -262,26 +264,22 @@ console.log(id);
                 Phone: ${data.organisation_details.phone}
               </div>
               <div>
-                <strong>Date:</strong> ${data.bill_details.date}<br>
-               
+                <strong>Date:</strong> ${data.bill_details.date}
               </div>
             </div>
             <div class="items">
-              <h4>ITEMS:</h4>
-              <p>${itemsList}</p>
+              <div class="items-content">${itemsList}</div>
             </div>
           </div>
         </div>
       </body>
       </html>
     `;
-
-    // Write content to the print window
+  
     printWindow.document.open();
     printWindow.document.write(labelContent);
     printWindow.document.close();
-
-    // Print when content is loaded
+  
     printWindow.onload = function () {
       setTimeout(() => {
         try {
@@ -293,9 +291,10 @@ console.log(id);
         } finally {
           printWindow.close();
         }
-      }, 500); // Slight delay to ensure all resources are loaded
+      }, 500);
     };
   }
+
 
   if (!submission) {
    return <div className="h-[100vh] w-[100%] flex items-center justify-center">

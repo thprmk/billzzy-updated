@@ -3,18 +3,19 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
-import {BillList} from '@/components/billing/BillList';
-import React from 'react';  // Add this import
+import { BillList } from '@/components/billing/BillList';
+import React from 'react';
 import { format } from 'date-fns';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     mode: 'online' | 'offline'
-  }
+  }>
 }
 
 export default async function BillsPage({ params }: PageProps) {
   const session = await getServerSession(authOptions);
+  const { mode } = await params;  // Await params here
 
   if (!session) {
     redirect('/login');
@@ -24,7 +25,7 @@ export default async function BillsPage({ params }: PageProps) {
     const bills = await prisma.transactionRecord.findMany({
       where: {
         organisationId: parseInt(session.user.id),
-        billingMode: params.mode
+        billingMode: mode  // Use mode instead of params.mode
       },
       include: {
         customer: {
@@ -50,7 +51,6 @@ export default async function BillsPage({ params }: PageProps) {
     });
 
     const formattedBills = bills.map((bill) => {
-      // Ensure date and time are valid before formatting
       let formattedDate = '';
       let formattedTime = '';
       
@@ -69,7 +69,6 @@ export default async function BillsPage({ params }: PageProps) {
         console.error('Date formatting error:', error);
       }
 
-      // Ensure all values are serializable
       return {
         id: bill.id,
         billNo: bill.billNo,
@@ -104,23 +103,22 @@ export default async function BillsPage({ params }: PageProps) {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {params.mode === 'online' ? 'Online' : 'Offline'} Bills
+              {mode === 'online' ? 'Online' : 'Offline'} Bills
             </h1>
             <p className="text-gray-600">
-              Manage your {params.mode} transactions
+              Manage your {mode} transactions
             </p>
           </div>
         </div>
 
         <BillList
           initialBills={formattedBills}
-          mode={params.mode}
+          mode={mode}
         />
       </div>
     );
   } catch (error) {
     console.error('Error fetching bills:', error);
-    // Return a proper component instead of null
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
