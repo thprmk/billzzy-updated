@@ -42,8 +42,9 @@ export default function PendingBillsPage() {
     return <div className="p-4">Failed to load pending bills.</div>;
   }
 
-  if (!data) {
-<div className='h-[100vh] w-[100%]  flex items-center justify-center'><LoadingSpinner/></div>  }
+  if (!data || !data.submissions) {
+    return <div className='h-[100vh] w-[100%]  flex items-center justify-center'><LoadingSpinner /></div>
+  }
 
   const submissions = data.submissions;
 
@@ -65,9 +66,9 @@ export default function PendingBillsPage() {
                 </div>
                 <div className="text-indigo-600 hover:text-indigo-800 font-medium">
 
-                <Link href={`/billing/processSubmission/${submission.id}`}>
+                  <Link href={`/billing/processSubmission/${submission.id}`}>
                     Process
-                </Link>
+                  </Link>
                 </div>
 
               </div>
