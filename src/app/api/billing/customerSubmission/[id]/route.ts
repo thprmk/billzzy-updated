@@ -32,6 +32,48 @@ export async function PUT(request: Request, { params }) {
 
 
 
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const organisationId = parseInt(session.user.id, 10);
+    const submissionId = parseInt(params.id, 10);
+
+    // Verify the submission belongs to the organisation
+    const submission = await prisma.customerSubmission.findFirst({
+      where: {
+        id: submissionId,
+        organisationId,
+      },
+    });
+
+    if (!submission) {
+      return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+    }
+
+    // Delete the submission
+    await prisma.customerSubmission.delete({
+      where: { id: submissionId },
+    });
+
+    return NextResponse.json({ message: 'Submission deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      { error: 'Failed to delete submission' },
+      { status: 500 }
+    );
+  }
+}
+
+
 
 export async function GET(request: Request, { params }) {
   try {

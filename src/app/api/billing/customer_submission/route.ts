@@ -50,17 +50,18 @@ export async function POST(request: Request) {
       where: { token },
     });
 
-    if (!submission) {
-      return NextResponse.json({ error: 'Invalid or expired link contact seller' }, { status: 400 });
-    }
+    console.log(submission);
 
-    // Check if the submission has already been completed
-    if (submission.status !== 'created') {
+    if (!submission) {
+      return NextResponse.json({ error: 'Invalid or expired link' }, { status: 400 });
+    }
+    if (submission?.status === 'pending') {
       return NextResponse.json(
         { error: 'This form has already been submitted' },
         { status: 400 }
       );
     }
+
 
     const organisationId = submission.organisationId;
 
@@ -102,26 +103,23 @@ export async function POST(request: Request) {
       });
     }
 
-    // Update the submission with the customer's data and mark it as completed
+    // Update the submission with the customer's data and customerId
     await prisma.customerSubmission.update({
       where: { token },
       data: {
         customerId: customer.id,
         notes,
-        status: 'completed',
-        submittedAt: new Date(), // Add submission timestamp
+        status: 'pending',
       },
     });
 
-    return NextResponse.json(
-      { success: true, message: 'Data submitted successfully' },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true, message: 'Data submitted successfully' }, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to submit data' }, { status: 500 });
   }
 }
+
 
 export async function GET(request: Request) {
   try {
