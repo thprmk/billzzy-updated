@@ -5,8 +5,11 @@ import { useRouter, useParams } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'react-toastify';
-// import Image from 'next/image';
-// import img from "../../../../public/images/company.png";
+
+interface FormErrors {
+  [key: string]: string;
+}
+
 export default function AddressFormPage() {
   const router = useRouter();
   const params = useParams();
@@ -15,7 +18,7 @@ export default function AddressFormPage() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    email: '',
+    email: '', // Added email field
     flatNo: '',
     street: '',
     district: '',
@@ -24,14 +27,70 @@ export default function AddressFormPage() {
     notes: '',
   });
 
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidToken, setIsValidToken] = useState(true);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: FormErrors = {};
+
+    // Required field validations
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!/^[0-9]{10}$/.test(formData.phone)) {
+      newErrors.phone = 'Please enter a valid 10-digit phone number';
+    }
+
+    // Email validation (optional)
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.flatNo.trim()) {
+      newErrors.flatNo = 'Flat/House No is required';
+    }
+
+    if (!formData.street.trim()) {
+      newErrors.street = 'Street is required';
+    }
+
+    if (!formData.district.trim()) {
+      newErrors.district = 'District is required';
+    }
+
+    if (!formData.state.trim()) {
+      newErrors.state = 'State is required';
+    }
+
+    if (!formData.pincode.trim()) {
+      newErrors.pincode = 'Pincode is required';
+    } else if (!/^[0-9]{6}$/.test(formData.pincode)) {
+      newErrors.pincode = 'Please enter a valid 6-digit pincode';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error('Please fill in all required fields correctly');
+      return;
+    }
+  
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/billing/customer_submission', {
@@ -39,12 +98,16 @@ export default function AddressFormPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, ...formData }),
       });
-
+  
+      const data = await response.json();
+  
       if (!response.ok) {
-        throw new Error('Failed to submit data');
+        // Display the specific error message from the backend
+        toast.error(data.error || 'Failed to submit data');
+        return;
       }
-
-      toast.success('Your information has been submitted successfully!');
+  
+      toast.success(data.message || 'Your information has been submitted successfully!');
       router.push('/thankYou');
     } catch (error) {
       console.error(error);
@@ -60,10 +123,7 @@ export default function AddressFormPage() {
 
   return (
     <div className="min-h-[100dvh] place-content-center bg-gray-50 relative">
-      {/* Main container with max width and centered content */}
       <div className="h-full w-full max-w-4xl place-content-center mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
-        
-        {/* Form card */}
         <div className="w-full my-8 md:my-0 place-content-center">
           <div className="bg-white rounded-lg shadow-sm place-content-center border border-gray-100 p-4 md:p-8">
             <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-6 text-center">
@@ -75,64 +135,85 @@ export default function AddressFormPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <Input
-                    label="Name"
+                    label="Name *"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
+                    error={errors.name}
                     required
                     placeholder="Enter your full name"
                   />
                 </div>
                 <Input
-                  label="Phone"
+                  label="Phone *"
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
+                  error={errors.phone}
                   required
                   placeholder="Enter your phone number"
                 />
                 <Input
-                  label="Pincode"
-                  name="pincode"
-                  value={formData.pincode}
+                  label="Email (Optional)"
+                  name="email"
+                  type="email"
+                  value={formData.email}
                   onChange={handleChange}
-                  required
-                  placeholder="Enter pincode"
+                  error={errors.email}
+                  placeholder="Enter your email address"
                 />
               </div>
 
-              {/* Address section */}
-              <div className="space-y-4">
+              {/* Pincode and Address section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label="Flat/House No"
+                  label="Pincode *"
+                  name="pincode"
+                  value={formData.pincode}
+                  onChange={handleChange}
+                  error={errors.pincode}
+                  required
+                  placeholder="Enter pincode"
+                />
+                <Input
+                  label="Flat/House No *"
                   name="flatNo"
                   value={formData.flatNo}
                   onChange={handleChange}
+                  error={errors.flatNo}
+                  required
                   placeholder="Enter flat/house number"
                 />
-                <Input
-                  label="Street"
-                  name="street"
-                  value={formData.street}
-                  onChange={handleChange}
-                  placeholder="Enter street name"
-                />
               </div>
+
+              <Input
+                label="Street *"
+                name="street"
+                value={formData.street}
+                onChange={handleChange}
+                error={errors.street}
+                required
+                placeholder="Enter street name"
+              />
 
               {/* District and State */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  label="District"
+                  label="District *"
                   name="district"
                   value={formData.district}
                   onChange={handleChange}
+                  error={errors.district}
+                  required
                   placeholder="Enter district"
                 />
                 <Input
-                  label="State"
+                  label="State *"
                   name="state"
                   value={formData.state}
                   onChange={handleChange}
+                  error={errors.state}
+                  required
                   placeholder="Enter state"
                 />
               </div>
@@ -140,7 +221,7 @@ export default function AddressFormPage() {
               {/* Notes section */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Additional Notes
+                  Additional Notes (Optional)
                 </label>
                 <textarea
                   name="notes"
@@ -154,7 +235,6 @@ export default function AddressFormPage() {
                 />
               </div>
 
-              {/* Submit button */}
               <Button
                 onClick={handleSubmit}
                 isLoading={isSubmitting}
@@ -166,20 +246,6 @@ export default function AddressFormPage() {
             </div>
           </div>
         </div>
-
-        {/* Watermark */}
-        {/* <div className="relative bottom-4 right-0 md:bottom-0 md:right-0">
-          <div className="flex items-center space-x-2 place-content-end ">
-            <span className="text-xs translate-x-8 md:text-sm text-gray-500">Powered by</span>
-            <Image
-              src={img}
-              alt="Company Logo"
-              width={100}
-              height={20}
-              className="object-contain"
-            />
-          </div>
-        </div> */}
       </div>
     </div>
   );
