@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { toast } from 'react-toastify';
 import type { BillItem } from '@/types/billing';
 import JsBarcode from 'jsbarcode';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function ProcessSubmissionPage() {
   const { id } = useParams();
@@ -76,7 +77,7 @@ console.log(id);
       });
 
       toast.success('Bill created and printed successfully!');
-      router.push('/dashboard');
+      router.push('/billing/pendingBills');
     } catch (error) {
       console.error(error);
       // toast.error(error instanceof Error ? error.message : 'Failed to create bill');
@@ -297,8 +298,9 @@ console.log(id);
   }
 
   if (!submission) {
-    return <div>Loading...</div>;
-  }
+   return <div className="h-[100vh] w-[100%] flex items-center justify-center">
+    <LoadingSpinner />
+  </div>  }
 
   return (
     <div className="p-4">

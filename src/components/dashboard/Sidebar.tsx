@@ -21,6 +21,7 @@ import useSWR from 'swr';
 import { differenceInCalendarDays, parseISO, isAfter } from 'date-fns';
 import { toast } from 'react-toastify';
 import EnhancedLogoutButton from '../ui/LogoutBtn';
+import { Truck } from 'lucide-react';
 
 interface Organisation {
   id: number;
@@ -141,7 +142,6 @@ const navigation = [
       { name: 'Offline Bills', href: '/billing/offline' },
     ],
   },
-  { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
   {
     name: 'Transactions',
     icon: ChartBarIcon,
@@ -150,7 +150,9 @@ const navigation = [
       { name: 'Offline', href: '/transactions/offline' },
     ],
   },
-  { name: 'Tracking Number', href: '/tracking', icon: UsersIcon },
+  { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
+
+  { name: 'Tracking Number', href: '/tracking', icon: Truck },
   {
     name: 'Products',
     icon: ShoppingBagIcon,
