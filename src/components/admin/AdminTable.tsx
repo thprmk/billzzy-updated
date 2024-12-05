@@ -75,6 +75,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ organisations }) => {
           <tr>
             <th className="py-2 px-4 border-b">Organisation Name</th>
             <th className="py-2 px-4 border-b">Email</th>
+            <th className="py-2 px-4 border-b">Mobile No</th>
+
             <th className="py-2 px-4 border-b">End Date</th>
             <th className="py-2 px-4 border-b">Remaining Days</th>
             <th className="py-2 px-4 border-b">Actions</th>
@@ -85,6 +87,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ organisations }) => {
             <tr key={org.id}>
               <td className="py-2 px-4 border-b">{org.name}</td>
               <td className="py-2 px-4 border-b">{org.email}</td>
+              <td className="py-2 px-4 border-b">{org.mobileNumber}</td>
+
               <td className="py-2 px-4 border-b">
                 {format(new Date(org.endDate), 'dd/MM/yyyy')}
               </td>

@@ -18,6 +18,7 @@ const AdminPage = async () => {
       name: true,
       email: true,
       endDate: true,
+      mobileNumber:true
     },
   });
 
@@ -35,6 +36,8 @@ const AdminPage = async () => {
       remainingDays,
     };
   });
+  console.log(orgsWithRemainingDays);
+  
 
   return <AdminDashboard organisations={orgsWithRemainingDays} />;
 };
