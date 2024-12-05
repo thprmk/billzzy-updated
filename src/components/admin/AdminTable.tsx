@@ -76,6 +76,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ organisations }) => {
             <th className="py-2 px-4 border-b">Organisation Name</th>
             <th className="py-2 px-4 border-b">Email</th>
             <th className="py-2 px-4 border-b">Mobile No</th>
+            <th className="py-2 px-4 border-b">SMS Amt</th>
 
             <th className="py-2 px-4 border-b">End Date</th>
             <th className="py-2 px-4 border-b">Remaining Days</th>
@@ -88,6 +89,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ organisations }) => {
               <td className="py-2 px-4 border-b">{org.name}</td>
               <td className="py-2 px-4 border-b">{org.email}</td>
               <td className="py-2 px-4 border-b">{org.mobileNumber}</td>
+              <td className="py-2 px-4 border-b">Rs.{(org.smsCount*0.30).toFixed(2)}</td>
 
               <td className="py-2 px-4 border-b">
                 {format(new Date(org.endDate), 'dd/MM/yyyy')}

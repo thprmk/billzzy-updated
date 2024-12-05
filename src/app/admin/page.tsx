@@ -18,7 +18,8 @@ const AdminPage = async () => {
       name: true,
       email: true,
       endDate: true,
-      mobileNumber:true
+      mobileNumber:true,
+      smsCount:true
     },
   });
 
