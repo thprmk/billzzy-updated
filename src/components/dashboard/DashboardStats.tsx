@@ -228,7 +228,7 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
             <div className="w-1/2 bg-pink-50 text-pink-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
               <ChatBubbleLeftIcon className="h-6 w-6" />
               <div className="mt-2 text-sm font-medium">Total SMS Cost</div>
-              <div className="text-2xl font-bold text-pink-700">₹{(data.smsCount * 30).toFixed(2)}</div>
+              <div className="text-2xl font-bold text-pink-700">₹{(data.smsCount * 0.30).toFixed(2)}</div>
             </div>
           </div>
         </div>

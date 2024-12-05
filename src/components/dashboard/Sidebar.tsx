@@ -22,6 +22,7 @@ import { differenceInCalendarDays, parseISO, isAfter } from 'date-fns';
 import { toast } from 'react-toastify';
 import EnhancedLogoutButton from '../ui/LogoutBtn';
 import { Truck } from 'lucide-react';
+import RazorpayConnect from '../ui/RazorpayConnect';
 
 interface Organisation {
   id: number;
@@ -370,6 +371,7 @@ export default function Sidebar({
                 );
               }
 
+
               return (
                 <Link
                   key={item.name}
@@ -393,6 +395,9 @@ export default function Sidebar({
               );
             })}
           </nav>
+
+          {/* <RazorpayConnect/> */}
+
         </div>
 
         <div className="px-4 py-6 border-t border-gray-200">

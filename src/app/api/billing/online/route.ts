@@ -173,7 +173,7 @@ async function createTransactionRecord(
       customerId,
       date: new Date(indianDate), // Store the date
       time: new Date(`1970-01-01T${indianTime}.000Z`), // Store the time
-      status: 'confirmed',
+      status: 'created',
       paymentMethod: 'pending',
     },
   });
@@ -198,6 +198,7 @@ export async function POST(request: Request) {
 
     const { customerId, items, billingMode } = parsedData.data;
     const organisationId = parseInt(session.user.id, 10);
+    // const organisationId = 2;
 
     if (items.length === 0) {
       return NextResponse.json(
@@ -292,7 +293,7 @@ export async function POST(request: Request) {
         const productsString = productDetails
           .map((item) => `${item.productName} x ${item.quantity}`)
           .join(', ');
-
+    
         const fullAddress = [
           customer.flatNo,
           customer.street,
@@ -302,7 +303,7 @@ export async function POST(request: Request) {
         ]
           .filter(Boolean)
           .join(', ');
-
+    
         await sendBillingSMS({
           phone: customer.phone,
           companyName: organisation.shopName,
@@ -310,6 +311,7 @@ export async function POST(request: Request) {
           amount: newBill.totalPrice,
           address: fullAddress,
           organisationId: organisation.id,
+          billNo: newBill.billNo // Add this line
         });
       }
     } catch (smsError) {

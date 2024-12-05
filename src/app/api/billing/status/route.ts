@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
-import { sendOrderStatusSMS } from '@/lib/msg91';
+import { sendOrderStatusSMS, splitProducts } from '@/lib/msg91';
 
 function determineShippingPartner(trackingNumber: string): string {
   if (trackingNumber.startsWith("CT")) return "INDIA POST";
@@ -55,7 +55,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { billId, status, trackingId } = body;
+    
+    const { billId, status, trackingId,weight } = body;
 
 
     // Validate status
@@ -67,7 +68,7 @@ export async function POST(request: Request) {
     // Update bill status
     const bill = await prisma.transactionRecord.update({
       where: {
-        id: billId,
+        billNo: billId,
         organisationId: parseInt(session.user.id)
       },
       data: {
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
       const organisationName = bill.organisation.shopName;
       const products = bill.items.map((item) => item.product.name);
       const productList = products.join(', ');
+      const [productsPart1, productsPart2] = splitProducts(productList);
 
       let smsVariables: { [key: string]: string } = {};
 
@@ -110,10 +112,12 @@ export async function POST(request: Request) {
 
         smsVariables = {
           var1: organisationName,   // Organisation Name
-          var2: productList,        // Products list
-          var3: shippingPartner,    // Courier Name
-          var4: trackingUrl,        // Tracking URL
-          var5: organisationName    // Organisation Name
+          var2: productsPart1, 
+          var3:productsPart2,       // Products list
+          var4: shippingPartner,    // Courier Name
+          var5: `${weight} Kg`,        // Tracking URL
+          var6: trackingUrl,
+          var7:organisationName    // Organisation Name
         };
       }
 

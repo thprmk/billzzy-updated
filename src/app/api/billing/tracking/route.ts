@@ -1,4 +1,3 @@
-// app/api/billing/tracking/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
@@ -23,35 +22,8 @@ function determineShippingPartner(trackingNumber: string): string {
   return "Unknown";
 }
 
-function getTrackingUrl(shippingPartner: string, trackingNumber: string): string {
-  switch (shippingPartner) {
-    case "INDIA POST":
-      return `https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx?${trackingNumber}`;
-    case "ST COURIER":
-      return `https://stcourier.com/track/shipment?${trackingNumber}`;
-    case "DTDC":
-      return `https://www.dtdc.in/track.asp?awbno=${trackingNumber}`;
-    case "TRACKON":
-      return `https://trackon.in/data/SingleShipment/?tracking_number=${trackingNumber}`;
-    case "SHIP ROCKET":
-      return `https://www.shiprocket.in/shipment-tracking/?${trackingNumber}`;
-    case "DELHIVERY":
-      return `https://www.delhivery.com/?id=${trackingNumber}`;
-    case "ECOM":
-      return `https://ecomexpress.in/tracking/?awb=${trackingNumber}`;
-    case "EKART":
-      return `https://ekartlogistics.com/track?awb=${trackingNumber}`;
-    case "XPRESSBEES":
-      return `https://www.xpressbees.com/track?awb=${trackingNumber}`;
-    default:
-      return `https://vaseegrahveda.com/tracking/${trackingNumber}`;
-  }
-}
-
 export async function POST(request: Request) {
   try {
-    console.log("triggered");
-    
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -59,6 +31,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { billId, trackingNumber, weight } = body;
+    console.log("data", body);
 
     if (!billId || !trackingNumber) {
       return NextResponse.json(
@@ -67,10 +40,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // First, check if the bill exists and belongs to the organisation
     const existingBill = await prisma.transactionRecord.findFirst({
       where: {
-        billNo: parseInt(billId), // Use id instead of billNo
+        billNo: parseInt(billId),
         organisationId: parseInt(session.user.id)
       },
       include: {
@@ -98,7 +70,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update the bill with tracking details
     const updatedBill = await prisma.transactionRecord.update({
       where: {
         id: existingBill.id
@@ -119,23 +90,21 @@ export async function POST(request: Request) {
       }
     });
 
-    
-
-    // Send SMS notification
+    // Send SMS notification with updated template structure
     if (updatedBill.customer?.phone) {
       const organisationName = updatedBill.organisation.shopName;
       const products = updatedBill.items.map((item) => item.product.name);
       const productList = products.join(', ');
       const shippingPartner = determineShippingPartner(trackingNumber || '');
-      const trackingUrl = getTrackingUrl(shippingPartner, trackingNumber || '');
 
       const smsVariables = {
-        var1: organisationName,   // Organisation Name
-        var2: productList,        // Products list
-        var3: shippingPartner,    // Courier Name
-        var4: trackingUrl,        // Tracking URL
-        var5: organisationName    // Organisation Name
+        var1: organisationName,          // Organisation Name
+        var2: productList,               // Products list
+        var3: shippingPartner,          // Courier Name
+        var4: trackingNumber,           // Tracking Number (instead of URL)
+        var5: organisationName          // Organisation Name again
       };
+
       await sendOrderStatusSMS({
         phone: updatedBill.customer.phone,
         organisationId: parseInt(session.user.id),
@@ -160,6 +129,7 @@ export async function POST(request: Request) {
     );
   }
 }
+
 
 
 

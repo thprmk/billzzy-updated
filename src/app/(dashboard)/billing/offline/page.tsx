@@ -186,7 +186,7 @@ export default function OfflineBillingPage() {
                <div class="bill-info">
             <div>
               <strong>Total Quantity:</strong> ${totalQuantity}<br>
-               <strong>Date:</strong> ₹${totalPrice.toFixed(2)}
+               <strong>Payment Method:</strong> ${paymentDetails.method}
             </div>
             <div>
               <strong>Amount Paid:</strong> ₹${amountPaid.toFixed(2)}<br>
@@ -195,7 +195,7 @@ export default function OfflineBillingPage() {
           </div>
 
           <div class="footer">
-            <p>Thank you for your business!</p>
+            <p>We value your trust in choosing our products!</p>
           </div>
         </div>
       </body>

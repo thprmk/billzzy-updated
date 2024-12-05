@@ -10,6 +10,7 @@ import { formatDate } from '@/lib/utils';
 import { toast } from 'react-toastify';
 import { Modal } from '@/components/ui/Modal';
 import React from 'react';  // Add this import
+import { log } from 'console';
 
 interface Bill {
   id: number;
@@ -127,6 +128,8 @@ export function BillList({ initialBills, mode }: BillListProps) {
   };
 
   const handleStatusChange = async (billId: number, newStatus: string) => {
+    console.log(billId);
+    
     if (newStatus === 'shipped') {
       setTrackingBillId(billId);
       setIsTrackingModalOpen(true);
@@ -137,6 +140,8 @@ export function BillList({ initialBills, mode }: BillListProps) {
   };
 
   const updateStatus = async (billId: number, newStatus: string) => {
+    console.log("normal",billId);
+    
     try {
       const response = await fetch('/api/billing/status', {
         method: 'POST',
@@ -154,6 +159,8 @@ export function BillList({ initialBills, mode }: BillListProps) {
           bill.id === billId ? { ...bill, status: newStatus } : bill
         )
       );
+      router.refresh();
+
       toast.success('Status updated successfully');
     } catch (error) {
       toast.error('Failed to update status');
@@ -165,16 +172,18 @@ export function BillList({ initialBills, mode }: BillListProps) {
       toast.error('Tracking number is required');
       return;
     }
+    console.log(trackingBillId);
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/billing/tracking', {
+      const response = await fetch(`/api/billing/tracking`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          billId: trackingBillId,
+            billId:trackingBillId,
           trackingNumber,
-          weight,
+          weight: weight ? parseFloat(weight) : null,
+          status: 'sent' // Update status as per your requirements
         }),
       });
 
@@ -197,6 +206,8 @@ export function BillList({ initialBills, mode }: BillListProps) {
       );
 
       toast.success('Tracking details updated and SMS sent successfully');
+      router.refresh();
+
     } catch (error) {
       toast.error('Failed to update tracking details');
     } finally {
@@ -430,17 +441,25 @@ export function BillList({ initialBills, mode }: BillListProps) {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Select
-                          value={bill.status}
-                          onChange={(e) => handleStatusChange(bill.id, e.target.value)}
-                          className="w-32 text-sm"
-                        >
-                          <option value="created">Created</option>
-                          <option value="packed">Packed</option>
-                          <option value="dispatch">Dispatch</option>
-                          <option value="shipped">Shipped</option>
-                        </Select>
-                      </td>
+                          <Select
+                            value={bill.status || 'created'}
+                            onChange={(e) => handleStatusChange(bill.billNo, e.target.value)}
+                            className="w-32 text-sm"
+                          >
+                            <option value="created" disabled={bill.status === 'packed' || bill.status === 'dispatch' || bill.status === 'shipped'}>
+                              Created
+                            </option>
+                            <option value="packed" disabled={bill.status === 'dispatch' || bill.status === 'shipped'}>
+                              Packed
+                            </option>
+                            <option value="dispatch" disabled={bill.status === 'shipped'}>
+                              Dispatch
+                            </option>
+                            <option value="shipped">
+                              Shipped
+                            </option>
+                          </Select>
+                        </td>
                     </>
                   )}
 
@@ -577,7 +596,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
               <Input
                 type="text"
                 value={trackingNumber}
-                onChange={(e) => setTrackingNumber(e.target.value)}
+                onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
                 className="mt-1"
                 required
               />
