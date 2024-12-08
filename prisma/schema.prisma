@@ -119,21 +119,31 @@ model Seller {
   @@map("sellers")
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
 model TransactionRecord {
-  id             Int      @id @default(autoincrement())
-  billNo         Int      @unique @map("bill_no")
-  totalPrice     Float    @map("total_price")
-  paymentMethod  String   @map("payment_method")
-  amountPaid     Float    @default(0) @map("amount_paid")
-  balance        Float    @default(0)
-  billingMode    String   @map("billing_mode")
-  organisationId Int      @map("organisation_id")
-  date           DateTime @db.Date
-  time           DateTime @db.Time
-  trackingNumber String?  @map("tracking_number")
+  id             Int           @id @default(autoincrement())
+  billNo         Int           @unique @map("bill_no")
+  totalPrice     Float         @map("total_price")
+  paymentMethod  String        @map("payment_method")
+  amountPaid     Float         @default(0) @map("amount_paid")
+  balance        Float         @default(0)
+  billingMode    String        @map("billing_mode")
+  organisationId Int           @map("organisation_id")
+  date           DateTime      @db.Date
+  time           DateTime      @db.Time
+  trackingNumber String?       @map("tracking_number")
   weight         Float?
-  customerId     Int?     @map("customer_id")
-  status         String   @default("confirmed")
+  customerId     Int?          @map("customer_id")
+  status         String        @default("confirmed")
+  notes          String?       @db.Text
+  paymentId      String?       @map("payment_id")
+  paymentStatus  PaymentStatus @default(PENDING) @map("payment_status")
 
   // Relations
   organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)

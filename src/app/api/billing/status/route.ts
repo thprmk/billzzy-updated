@@ -110,14 +110,16 @@ export async function POST(request: Request) {
         const shippingPartner = determineShippingPartner(trackingId || '');
         const trackingUrl = getTrackingUrl(shippingPartner, trackingId || '');
 
-        smsVariables = {
+         smsVariables = {
           var1: organisationName,   // Organisation Name
           var2: productsPart1, 
           var3:productsPart2,       // Products list
           var4: shippingPartner,    // Courier Name
-          var5: `${weight} Kg`,        // Tracking URL
-          var6: trackingUrl,
-          var7:organisationName    // Organisation Name
+          var5: trackingId, 
+          var6: `${weight} Kg`,        // Tracking URL
+          // Tracking URL
+          var7: trackingUrl,
+          var8:organisationName    // Organisation Name
         };
       }
 

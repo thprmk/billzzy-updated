@@ -84,7 +84,6 @@ export async function getValidAccessToken(organisationId: number) {
   }
 }
 
-
 export async function createRazorpayPaymentLink(accessToken: string, {
   amount,
   customerPhone,
@@ -96,31 +95,41 @@ export async function createRazorpayPaymentLink(accessToken: string, {
   description: string;
   billNo: number;
 }) {
+  const payload = {
+    amount: Math.round(amount * 100), // Ensure integer amount in paise
+    currency: 'INR',
+    accept_partial: false,
+    reference_id: `BILL-${billNo}`,
+    description: description,
+    customer: {
+      contact: customerPhone.startsWith('91') ? customerPhone : `91${customerPhone}`
+    },
+    notify: {
+      sms: false
+    },
+    reminder_enable: true
+  };
+
+  console.log('Request payload:', payload);
+  console.log('Using access token:', accessToken);
+
   const response = await fetch('https://api.razorpay.com/v1/payment_links', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${accessToken}`
     },
-    body: JSON.stringify({
-      amount: amount * 100, // Convert to paise
-      currency: 'INR',
-      accept_partial: false,
-      reference_id: `BILL_${billNo}`,
-      description: description,
-      customer: {
-        contact: `91${customerPhone}`
-      },
-      notify: {
-        sms: false
-      },
-      reminder_enable: true
-    })
+    body: JSON.stringify(payload)
   });
 
+  const responseData = await response.text();
+  console.log('Response status:', response.status);
+  console.log('Response headers:', Object.fromEntries(response.headers));
+  console.log('Response body:', responseData);
+
   if (!response.ok) {
-    throw new Error('Failed to create Razorpay payment link');
+    throw new Error(`Failed to create payment link: ${responseData}`);
   }
 
-  return await response.json();
+  return JSON.parse(responseData);
 }

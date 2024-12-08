@@ -22,7 +22,7 @@ const MSG91_CONFIG: SMSConfig = {
 };
 
 const url = 'https://control.msg91.com/api/v5/flow/';
-// const url = 'https://control.msg91.com//v5//';
+// const url = 'https://control.msg91.com//v5//'
 
 
 
@@ -63,8 +63,9 @@ export async function sendBillingSMS({
           description: `Bill #${billNo} - ${products} from ${companyName}`,
           billNo
         });
-        console.log(paymentLinkResponse, "razor pay link");
         paymentLink = paymentLinkResponse.short_url;
+        console.log(paymentLink,"payment link");
+        
       } catch (error) {
         console.error('Razorpay payment link creation failed:', error);
       }
@@ -101,6 +102,13 @@ export async function sendBillingSMS({
         var6: addressPart2,           // Address part 2
         var7: addressPart3            // Address part 3
       };
+    }
+
+    if (paymentLink) {
+      await prisma.transactionRecord.update({
+        where: { billNo },
+        data: { paymentMethod: 'razorpay_link' }
+      });
     }
 
     const response = await fetch(url, {

@@ -19,6 +19,7 @@ const createBillSchema = z.object({
     })
   ),
   billingMode: z.string().optional().default('online'),
+  notes: z.string().nullable().optional().default(null)
 });
 
 interface TransactionOptions {
@@ -144,7 +145,8 @@ async function createTransactionRecord(
   organisationId: number,
   customerId: number,
   totalPrice: number,
-  billingMode: string
+  billingMode: string,
+  notes:string
 ) {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
@@ -174,7 +176,9 @@ async function createTransactionRecord(
       date: new Date(indianDate), // Store the date
       time: new Date(`1970-01-01T${indianTime}.000Z`), // Store the time
       status: 'created',
-      paymentMethod: 'pending',
+      paymentStatus: 'PENDING',
+      paymentMethod: 'offline',
+      notes:notes
     },
   });
 }
@@ -188,6 +192,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const parsedData = createBillSchema.safeParse(body);
+console.log(parsedData,"data-----");
 
     if (!parsedData.success) {
       return NextResponse.json(
@@ -196,7 +201,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { customerId, items, billingMode } = parsedData.data;
+    const { customerId, items, billingMode,notes } = parsedData.data;
     const organisationId = parseInt(session.user.id, 10);
     // const organisationId = 2;
 
@@ -222,7 +227,7 @@ export async function POST(request: Request) {
         }
 
         const { productDetails, totalPrice, transactionItemsData } = await processItems(tx, items, organisationId);
-        const newBill = await createTransactionRecord(tx, organisationId, customer.id, totalPrice, billingMode);
+        const newBill = await createTransactionRecord(tx, organisationId, customer.id, totalPrice, billingMode,notes);
 
         await tx.transactionItem.createMany({
           data: transactionItemsData.map((item) => ({
@@ -316,6 +321,14 @@ export async function POST(request: Request) {
       }
     } catch (smsError) {
       console.error('SMS sending failed:', smsError);
+      // return NextResponse.json(
+      //   {
+      //     success: false,
+      //     error: smsError,
+      //     // details: error.message,
+      //   },
+      //   { status: 500 }
+      // );
     }
 
     return NextResponse.json(responseData, { status: 200 });

@@ -35,6 +35,7 @@ export default function OfflineBillingPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notes, setNotes] = useState<string>('');
 
   const calculateTotal = () => {
     return items.reduce((sum, item) => sum + item.total, 0);
@@ -262,13 +263,14 @@ export default function OfflineBillingPage() {
             amountPaid: parseFloat(paymentDetails.amountPaid),
           },
           total: calculateTotal(),
+          notes: notes.trim() || null // Include notes in the request
+
         }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        console.log(result);
         toast.error(result);
 
         throw new Error(result.details || 'Failed to create bill');
@@ -374,6 +376,19 @@ export default function OfflineBillingPage() {
             </p>
           </div>
         </div>
+
+        <div className="bg-white shadow-sm rounded-lg p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <h2 className="text-lg font-medium">Notes</h2>
+        <span className="text-sm text-gray-500">(Optional)</span>
+      </div>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="Add any additional notes here..."
+        className="w-full min-h-[100px] p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+      />
+    </div>
 
         {/* Error Message */}
         {error && (

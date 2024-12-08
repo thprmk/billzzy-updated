@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
     }
   });
 
+  
+
   if (!organisation ||
     organisation.razorpayState !== state ||
     !organisation.razorpayStateExpiresAt ||

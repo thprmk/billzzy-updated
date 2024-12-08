@@ -222,6 +222,8 @@ export async function GET(request: Request) {
                     totalPrice: item.totalPrice,
                     SKU:item.product.SKU
                 })),
+                paymentStatus:bill.paymentStatus,
+                notes:bill.notes
             };
         });
 

@@ -69,6 +69,7 @@ export async function processTransaction(data: BillRequest, organisationId: numb
         date: new Date(data.date),
         time:new Date(`1970-01-01T${data.time}.000Z`),
         status: 'confirmed',
+        notes:data.notes
       },
     });
 

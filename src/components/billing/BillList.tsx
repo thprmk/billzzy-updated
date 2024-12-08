@@ -10,7 +10,6 @@ import { formatDate } from '@/lib/utils';
 import { toast } from 'react-toastify';
 import { Modal } from '@/components/ui/Modal';
 import React from 'react';  // Add this import
-import { log } from 'console';
 
 interface Bill {
   id: number;
@@ -64,6 +63,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
   const [trackingBillId, setTrackingBillId] = useState<number | null>(null);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [weight, setWeight] = useState('');
+  const trackingInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchBills(currentPage);
@@ -128,20 +128,28 @@ export function BillList({ initialBills, mode }: BillListProps) {
   };
 
   const handleStatusChange = async (billId: number, newStatus: string) => {
-    console.log(billId);
-    
     if (newStatus === 'shipped') {
       setTrackingBillId(billId);
       setIsTrackingModalOpen(true);
+      // Focus input on next tick after modal opens
+      setTimeout(() => {
+        trackingInputRef.current?.focus();
+      }, 100);
     } else {
-      // Proceed to update status without tracking details
       await updateStatus(billId, newStatus);
     }
   };
 
+  const handleTrackingFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (trackingNumber.trim()) {
+        handleTrackingSubmit();
+    }
+};
+
   const updateStatus = async (billId: number, newStatus: string) => {
-    console.log("normal",billId);
-    
+    console.log("Updating status for bill:", billId);
+
     try {
       const response = await fetch('/api/billing/status', {
         method: 'POST',
@@ -153,16 +161,21 @@ export function BillList({ initialBills, mode }: BillListProps) {
         throw new Error('Failed to update status');
       }
 
-      // Update the local state
-      setBills(
-        bills.map((bill) =>
+      // First update local state
+      setBills(prevBills =>
+        prevBills.map((bill) =>
           bill.id === billId ? { ...bill, status: newStatus } : bill
         )
       );
+
+      await fetchBills(currentPage);
+
+      // Force a client-side navigation to refresh the page
       router.refresh();
 
       toast.success('Status updated successfully');
     } catch (error) {
+      console.error('Status update error:', error);
       toast.error('Failed to update status');
     }
   };
@@ -180,7 +193,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            billId:trackingBillId,
+          billId: trackingBillId,
           trackingNumber,
           weight: weight ? parseFloat(weight) : null,
           status: 'sent' // Update status as per your requirements
@@ -205,8 +218,13 @@ export function BillList({ initialBills, mode }: BillListProps) {
         )
       );
 
-      toast.success('Tracking details updated and SMS sent successfully');
+      await fetchBills(currentPage);
+
+      // Force a client-side navigation to refresh the page
       router.refresh();
+
+
+      toast.success('Tracking details updated and SMS sent successfully');
 
     } catch (error) {
       toast.error('Failed to update tracking details');
@@ -329,43 +347,46 @@ export function BillList({ initialBills, mode }: BillListProps) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Bill No
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date & Time
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Customer Details
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Order Details
                 </th>
                 {mode === 'offline' && (
                   <>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Payment
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Amount Paid
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Balance
                     </th>
                   </>
                 )}
                 {mode === 'online' && (
                   <>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Tracking Info
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                   </>
                 )}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Notes
+                </th>
 
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -374,18 +395,18 @@ export function BillList({ initialBills, mode }: BillListProps) {
               {bills.map((bill) => (
                 <tr key={bill.id} className="hover:bg-gray-50">
                   {/* Bill No */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm">
                     {bill.billNo}
                   </td>
 
                   {/* Date & Time */}
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4 whitespace-nowrap">
                     <div className="text-sm">{formatDate(bill.date)}</div>
                     <div className="text-xs text-gray-500">{bill.time}</div>
                   </td>
 
                   {/* Customer Details */}
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <div className="text-sm font-medium">{bill.customer.name}</div>
                     <div className="text-sm text-gray-500">{bill.customer.phone}</div>
                     {mode === 'online' && bill.customer.district && bill.customer.state && (
@@ -396,7 +417,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
                   </td>
 
                   {/* Order Details */}
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-4">
                     <div className="space-y-1">
                       {bill.items.map((item) => (
                         <div key={item.id} className="text-sm">
@@ -411,13 +432,13 @@ export function BillList({ initialBills, mode }: BillListProps) {
                   {/* Offline Specific Columns */}
                   {mode === 'offline' && (
                     <>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
                         {bill.paymentMethod}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
                         ₹{bill.amountPaid}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
                         ₹{bill.balance}
                       </td>
                     </>
@@ -426,7 +447,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
                   {/* Online Specific Columns */}
                   {mode === 'online' && (
                     <>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
                         {bill.trackingNumber ? (
                           <div>
                             <div>{bill.trackingNumber}</div>
@@ -440,31 +461,46 @@ export function BillList({ initialBills, mode }: BillListProps) {
                           '-'
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                          <Select
-                            value={bill.status || 'created'}
-                            onChange={(e) => handleStatusChange(bill.billNo, e.target.value)}
-                            className="w-32 text-sm"
-                          >
-                            <option value="created" disabled={bill.status === 'packed' || bill.status === 'dispatch' || bill.status === 'shipped'}>
-                              Created
-                            </option>
-                            <option value="packed" disabled={bill.status === 'dispatch' || bill.status === 'shipped'}>
-                              Packed
-                            </option>
-                            <option value="dispatch" disabled={bill.status === 'shipped'}>
-                              Dispatch
-                            </option>
-                            <option value="shipped">
-                              Shipped
-                            </option>
-                          </Select>
-                        </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <Select
+                          value={bill.status || 'created'}
+                          onChange={(e) => handleStatusChange(bill.billNo, e.target.value)}
+                          className="w-32 text-sm"
+                        >
+                          <option value="created" disabled={bill.status === 'packed' || bill.status === 'dispatch' || bill.status === 'shipped'}>
+                            Created
+                          </option>
+                          <option value="packed" disabled={bill.status === 'dispatch' || bill.status === 'shipped'}>
+                            Packed
+                          </option>
+                          <option value="dispatch" disabled={bill.status === 'shipped'}>
+                            Dispatch
+                          </option>
+                          <option value="shipped">
+                            Shipped
+                          </option>
+                        </Select>
+                        {bill.paymentMethod === 'razorpay_link' && (
+                          <div className={`
+    text-[12px] px-3 py-[1.2x] mt-2 rounded-full inline-block font-medium
+    ${bill.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' : ''}
+    ${bill.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800' : ''}
+    ${bill.paymentStatus === 'PENDING' ? 'bg-orange-100 text-orange-800' : ''}
+    ${bill.paymentStatus === 'EXPIRED' ? 'bg-gray-100 text-gray-800' : ''}
+  `}>
+                            {bill.paymentStatus}
+                          </div>
+                        )}
+                      </td>
                     </>
                   )}
 
+                  <td className="px-4 py-4 whitespace-nowrap text-sm">
+                    {bill.notes ? bill.notes : '-'}
+                  </td>
+
                   {/* Actions */}
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex space-x-2">
                       <Button
                         size="sm"
@@ -578,61 +614,63 @@ export function BillList({ initialBills, mode }: BillListProps) {
 
       {/* Tracking Details Modal */}
       <Modal
-        isOpen={isTrackingModalOpen}
-        onClose={() => {
-          setIsTrackingModalOpen(false);
-          setTrackingBillId(null);
-          setTrackingNumber('');
-          setWeight('');
-        }}
-      >
-        <div className="p-6">
-          <h3 className="text-lg font-medium mb-4">Enter Tracking Details</h3>
-          <div className="space-y-4">
+    isOpen={isTrackingModalOpen}
+    onClose={() => {
+        setIsTrackingModalOpen(false);
+        setTrackingBillId(null);
+        setTrackingNumber('');
+        setWeight('');
+    }}
+>
+    <form onSubmit={handleTrackingFormSubmit} className="p-6">
+        <h3 className="text-lg font-medium mb-4">Enter Tracking Details</h3>
+        <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Tracking Number
-              </label>
-              <Input
-                type="text"
-                value={trackingNumber}
-                onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
-                className="mt-1"
-                required
-              />
+                <label className="block text-sm font-medium text-gray-700">
+                    Tracking Number
+                </label>
+                <Input
+                    ref={trackingInputRef}
+                    type="text"
+                    value={trackingNumber}
+                    onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
+                    className="mt-1"
+                    required
+                />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Weight (kg)
-              </label>
-              <Input
-                type="number"
-                step="0.01"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                className="mt-1"
-              />
+                <label className="block text-sm font-medium text-gray-700">
+                    Weight (kg)
+                </label>
+                <Input
+                    type="number"
+                    step="0.01"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="mt-1"
+                />
             </div>
-          </div>
-          <div className="flex justify-end space-x-3 mt-6">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setIsTrackingModalOpen(false);
-                setTrackingBillId(null);
-                setTrackingNumber('');
-                setWeight('');
-              }}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleTrackingSubmit} isLoading={isLoading}>
-              Submit
-            </Button>
-          </div>
         </div>
-      </Modal>
+        <div className="flex justify-end space-x-3 mt-6">
+            <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                    setIsTrackingModalOpen(false);
+                    setTrackingBillId(null);
+                    setTrackingNumber('');
+                    setWeight('');
+                }}
+                disabled={isLoading}
+            >
+                Cancel
+            </Button>
+            <Button type="submit" isLoading={isLoading}>
+                Submit
+            </Button>
+        </div>
+    </form>
+</Modal>
     </div>
   );
 }

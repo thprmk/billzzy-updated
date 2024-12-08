@@ -17,7 +17,6 @@ export default function ProcessSubmissionPage() {
   const [submission, setSubmission] = useState(null);
   const [items, setItems] = useState<BillItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-console.log(id);
 
   useEffect(() => {
     // Fetch the submission details

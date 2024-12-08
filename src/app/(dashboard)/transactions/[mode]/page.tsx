@@ -28,6 +28,7 @@ export default async function BillsPage({ params }: PageProps) {
         billingMode: mode  // Use mode instead of params.mode
       },
       include: {
+        
         customer: {
           select: {
             name: true,
@@ -42,9 +43,11 @@ export default async function BillsPage({ params }: PageProps) {
                 name: true
               }
             }
-          }
-        }
+          },
+
+        },
       },
+      
       orderBy: {
         billNo: 'desc'
       }
@@ -99,7 +102,7 @@ export default async function BillsPage({ params }: PageProps) {
     });
 
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-0 py-8">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
@@ -120,7 +123,7 @@ export default async function BillsPage({ params }: PageProps) {
   } catch (error) {
     console.error('Error fetching bills:', error);
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="  px-4 py-8">
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <p className="text-red-600">
             Error loading bills. Please try again later.
@@ -130,3 +133,5 @@ export default async function BillsPage({ params }: PageProps) {
     );
   }
 }
+
+// export const dynamic = 'force-dynamic';

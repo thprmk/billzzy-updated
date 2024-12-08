@@ -36,6 +36,8 @@ export default async function SettingsPage() {
       gstNumber: true,
       companySize: true,
       whatsappNumber: true,
+      razorpayStateExpiresAt:true,
+      razorpayAccessToken:true
     }
   });
 

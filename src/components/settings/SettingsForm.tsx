@@ -30,13 +30,13 @@ interface OrganisationDetails {
   whatsappNumber?: string | null;
 }
 
-export default function SettingsForm({ 
-  initialData 
-}: { 
-  initialData: OrganisationDetails 
+export default function SettingsForm({
+  initialData
+}: {
+  initialData: OrganisationDetails
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'shop' | 'password' | 'whatsapp'>('shop');
+  const [activeTab, setActiveTab] = useState<'shop' | 'password' | 'whatsapp' | 'integrations'>('shop');
   const [isLoading, setIsLoading] = useState(false);
 
   // Shop Details State
@@ -79,9 +79,47 @@ export default function SettingsForm({
     }
   };
 
+  const handleConnect = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/razorpay', {
+        method: 'POST',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to initiate Razorpay connection');
+      }
+      
+      const { authUrl } = await response.json();
+      window.location.href = authUrl;
+    } catch (error) {
+      console.error('Failed to initiate Razorpay connection:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRazorpayDisconnect = async () => {
+    try {
+      const response = await fetch('/api/razorpay/disconnect', {
+        method: 'POST',
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to disconnect Razorpay');
+      }
+  
+      toast.success('Razorpay disconnected successfully');
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to disconnect Razorpay');
+      console.error(error);
+    }
+  };
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error('New passwords do not match');
       return;
@@ -147,28 +185,32 @@ export default function SettingsForm({
       <div className="bg-white shadow-lg rounded-lg overflow-hidden">
         <div className="flex border-b">
           <button
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'shop' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
-            }`}
+            className={`px-6 py-3 font-medium ${activeTab === 'shop' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
+              }`}
             onClick={() => setActiveTab('shop')}
           >
             Shop Information
           </button>
           <button
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'password' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
-            }`}
+            className={`px-6 py-3 font-medium ${activeTab === 'password' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
+              }`}
             onClick={() => setActiveTab('password')}
           >
             Password
           </button>
           <button
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'whatsapp' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
-            }`}
+            className={`px-6 py-3 font-medium ${activeTab === 'whatsapp' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
+              }`}
             onClick={() => setActiveTab('whatsapp')}
           >
             WhatsApp
+          </button>
+          <button
+            className={`px-6 py-3 font-medium ${activeTab === 'integrations' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
+              }`}
+            onClick={() => setActiveTab('integrations')}
+          >
+            Integrations
           </button>
         </div>
 
@@ -251,7 +293,7 @@ export default function SettingsForm({
                   />
                 </div>
 
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     District
@@ -461,7 +503,7 @@ export default function SettingsForm({
             </div>
           )}
 
-{activeTab === 'whatsapp' && (
+          {activeTab === 'whatsapp' && (
             <form onSubmit={handleWhatsAppUpdate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -482,6 +524,82 @@ export default function SettingsForm({
               </Button>
             </form>
           )}
+
+{activeTab === 'integrations' && (
+  <div className="space-y-6">
+    <div className="bg-white p-6 rounded-lg border">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          {/* <Image
+            src="/razorpay-logo.png"
+            alt="Razorpay"
+            width={32}
+            height={32}
+            className="object-contain"
+          /> */}
+          <div>
+            <h3 className="text-lg font-medium">Razorpay</h3>
+            <p className="text-sm text-gray-600">Accept online payments</p>
+          </div>
+        </div>
+        
+        {initialData.razorpayAccessToken ? (
+          <div className="flex items-center space-x-4">
+            <span className="flex items-center text-green-600">
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+              Connected
+            </span>
+            <button
+              onClick={handleRazorpayDisconnect}
+              className="text-sm text-red-600 hover:text-red-800"
+            >
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleConnect}
+            disabled={isLoading}
+            className="flex items-center px-4 py-2 border border-[#02042B] rounded-md hover:bg-gray-50 transition-all duration-200"
+          >
+            {isLoading ? (
+              <span>Connecting...</span>
+            ) : (
+              <>
+                <span>Connect</span>
+                <svg
+                  className="w-4 h-4 ml-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
         </div>
       </div>
     </div>
