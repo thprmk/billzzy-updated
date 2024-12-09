@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         grant_type: 'authorization_code',
         client_id: process.env.NEXT_RAZORPAY_CLIENT_ID!,
         client_secret: process.env.NEXT_RAZORPAY_CLIENT_SECRET!,
-        redirect_uri: `http://localhost:3000/api/razorpay/callback`
+        redirect_uri: `https://billzzy.com/api/razorpay/callback`
       })
     });
 
