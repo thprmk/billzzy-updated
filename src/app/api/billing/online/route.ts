@@ -321,14 +321,14 @@ console.log(parsedData,"data-----");
       }
     } catch (smsError) {
       console.error('SMS sending failed:', smsError);
-      // return NextResponse.json(
-      //   {
-      //     success: false,
-      //     error: smsError,
-      //     // details: error.message,
-      //   },
-      //   { status: 500 }
-      // );
+      return NextResponse.json(
+        {
+          success: false,
+          error: smsError,
+          // details: error.message,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(responseData, { status: 200 });

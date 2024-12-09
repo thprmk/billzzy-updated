@@ -396,7 +396,7 @@ export default function Sidebar({
             })}
           </nav>
 
-          {/* <RazorpayConnect/> */}
+          <RazorpayConnect/>
 
         </div>
 

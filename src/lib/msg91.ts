@@ -120,7 +120,7 @@ export async function sendBillingSMS({
       },
       body: JSON.stringify({
         template_id,
-        short_url: "0",
+        short_url: "1",
         recipients: [{
           mobiles: `91${phone}`,
           ...variables
