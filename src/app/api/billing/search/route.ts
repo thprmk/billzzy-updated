@@ -178,7 +178,6 @@ export async function GET(request: Request) {
             take: pageSize,
         });
 
-        console.log(bills,"data");
         
 
         const formattedBills: BillResponse[] = bills.map((bill) => {
@@ -198,7 +197,6 @@ export async function GET(request: Request) {
             const formattedTime = new Intl.DateTimeFormat('en-US', options).format(timeObj);
             
 
-            console.log(bill.items,"data item");
             
 
             return {

@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+
 interface WebhookPayload {
   entity: string;
   account_id: string;
@@ -19,6 +20,38 @@ interface WebhookPayload {
       };
     };
   };
+}
+
+async function sendMsg91SMS(phone: string, variables: Record<string, string>) {
+
+  return
+console.log(phone,variables,"variables phone for status");
+
+
+  try {
+    const response = await fetch('https://api.msg91.com/api/v5/flow/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'authkey': process.env.MSG91_AUTH_KEY!
+      },
+      body: JSON.stringify({
+        template_id: process.env.MSG91_TEMPLATE_ID,
+        short_url: "1",
+        recipients: [{
+          mobiles: phone.startsWith('91') ? phone : `91${phone}`,
+          ...variables
+        }]
+      })
+    });
+
+    const data = await response.json();
+    console.log('MSG91 Response:', data);
+    return data;
+  } catch (error) {
+    console.error('SMS sending failed:', error);
+    throw error;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -48,7 +81,7 @@ export async function POST(request: NextRequest) {
         const billNo = parseInt(referenceId.replace('BILL-', ''));
         const amount = payload.payment_link.entity.amount / 100;
 
-        await prisma.transactionRecord.update({
+        const transaction = await prisma.transactionRecord.update({
           where: { billNo },
           data: {
             amountPaid: amount,
@@ -56,30 +89,58 @@ export async function POST(request: NextRequest) {
             paymentMethod: 'razorpay_link',
             paymentId: payload.payment_link.entity.payment_id,
             paymentStatus: 'PAID'
+          },
+          include: {
+            customer: true,
+            organisation: true
           }
         });
+
+        await sendMsg91SMS(
+          transaction.customer.phone,
+          {
+            var1: "Payment Successful",
+            var2: `BILL-${billNo}`,
+            var3: amount.toFixed(2),
+            var4: transaction.organisation.mobileNumber
+          }
+        );
+
         revalidatePath('/transactions/online');
         revalidatePath('/dashboard');
         break;
       }
 
-      case 'payment_link.failed': {
-        const referenceId = payload.payment_link?.entity.reference_id;
-        console.log(payload,"payemnt failed ----------------");
-        
+      case 'payment.failed': {
+        const referenceId = payload.payment?.entity.notes.reference_id;
         if (!referenceId) {
           throw new Error('Missing reference_id in payment_link payload');
         }
 
-        const billNo = parseInt(referenceId.replace('BILL_', ''));
-        await prisma.transactionRecord.update({
+        const billNo = parseInt(referenceId.replace('BILL-', ''));
+
+        const transaction = await prisma.transactionRecord.update({
           where: { billNo },
           data: {
             paymentMethod: 'razorpay_link',
-
             paymentStatus: 'FAILED'
+          },
+          include: {
+            customer: true,
+            organisation: true
           }
         });
+
+        await sendMsg91SMS(
+          transaction.customer.phone,
+          {
+            var1: "Payment Failed",
+            var2: `BILL-${billNo}`,
+            var3: transaction.totalPrice.toFixed(2),
+            var4: transaction.organisation.mobileNumber
+          }
+        );
+
         revalidatePath('/transactions/online');
         revalidatePath('/dashboard');
         break;
@@ -91,13 +152,29 @@ export async function POST(request: NextRequest) {
           throw new Error('Missing reference_id in payment_link payload');
         }
 
-        const billNo = parseInt(referenceId.replace('BILL_', ''));
-        await prisma.transactionRecord.update({
+        const billNo = parseInt(referenceId.replace('BILL-', ''));
+
+        const transaction = await prisma.transactionRecord.update({
           where: { billNo },
           data: {
             paymentStatus: 'EXPIRED'
+          },
+          include: {
+            customer: true,
+            organisation: true
           }
         });
+
+        await sendMsg91SMS(
+          transaction.customer.phone,
+          {
+            var1: "Payment Link Expired",
+            var2: `BILL-${billNo}`,
+            var3: transaction.amount.toFixed(2),
+            var4: transaction.organisation.mobileNumber
+          }
+        );
+
         revalidatePath('/transactions/online');
         revalidatePath('/dashboard');
         break;
@@ -106,7 +183,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ status: 'success' });
   } catch (error) {
-    console.error('Webhook error:', error.message);
-    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+    console.error('Webhook error:', error);
+    return NextResponse.json({ error: 'Webhook processing failed', message: error.message }, { status: 500 });
   }
 }
