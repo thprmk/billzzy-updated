@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
   const authUrl = new URL('https://auth.razorpay.com/authorize');
   authUrl.searchParams.append('client_id', process.env.NEXT_RAZORPAY_CLIENT_ID!);
-  authUrl.searchParams.append('redirect_uri', `http://localhost:3000/api/razorpay/callback`);
+  authUrl.searchParams.append('redirect_uri', `https://billzzy.com/api/razorpay/callback`);
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('scope', 'read_write');
   authUrl.searchParams.append('state', state);
