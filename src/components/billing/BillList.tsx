@@ -103,6 +103,23 @@ export function BillList({ initialBills, mode }: BillListProps) {
     }
   };
 
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    
+    if (bills.some(bill => bill.paymentMethod === 'razorpay_link' && 
+        bill.paymentStatus !== 'PAID' && bill.paymentStatus !== 'FAILED')) {
+      intervalId = setInterval(() => {
+        fetchBills(currentPage);
+      }, 5000); // Poll every 5 seconds
+    }
+  
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [bills]);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);

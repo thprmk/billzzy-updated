@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { revalidatePath } from 'next/cache';
 
 interface WebhookPayload {
   entity: string;
@@ -57,11 +58,15 @@ export async function POST(request: NextRequest) {
             paymentStatus: 'PAID'
           }
         });
+        revalidatePath('/transactions/online');
+        revalidatePath('/dashboard');
         break;
       }
 
       case 'payment_link.failed': {
         const referenceId = payload.payment_link?.entity.reference_id;
+        console.log(payload,"payemnt failed ----------------");
+        
         if (!referenceId) {
           throw new Error('Missing reference_id in payment_link payload');
         }
@@ -75,6 +80,8 @@ export async function POST(request: NextRequest) {
             paymentStatus: 'FAILED'
           }
         });
+        revalidatePath('/transactions/online');
+        revalidatePath('/dashboard');
         break;
       }
 
@@ -91,6 +98,8 @@ export async function POST(request: NextRequest) {
             paymentStatus: 'EXPIRED'
           }
         });
+        revalidatePath('/transactions/online');
+        revalidatePath('/dashboard');
         break;
       }
     }
