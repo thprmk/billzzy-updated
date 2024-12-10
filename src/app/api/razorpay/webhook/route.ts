@@ -35,7 +35,7 @@ interface WebhookPayload {
 
 async function sendPaymentNotification(phone: string, variables: Record<string, string>) {
   console.log(phone,variables);
-  
+  return;
   try {
     // return
     const response = await fetch('https://control.msg91.com/api/v5/flow/', {
