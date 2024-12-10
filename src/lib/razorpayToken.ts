@@ -95,28 +95,27 @@ export async function createRazorpayPaymentLink(accessToken: string, {
   description: string;
   billNo: number;
 }) {
+  const timestamp = Date.now();
+  const reference_id = `PAY-${timestamp}-${Math.random().toString(36).substring(7)}`;
+
   const payload = {
-    amount: Math.round(amount * 100), // Ensure integer amount in paise
+    amount: Math.round(amount * 100),
     currency: 'INR',
     accept_partial: false,
-    reference_id: `BILL-${billNo}`,
+    reference_id,
     description: description,
     customer: {
       contact: customerPhone.startsWith('91') ? customerPhone : `91${customerPhone}`
     },
     notify: {
-      sms: true
+      sms: false
     },
     notes: {
-      reference_id: `BILL-${billNo}`,
       bill_no: billNo.toString(),
       description: description
     },
     reminder_enable: true
   };
-
-  console.log('Request payload:', payload);
-  console.log('Using access token:', accessToken);
 
   const response = await fetch('https://api.razorpay.com/v1/payment_links', {
     method: 'POST',
@@ -127,14 +126,10 @@ export async function createRazorpayPaymentLink(accessToken: string, {
     body: JSON.stringify(payload)
   });
 
-  const responseData = await response.text();
-  console.log('Response status:', response.status);
-  console.log('Response headers:', Object.fromEntries(response.headers));
-  console.log('Response body:', responseData);
-
   if (!response.ok) {
-    throw new Error(`Failed to create payment link: ${responseData}`);
+    const errorData = await response.text();
+    throw new Error(`Failed to create payment link: ${errorData}`);
   }
 
-  return JSON.parse(responseData);
+  return await response.json();
 }

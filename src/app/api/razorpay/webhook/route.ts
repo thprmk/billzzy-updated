@@ -4,7 +4,6 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-
 interface WebhookPayload {
   entity: string;
   account_id: string;
@@ -13,31 +12,40 @@ interface WebhookPayload {
   payload: {
     payment_link?: {
       entity: {
-        reference_id: string;
+        id: string;
+        notes: {
+          bill_no: string;
+        };
         payment_id?: string;
         status: string;
         amount: number;
       };
     };
+    payment?: {
+      entity: {
+        notes: {
+          bill_no: string;
+        };
+        amount: number;
+        status: string;
+      };
+    };
   };
 }
 
-async function sendMsg91SMS(phone: string, variables: Record<string, string>) {
-
-  return
-console.log(phone,variables,"variables phone for status");
-
-
+async function sendPaymentNotification(phone: string, variables: Record<string, string>) {
+  console.log(phone,variables);
+  
   try {
-    const response = await fetch('https://api.msg91.com/api/v5/flow/', {
+    // return
+    const response = await fetch('https://control.msg91.com/api/v5/flow/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'authkey': process.env.MSG91_AUTH_KEY!
       },
       body: JSON.stringify({
-        template_id: process.env.MSG91_TEMPLATE_ID,
-        short_url: "1",
+        template_id: '',
         recipients: [{
           mobiles: phone.startsWith('91') ? phone : `91${phone}`,
           ...variables
@@ -45,19 +53,25 @@ console.log(phone,variables,"variables phone for status");
       })
     });
 
-    const data = await response.json();
-    console.log('MSG91 Response:', data);
-    return data;
+    if (!response.ok) {
+      throw new Error(`SMS API returned status ${response.status}`);
+    }
+
+    return await response.json();
   } catch (error) {
-    console.error('SMS sending failed:', error);
-    throw error;
+    console.error('Payment notification failed:', error);
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
+    console.log('Received webhook payload:', body);
+
     const signature = request.headers.get('x-razorpay-signature');
+    if (!signature) {
+      return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
+    }
 
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET!)
@@ -69,17 +83,16 @@ export async function POST(request: NextRequest) {
     }
 
     const webhookData = JSON.parse(body) as WebhookPayload;
-    const { payload, event } = webhookData;
+    console.log('Processing webhook event:', webhookData.event);
 
-    switch (event) {
+    switch (webhookData.event) {
       case 'payment_link.paid': {
-        const referenceId = payload.payment_link?.entity.reference_id;
-        if (!referenceId) {
-          throw new Error('Missing reference_id in payment_link payload');
+        const billNo = parseInt(webhookData.payload.payment_link?.entity.notes.bill_no || '');
+        if (isNaN(billNo)) {
+          throw new Error('Invalid bill number in payment link notes');
         }
 
-        const billNo = parseInt(referenceId.replace('BILL-', ''));
-        const amount = payload.payment_link.entity.amount / 100;
+        const amount = webhookData.payload.payment_link.entity.amount / 100;
 
         const transaction = await prisma.transactionRecord.update({
           where: { billNo },
@@ -87,8 +100,9 @@ export async function POST(request: NextRequest) {
             amountPaid: amount,
             balance: 0,
             paymentMethod: 'razorpay_link',
-            paymentId: payload.payment_link.entity.payment_id,
-            paymentStatus: 'PAID'
+            paymentId: webhookData.payload.payment_link.entity.payment_id,
+            paymentStatus: 'PAID',
+            status: 'paid'
           },
           include: {
             customer: true,
@@ -96,33 +110,29 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        await sendMsg91SMS(
-          transaction.customer.phone,
-          {
-            var1: "Payment Successful",
-            var2: `BILL-${billNo}`,
-            var3: amount.toFixed(2),
-            var4: transaction.organisation.mobileNumber
-          }
-        );
+        await sendPaymentNotification(transaction.customer.phone, {
+          var1: "Payment Successful",
+          var2: amount.toFixed(2),
+          var3: transaction.organisation.shopName
+        });
 
-        revalidatePath('/transactions/online');
-        revalidatePath('/dashboard');
         break;
       }
 
+      case 'payment_link.failed':
       case 'payment.failed': {
-        const referenceId = payload.payment?.entity.notes.reference_id;
-        if (!referenceId) {
-          throw new Error('Missing reference_id in payment_link payload');
-        }
+        const notes = webhookData.event === 'payment.failed'
+          ? webhookData.payload.payment?.entity.notes
+          : webhookData.payload.payment_link?.entity.notes;
 
-        const billNo = parseInt(referenceId.replace('BILL-', ''));
+        const billNo = parseInt(notes?.bill_no || '');
+        if (isNaN(billNo)) {
+          throw new Error('Invalid bill number in payment notes');
+        }
 
         const transaction = await prisma.transactionRecord.update({
           where: { billNo },
           data: {
-            paymentMethod: 'razorpay_link',
             paymentStatus: 'FAILED'
           },
           include: {
@@ -131,28 +141,20 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        await sendMsg91SMS(
-          transaction.customer.phone,
-          {
-            var1: "Payment Failed",
-            var2: `BILL-${billNo}`,
-            var3: transaction.totalPrice.toFixed(2),
-            var4: transaction.organisation.mobileNumber
-          }
-        );
+        await sendPaymentNotification(transaction.customer.phone, {
+          var1: "Payment Failed",
+          var2: transaction.totalPrice.toFixed(2),
+          var3: transaction.organisation.shopName
+        });
 
-        revalidatePath('/transactions/online');
-        revalidatePath('/dashboard');
         break;
       }
 
       case 'payment_link.expired': {
-        const referenceId = payload.payment_link?.entity.reference_id;
-        if (!referenceId) {
-          throw new Error('Missing reference_id in payment_link payload');
+        const billNo = parseInt(webhookData.payload.payment_link?.entity.notes.bill_no || '');
+        if (isNaN(billNo)) {
+          throw new Error('Invalid bill number in payment link notes');
         }
-
-        const billNo = parseInt(referenceId.replace('BILL-', ''));
 
         const transaction = await prisma.transactionRecord.update({
           where: { billNo },
@@ -165,25 +167,31 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        await sendMsg91SMS(
-          transaction.customer.phone,
-          {
-            var1: "Payment Link Expired",
-            var2: `BILL-${billNo}`,
-            var3: transaction.amount.toFixed(2),
-            var4: transaction.organisation.mobileNumber
-          }
-        );
+        await sendPaymentNotification(transaction.customer.phone, {
+          var1: "Payment Link Expired",
+          var2: transaction.totalPrice.toFixed(2),
+          var3: transaction.organisation.shopName
+        });
 
-        revalidatePath('/transactions/online');
-        revalidatePath('/dashboard');
         break;
       }
     }
 
-    return NextResponse.json({ status: 'success' });
+    revalidatePath('/transactions/online');
+    revalidatePath('/dashboard');
+
+    return NextResponse.json({ 
+      status: 'success',
+      event: webhookData.event,
+      processedAt: new Date().toISOString()
+    });
+
   } catch (error) {
-    console.error('Webhook error:', error);
-    return NextResponse.json({ error: 'Webhook processing failed', message: error.message }, { status: 500 });
+    console.error('Webhook processing error:', error);
+    return NextResponse.json({ 
+      error: 'Webhook processing failed', 
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    }, { status: 500 });
   }
 }
