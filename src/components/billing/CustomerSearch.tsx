@@ -143,7 +143,7 @@ export function CustomerForm({ onCustomerChange }: CustomerFormProps) {
               value={customerDetails?.name || ''}
               onChange={handleFieldChange}
               required={!isExistingCustomer}
-              disabled={isExistingCustomer}
+              // disabled={isExistingCustomer}
             />
             <Input
               label="Email"
@@ -152,7 +152,7 @@ export function CustomerForm({ onCustomerChange }: CustomerFormProps) {
               placeholder="e.g., john@example.com"
               value={customerDetails?.email || ''}
               onChange={handleFieldChange}
-              disabled={isExistingCustomer}
+              // disabled={isExistingCustomer}
             />
           </div>
         </div>
@@ -167,7 +167,7 @@ export function CustomerForm({ onCustomerChange }: CustomerFormProps) {
               placeholder="e.g., 12B"
               value={customerDetails?.flatNo || ''}
               onChange={handleFieldChange}
-              disabled={isExistingCustomer}
+              // disabled={isExistingCustomer}
             />
             <Input
               label="Street"
@@ -175,7 +175,7 @@ export function CustomerForm({ onCustomerChange }: CustomerFormProps) {
               placeholder="e.g., Baker Street"
               value={customerDetails?.street || ''}
               onChange={handleFieldChange}
-              disabled={isExistingCustomer}
+              // disabled={isExistingCustomer}
             />
             <Input
               label="District"
@@ -183,7 +183,7 @@ export function CustomerForm({ onCustomerChange }: CustomerFormProps) {
               placeholder="e.g., Central"
               value={customerDetails?.district || ''}
               onChange={handleFieldChange}
-              disabled={isExistingCustomer}
+              // disabled={isExistingCustomer}
             />
             <Input
               label="State"
@@ -191,7 +191,7 @@ export function CustomerForm({ onCustomerChange }: CustomerFormProps) {
               placeholder="e.g., California"
               value={customerDetails?.state || ''}
               onChange={handleFieldChange}
-              disabled={isExistingCustomer}
+              // disabled={isExistingCustomer}
             />
             <Input
               label="Pincode"
@@ -201,7 +201,7 @@ export function CustomerForm({ onCustomerChange }: CustomerFormProps) {
               placeholder="e.g., 90001"
               value={customerDetails?.pincode || ''}
               onChange={handleFieldChange}
-              disabled={isExistingCustomer}
+              // disabled={isExistingCustomer}
             />
           </div>
         </div>
