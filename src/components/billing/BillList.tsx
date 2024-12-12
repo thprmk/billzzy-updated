@@ -446,7 +446,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
           </th>
         </tr>
       </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
+      <tbody className="bg-white divide-y  divide-gray-200">
         {bills.map((bill) => (
           <tr key={bill.id} className="hover:bg-gray-50">
             {/* Bill No */}
@@ -507,9 +507,10 @@ export function BillList({ initialBills, mode }: BillListProps) {
                   <section className="flex justify-between items-center mb-2">
                     <div className="text-[13px] text-gray-600">Payment:</div>
                     {bill.paymentMethod === 'razorpay_link' ? (
-                      <div
+                      <div className='w-[120px] ml-4'>
+                        <div
                         className={`
-                          text-[12px] px-3 py-1 rounded-full font-medium inline-block
+                          text-[12px]   px-3 py-[2px] rounded-full font-medium inline-block
                           ${bill.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' : ''}
                           ${bill.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800' : ''}
                           ${bill.paymentStatus === 'PENDING' ? 'bg-orange-100 text-orange-800' : ''}
@@ -518,8 +519,11 @@ export function BillList({ initialBills, mode }: BillListProps) {
                       >
                         {bill.paymentStatus}
                       </div>
+
+                      </div>
                     ) : (
-                      <select
+                      <div className='w-[120px]'>
+                           <select
                         value={bill.paymentStatus || ''}
                         onChange={(e) => handlePaymentStatusChange(bill.id, e.target.value)}
                         className="ml-2 text-sm border rounded px-2 py-1"
@@ -529,13 +533,15 @@ export function BillList({ initialBills, mode }: BillListProps) {
                         <option value="PAID">Paid</option>
                         <option value="FAILED">Failed</option>
                       </select>
+                      </div>
                     )}
                   </section>
                   <section className="flex justify-between items-center">
                     <div className="text-[13px] text-gray-600">Order:</div>
-                    <div
+                  <section className='w-[120px]'>
+                  <div
                       className={`
-                        text-[12px] px-3 py-1 rounded-full font-medium inline-block uppercase
+                        text-[12px] px-3 py-[2px] rounded-full font-medium inline-block uppercase
                         ${bill.status === 'paymentPending' ? 'bg-orange-100 text-orange-800' : ''}
                         ${bill.status === 'processing' ? 'bg-yellow-100 text-yellow-800' : ''}
                         ${bill.status === 'printed' ? 'bg-blue-100 text-blue-800' : ''}
@@ -545,6 +551,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
                     >
                       {bill.status}
                     </div>
+                  </section>
                   </section>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
@@ -651,7 +658,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
                 {bill.paymentMethod === 'razorpay_link' ? (
                   <div
                     className={`
-                      text-[12px] px-3 py-1 rounded-full font-medium inline-block
+                      text-[12px] px-3 py-1 rounded-full font-medium  inline-block
                       ${bill.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' : ''}
                       ${bill.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800' : ''}
                       ${bill.paymentStatus === 'PENDING' ? 'bg-orange-100 text-orange-800' : ''}

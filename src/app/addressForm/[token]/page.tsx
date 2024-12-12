@@ -1,10 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'react-toastify';
+import { getPincodeDetails } from '@/lib/utils/pincode';
+import { useDebounce } from '@/hooks/useDebounce';
+
+interface FormData {
+  name: string;
+  phone: string;
+  pincode: string;
+  flatNo: string;
+  street: string;
+  district: string;
+  state: string;
+  email: string;
+  notes: string;
+}
 
 interface FormErrors {
   [key: string]: string;
@@ -15,26 +29,30 @@ export default function AddressFormPage() {
   const params = useParams();
   const token = params.token;
 
-  const [formData, setFormData] = useState({
+  const initialFormData: FormData = {
     name: '',
     phone: '',
-    email: '', // Added email field
+    pincode: '',
     flatNo: '',
     street: '',
     district: '',
     state: '',
-    pincode: '',
+    email: '',
     notes: '',
-  });
+  };
 
+  const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidToken, setIsValidToken] = useState(true);
+  const [isPincodeLoading, setIsPincodeLoading] = useState(false);
+
+  const debouncedPincode = useDebounce(formData.pincode, 500);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
+    
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -43,7 +61,6 @@ export default function AddressFormPage() {
   const validateForm = () => {
     const newErrors: FormErrors = {};
 
-    // Required field validations
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
@@ -54,9 +71,10 @@ export default function AddressFormPage() {
       newErrors.phone = 'Please enter a valid 10-digit phone number';
     }
 
-    // Email validation (optional)
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+    if (!formData.pincode.trim()) {
+      newErrors.pincode = 'Pincode is required';
+    } else if (!/^[0-9]{6}$/.test(formData.pincode)) {
+      newErrors.pincode = 'Please enter a valid 6-digit pincode';
     }
 
     if (!formData.flatNo.trim()) {
@@ -75,10 +93,8 @@ export default function AddressFormPage() {
       newErrors.state = 'State is required';
     }
 
-    if (!formData.pincode.trim()) {
-      newErrors.pincode = 'Pincode is required';
-    } else if (!/^[0-9]{6}$/.test(formData.pincode)) {
-      newErrors.pincode = 'Please enter a valid 6-digit pincode';
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
     setErrors(newErrors);
@@ -90,7 +106,7 @@ export default function AddressFormPage() {
       toast.error('Please fill in all required fields correctly');
       return;
     }
-  
+
     setIsSubmitting(true);
     try {
       const response = await fetch('/api/billing/customer_submission', {
@@ -98,15 +114,14 @@ export default function AddressFormPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, ...formData }),
       });
-  
+
       const data = await response.json();
-  
+
       if (!response.ok) {
-        // Display the specific error message from the backend
         toast.error(data.error || 'Failed to submit data');
         return;
       }
-  
+
       toast.success(data.message || 'Your information has been submitted successfully!');
       router.push('/thankYou');
     } catch (error) {
@@ -116,6 +131,37 @@ export default function AddressFormPage() {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    async function fetchPincodeDetails() {
+      if (debouncedPincode.length === 6) {
+        setIsPincodeLoading(true);
+        try {
+          const details = await getPincodeDetails(debouncedPincode);
+          setFormData(prev => ({
+            ...prev,
+            district: details.district,
+            state: details.state,
+          }));
+          setErrors(prev => ({
+            ...prev,
+            pincode: '',
+            district: '',
+            state: ''
+          }));
+        } catch (error) {
+          setErrors(prev => ({
+            ...prev,
+            pincode: 'Invalid pincode'
+          }));
+        } finally {
+          setIsPincodeLoading(false);
+        }
+      }
+    }
+
+    fetchPincodeDetails();
+  }, [debouncedPincode]);
 
   if (!isValidToken) {
     return <div>Invalid or expired link.</div>;
@@ -131,9 +177,7 @@ export default function AddressFormPage() {
             </h1>
             
             <div className="space-y-4 md:space-y-6">
-              {/* Name and Phone section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
                   <Input
                     label="Name *"
                     name="name"
@@ -143,7 +187,6 @@ export default function AddressFormPage() {
                     required
                     placeholder="Enter your full name"
                   />
-                </div>
                 <Input
                   label="Phone *"
                   name="phone"
@@ -153,28 +196,11 @@ export default function AddressFormPage() {
                   required
                   placeholder="Enter your phone number"
                 />
-                <Input
-                  label="Email (Optional)"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  error={errors.email}
-                  placeholder="Enter your email address"
-                />
               </div>
 
-              {/* Pincode and Address section */}
+         
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Pincode *"
-                  name="pincode"
-                  value={formData.pincode}
-                  onChange={handleChange}
-                  error={errors.pincode}
-                  required
-                  placeholder="Enter pincode"
-                />
                 <Input
                   label="Flat/House No *"
                   name="flatNo"
@@ -184,20 +210,30 @@ export default function AddressFormPage() {
                   required
                   placeholder="Enter flat/house number"
                 />
+                <Input
+                  label="Street *"
+                  name="street"
+                  value={formData.street}
+                  onChange={handleChange}
+                  error={errors.street}
+                  required
+                  placeholder="Enter street name"
+                />
+
               </div>
 
-              <Input
-                label="Street *"
-                name="street"
-                value={formData.street}
-                onChange={handleChange}
-                error={errors.street}
-                required
-                placeholder="Enter street name"
-              />
 
-              {/* District and State */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Pincode *"
+                  name="pincode"
+                  value={formData.pincode}
+                  onChange={handleChange}
+                  error={errors.pincode}
+                  required
+                  placeholder="Enter pincode"
+                  maxLength={6}
+                />
                 <Input
                   label="District *"
                   name="district"
@@ -206,19 +242,32 @@ export default function AddressFormPage() {
                   error={errors.district}
                   required
                   placeholder="Enter district"
+                  disabled={isPincodeLoading}
                 />
-                <Input
-                  label="State *"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  error={errors.state}
-                  required
-                  placeholder="Enter state"
-                />
+                     <Input
+                label="State *"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                error={errors.state}
+                required
+                placeholder="Enter state"
+                disabled={isPincodeLoading}
+              />
+                    <Input
+                label="Email (Optional)"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={errors.email}
+                placeholder="Enter your email address"
+              />
               </div>
 
-              {/* Notes section */}
+
+        
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Additional Notes (Optional)

@@ -294,43 +294,43 @@ console.log(parsedData,"data-----");
       total_amount: newBill.totalPrice,
     };
 
-    try {
-      if (customer.phone) {
-        const productsString = productDetails
-          .map((item) => `${item.productName} x ${item.quantity}`)
-          .join(', ');
+    // try {
+    //   if (customer.phone) {
+    //     const productsString = productDetails
+    //       .map((item) => `${item.productName} x ${item.quantity}`)
+    //       .join(', ');
     
-        const fullAddress = [
-          customer.flatNo,
-          customer.street,
-          customer.district,
-          customer.state,
-          customer.pincode,
-        ]
-          .filter(Boolean)
-          .join(', ');
+    //     const fullAddress = [
+    //       customer.flatNo,
+    //       customer.street,
+    //       customer.district,
+    //       customer.state,
+    //       customer.pincode,
+    //     ]
+    //       .filter(Boolean)
+    //       .join(', ');
     
-        await sendBillingSMS({
-          phone: customer.phone,
-          companyName: organisation.shopName,
-          products: productsString,
-          amount: newBill.totalPrice,
-          address: fullAddress,
-          organisationId: organisation.id,
-          billNo: newBill.billNo // Add this line
-        });
-      }
-    } catch (smsError) {
-      console.error('SMS sending failed:', smsError);
-      return NextResponse.json(
-        {
-          success: false,
-          error: smsError,
-          // details: error.message,
-        },
-        { status: 500 }
-      );
-    }
+    //     await sendBillingSMS({
+    //       phone: customer.phone,
+    //       companyName: organisation.shopName,
+    //       products: productsString,
+    //       amount: newBill.totalPrice,
+    //       address: fullAddress,
+    //       organisationId: organisation.id,
+    //       billNo: newBill.billNo // Add this line
+    //     });
+    //   }
+    // } catch (smsError) {
+    //   console.error('SMS sending failed:', smsError);
+    //   return NextResponse.json(
+    //     {
+    //       success: false,
+    //       error: smsError,
+    //       // details: error.message,
+    //     },
+    //     { status: 500 }
+    //   );
+    // }
 
     revalidatePath('/billing/online');
     revalidatePath('/dashboard');
