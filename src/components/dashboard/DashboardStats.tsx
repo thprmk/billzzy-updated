@@ -18,6 +18,7 @@ import { toast } from 'react-toastify';
 import RecentTransactions from './RecentTransactions';
 import DashboardCharts from './DashboardCharts';
 import React from 'react';  // Add this import
+import { PackageCheck, PackageMinusIcon, Printer, Truck } from 'lucide-react';
 
 interface Product {
   id: number;
@@ -203,18 +204,18 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
         <div className="md:w-1/2 p-2 flex flex-col space-y-4">
           <div className="flex flex-row h-[15vh] space-x-4">
             <div className="w-1/3 bg-indigo-50 text-indigo-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
-              <InboxArrowDownIcon className="h-6 w-6" />
+              <TruckIcon className="h-6 w-6" />
               <div className="mt-2 text-sm font-medium">Tracking Numbers Needed</div>
               <div className="text-2xl font-bold text-indigo-700">{data.ordersNeedingTracking}</div>
             </div>
             <div className="w-1/3 bg-yellow-50 text-yellow-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
-              <ClipboardDocumentListIcon className="h-6 w-6" />
+              <PackageMinusIcon className="h-6 w-6" />
               <div className="mt-2 text-sm font-medium">Packing Orders</div>
               <div className="text-2xl font-bold text-yellow-700">{data.packingOrdersCount}</div>
             </div>
             <div className="w-1/3 bg-green-50 text-green-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
-              <TruckIcon className="h-6 w-6" />
-              <div className="mt-2 text-sm font-medium">Dispatch Orders</div>
+              <Printer className="h-6 w-6" />
+              <div className="mt-2 text-sm font-medium">Printed Orders</div>
               <div className="text-2xl font-bold text-green-700">{data.dispatchOrdersCount}</div>
             </div>
           </div>

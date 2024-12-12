@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth-options';
 import { z } from 'zod';
 import { sendBillingSMS } from '@/lib/msg91';
 import moment from 'moment-timezone';
+import { revalidatePath } from 'next/cache';
 
 const createBillSchema = z.object({
   customerId: z.number().int().positive(),
@@ -175,7 +176,7 @@ async function createTransactionRecord(
       customerId,
       date: new Date(indianDate), // Store the date
       time: new Date(`1970-01-01T${indianTime}.000Z`), // Store the time
-      status: 'created',
+      status: 'paymentPending',
       paymentStatus: 'PENDING',
       paymentMethod: 'offline',
       notes:notes
@@ -330,6 +331,9 @@ console.log(parsedData,"data-----");
         { status: 500 }
       );
     }
+
+    revalidatePath('/billing/online');
+    revalidatePath('/dashboard');
 
     return NextResponse.json(responseData, { status: 200 });
   } catch (error: any) {

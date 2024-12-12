@@ -21,7 +21,7 @@ import useSWR from 'swr';
 import { differenceInCalendarDays, parseISO, isAfter } from 'date-fns';
 import { toast } from 'react-toastify';
 import EnhancedLogoutButton from '../ui/LogoutBtn';
-import { Truck } from 'lucide-react';
+import { PackageIcon, PrinterIcon, Truck } from 'lucide-react';
 import RazorpayConnect from '../ui/RazorpayConnect';
 
 interface Organisation {
@@ -152,6 +152,17 @@ const navigation = [
     ],
   },
   { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
+  // Add this to your navigation array
+{
+  name: 'Printing',
+  href: '/printing',
+  icon: PrinterIcon, // Import from your icon library
+},
+{
+  name: 'Packing',
+  href: '/packing',
+  icon: PackageIcon, // Import from your icon library
+},
 
   { name: 'Tracking Number', href: '/tracking', icon: Truck },
   {

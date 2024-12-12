@@ -92,8 +92,10 @@ async function getDashboardData(organisationId: string) {
       where: {
         organisationId: parseInt(organisationId),
         billingMode: 'online',
-        status: 'confirmed',
-        trackingNumber: null,
+        status: {
+          in: ['processing', 'printed','packed']
+        } ,
+               trackingNumber: null,
       },
     }),
 
@@ -102,7 +104,7 @@ async function getDashboardData(organisationId: string) {
       where: {
         organisationId: parseInt(organisationId),
         billingMode: 'online',
-        status: 'created',
+        status: 'processing',
       },
     }),
 
@@ -112,7 +114,7 @@ async function getDashboardData(organisationId: string) {
         organisationId: parseInt(organisationId),
         billingMode: 'online',
         status: {
-          in: ['created', 'packing']
+          in: ['processing', 'printed']
         }
       },
     })

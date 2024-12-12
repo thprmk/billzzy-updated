@@ -1,4 +1,12 @@
-// components/ProductTable/types.ts
+'use client';
+
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { useDebounce } from '@/hooks/useDebounce';
+import { toast } from 'react-toastify';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+
 export interface Product {
   id: number;
   name: string;
@@ -14,7 +22,7 @@ export interface BillItem {
   total: number;
 }
 
-export interface ProductRow {
+interface ProductRow {
   id: string;
   productId: number | null;
   productName: string;
@@ -25,50 +33,49 @@ export interface ProductRow {
   productOptions: Product[];
 }
 
-export interface ProductTableProps {
+interface ProductTableProps {
   onChange: (items: BillItem[]) => void;
   maxRows?: number;
+  onCreateBill?: () => void;  // Add this prop
+}
+export interface ProductTableRef {
+  resetTable: () => void;
+  focusFirstProductInput: () => void;
 }
 
-// components/ProductTable/ProductTable.tsx
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { useDebounce } from '@/hooks/useDebounce';
-import { toast } from 'react-toastify';
-// import type { Product, BillItem, ProductRow, ProductTableProps } from './types';
-import React from "react";
-import { LoadingSpinner } from '../ui/LoadingSpinner';
+function createInitialRow(): ProductRow {
+  return {
+    id: Math.random().toString(36).substring(2, 9),
+    productId: null,
+    productName: '',
+    availableQuantity: 0,
+    sellingPrice: 0,
+    quantity: 1,
+    total: 0,
+    productOptions: [],
+  };
+}
 
-export function ProductTable({ onChange, maxRows = 20 }: ProductTableProps) {
+export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>(({ onChange, maxRows = 20,onCreateBill }, ref) => {
   const [rows, setRows] = useState<ProductRow[]>([createInitialRow()]);
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
   const [searchTerm, setSearchTerm] = useState<{ id: string; term: string }>({ id: '', term: '' });
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(-1);
-  const inputRefs = useRef<{ [key: string]: HTMLInputElement }>({});
-  
+  // const inputRefs = useRef<{ [key: string]: HTMLInputElement }>({});
+  const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const lastCreatedRowId = useRef<string>(''); // Add this ref
+
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
-  function createInitialRow(): ProductRow {
-    return {
-      id: generateRowId(),
-      productId: null,
-      productName: '',
-      availableQuantity: 0,
-      sellingPrice: 0,
-      quantity: 1,
-      total: 0,
-      productOptions: [],
-    };
-  }
-
-  function generateRowId(): string {
-    return Math.random().toString(36).substring(2, 9);
-  }
 
   const totalAmount = useMemo(() => {
     return rows.reduce((sum, row) => sum + row.total, 0);
   }, [rows]);
+
+  useEffect(() => {
+    return () => {
+      lastCreatedRowId.current = '';
+    };
+  }, []);
 
   useEffect(() => {
     if (debouncedSearchTerm.term) {
@@ -87,17 +94,6 @@ export function ProductTable({ onChange, maxRows = 20 }: ProductTableProps) {
       }));
     onChange(items);
   }, [rows, onChange]);
-
-  const handleInputChange = useCallback((rowId: string, value: string) => {
-    setRows(prevRows =>
-      prevRows.map(row =>
-        row.id === rowId ? { ...row, productName: value } : row
-      )
-    );
-    
-    setSearchTerm({ id: rowId, term: value });
-    setSelectedOptionIndex(-1);
-  }, []);
 
   const handleProductSearch = async (rowId: string, query: string) => {
     if (!query || query.length < 2) return;
@@ -140,9 +136,23 @@ export function ProductTable({ onChange, maxRows = 20 }: ProductTableProps) {
     }
   };
 
-  const handleProductSelect = useCallback((rowId: string, product: Product) => {
-    setRows((prevRows) =>
-      prevRows.map((row) =>
+
+
+  const handleInputChange = useCallback((rowId: string, value: string) => {
+    setRows(prevRows =>
+      prevRows.map(row =>
+        row.id === rowId ? { ...row, productName: value } : row
+      )
+    );
+    
+    setSearchTerm({ id: rowId, term: value });
+    setSelectedOptionIndex(-1);
+  }, []);
+
+
+const handleProductSelect = useCallback((rowId: string, product: Product) => {
+    setRows((prevRows) => {
+      const updatedRows = prevRows.map((row) =>
         row.id === rowId
           ? {
               ...row,
@@ -155,51 +165,39 @@ export function ProductTable({ onChange, maxRows = 20 }: ProductTableProps) {
               productOptions: [],
             }
           : row
-      )
-    );
+      );
+
+      // Add new row if needed and store its ID
+      if (!updatedRows.some(row => !row.productId)) {
+        const newRow = createInitialRow();
+        lastCreatedRowId.current = newRow.id;
+        return updatedRows.length < maxRows ? [...updatedRows, newRow] : updatedRows;
+      }
+
+      // Find next empty row and store its ID
+      const nextEmptyRow = updatedRows.find(row => !row.productId);
+      if (nextEmptyRow) {
+        lastCreatedRowId.current = nextEmptyRow.id;
+      }
+
+      return updatedRows;
+    });
 
     setSelectedOptionIndex(-1);
 
-    // Focus quantity input after selection
+    // Focus the input after state update
     setTimeout(() => {
-      const nextRow = document.querySelector(`input[type="number"][min="1"]`);
-      if (nextRow instanceof HTMLInputElement) {
-        nextRow.focus();
-        nextRow.select();
+      const newInput = inputRefs.current[lastCreatedRowId.current];
+      if (newInput) {
+        newInput.focus();
       }
     }, 0);
-  }, []);
+  }, [maxRows]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent, rowId: string) => {
-    const options = rows.find(r => r.id === rowId)?.productOptions || [];
-    
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedOptionIndex(prev => 
-          prev < options.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedOptionIndex(prev => prev > 0 ? prev - 1 : prev);
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedOptionIndex >= 0 && options[selectedOptionIndex]) {
-          handleProductSelect(rowId, options[selectedOptionIndex]);
-        }
-        break;
-      case 'Escape':
-        setRows(prevRows =>
-          prevRows.map(row =>
-            row.id === rowId ? { ...row, productOptions: [] } : row
-          )
-        );
-        setSelectedOptionIndex(-1);
-        break;
-    }
-  }, [rows, selectedOptionIndex, handleProductSelect]);
+  
+
+
+
 
   const handleQuantityChange = useCallback((rowId: string, quantityStr: string) => {
     const quantity = parseInt(quantityStr, 10);
@@ -223,25 +221,85 @@ export function ProductTable({ onChange, maxRows = 20 }: ProductTableProps) {
     );
   }, []);
 
-  const addRow = useCallback(() => {
-    if (rows.length >= maxRows) {
-      toast.error(`Maximum ${maxRows} products allowed`);
-      return;
-    }
-
-    const newRow = createInitialRow();
-    setRows((prevRows) => [...prevRows, newRow]);
+  const handleKeyDown = useCallback((e: React.KeyboardEvent, rowId: string) => {
+    const options = rows.find(r => r.id === rowId)?.productOptions || [];
+    const currentRow = rows.find(r => r.id === rowId);
     
-    setTimeout(() => {
-      inputRefs.current[newRow.id]?.focus();
-    }, 0);
-  }, [rows.length, maxRows]);
-
-  const removeRow = useCallback((id: string) => {
-    if (rows.length > 1) {
-      setRows((prevRows) => prevRows.filter((row) => row.id !== id));
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedOptionIndex(prev => 
+          prev < options.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedOptionIndex(prev => prev > 0 ? prev - 1 : prev);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (options.length > 0) {
+          if (selectedOptionIndex >= 0 && options[selectedOptionIndex]) {
+            handleProductSelect(rowId, options[selectedOptionIndex]);
+          } else if (options.length === 1) {
+            handleProductSelect(rowId, options[0]);
+          }
+        } else {
+          // If this is the last row and it's empty, trigger submit
+          const isLastRow = rowId === rows[rows.length - 1].id;
+          const isEmpty = !currentRow?.productName;
+          if (isLastRow && isEmpty && onCreateBill) {
+            onCreateBill();
+          }
+        }
+        break;
+      case 'Escape':
+        setRows(prevRows =>
+          prevRows.map(row =>
+            row.id === rowId ? { ...row, productOptions: [] } : row
+          )
+        );
+        setSelectedOptionIndex(-1);
+        break;
     }
-  }, [rows.length]);
+  }, [rows, selectedOptionIndex, handleProductSelect, onCreateBill]);
+  const removeRow = useCallback((id: string) => {
+    setRows((prevRows) => {
+      // Don't remove if it's the last row
+      if (prevRows.length === 1) return prevRows;
+      return prevRows.filter((row) => row.id !== id);
+    });
+  }, []);
+
+  const resetTable = useCallback(() => {
+    const initialRow = createInitialRow();
+    setRows([initialRow]);
+    setLoading({});
+    setSearchTerm({ id: '', term: '' });
+    setSelectedOptionIndex(-1);
+    lastCreatedRowId.current = initialRow.id;
+    
+    // Clear all input refs
+    Object.keys(inputRefs.current).forEach(key => {
+      if (inputRefs.current[key]) {
+        inputRefs.current[key]!.value = '';
+      }
+    });
+    
+    // Notify parent of items change
+    onChange([]);
+  }, [onChange]);
+  const focusFirstProductInput = useCallback(() => {
+    const firstRowId = rows[0]?.id;
+    if (firstRowId && inputRefs.current[firstRowId]) {
+      inputRefs.current[firstRowId].focus();
+    }
+  }, [rows]);
+
+  React.useImperativeHandle(ref, () => ({
+    resetTable,
+    focusFirstProductInput
+  }));
 
   return (
     <div className="space-y-4">
@@ -260,15 +318,17 @@ export function ProductTable({ onChange, maxRows = 20 }: ProductTableProps) {
           {rows.map((row) => (
             <tr key={row.id}>
               <td className="px-4 py-2 border relative">
-                <Input
-                  ref={(el) => (inputRefs.current[row.id] = el!)}
-                  type="text"
-                  placeholder="Search product..."
-                  value={row.productName}
-                  onChange={(e) => handleInputChange(row.id, e.target.value.toUpperCase())}
-                  onKeyDown={(e) => handleKeyDown(e, row.id)}
-                  // disabled={loading[row.id]}
-                />
+              <input
+      ref={(el) => {
+        inputRefs.current[row.id] = el;
+      }}
+      type="text"
+      className='outline rounded outline-gray-200 w-[100%] p-2'
+      placeholder="Search product..."
+      value={row.productName}
+      onChange={(e) => handleInputChange(row.id, e.target.value.toUpperCase())}
+      onKeyDown={(e) => handleKeyDown(e, row.id)}
+    />
                 {loading[row.id] && (
                   <div className="absolute right-3 top-3">
                     <LoadingSpinner />
@@ -341,20 +401,8 @@ export function ProductTable({ onChange, maxRows = 20 }: ProductTableProps) {
           </tr>
         </tfoot>
       </table>
-      <div className="flex justify-between">
-        <Button 
-          variant="secondary" 
-          onClick={addRow}
-          disabled={rows.length >= maxRows}
-        >
-          Add Product
-        </Button>
-        {rows.length >= maxRows && (
-          <p className="text-sm text-red-500">
-            Maximum {maxRows} products allowed
-          </p>
-        )}
-      </div>
     </div>
   );
-}
+});
+
+ProductTable.displayName = 'ProductTable';

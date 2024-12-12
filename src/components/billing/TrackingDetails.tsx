@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -34,6 +34,54 @@ export function TrackingDetails({ billId, initialData }: TrackingDetailsProps) {
     weight: initialData?.weight || '',
   });
 
+  const focusTrackingInput = () => {
+    const trackingInput = document.getElementById('trackingInput');
+    if (trackingInput) {
+      (trackingInput as HTMLInputElement).focus();
+      (trackingInput as HTMLInputElement).select();
+    }
+  };
+
+  const focusCourierSelect = () => {
+    const courierSelect = document.getElementById('courierSelect');
+    if (courierSelect) {
+      (courierSelect as HTMLSelectElement).focus();
+    }
+  };
+
+  const focusWeightInput = () => {
+    const weightInput = document.getElementById('weightInput');
+    if (weightInput) {
+      (weightInput as HTMLInputElement).focus();
+      (weightInput as HTMLInputElement).select();
+    }
+  };
+
+  useEffect(() => {
+    focusTrackingInput();
+  }, []);
+
+  const handleTrackingNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && formData.trackingNumber) {
+      e.preventDefault();
+      focusCourierSelect();
+    }
+  };
+
+  const handleCourierKeyDown = (e: React.KeyboardEvent<HTMLSelectElement>) => {
+    if (e.key === 'Enter' && formData.courier) {
+      e.preventDefault();
+      focusWeightInput();
+    }
+  };
+
+  const handleWeightKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && formData.weight) {
+      e.preventDefault();
+      handleSubmit(e as any);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -60,6 +108,7 @@ export function TrackingDetails({ billId, initialData }: TrackingDetailsProps) {
       router.refresh();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to update tracking');
+      focusTrackingInput();
     } finally {
       setIsLoading(false);
     }
@@ -68,16 +117,20 @@ export function TrackingDetails({ billId, initialData }: TrackingDetailsProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Input
+        id="trackingInput"
         label="Tracking Number"
         value={formData.trackingNumber}
         onChange={(e) => setFormData(prev => ({ ...prev, trackingNumber: e.target.value }))}
+        onKeyDown={handleTrackingNumberKeyDown}
         required
       />
 
       <Select
+        id="courierSelect"
         label="Courier Service"
         value={formData.courier}
         onChange={(e) => setFormData(prev => ({ ...prev, courier: e.target.value }))}
+        onKeyDown={handleCourierKeyDown}
         required
       >
         <option value="">Select Courier</option>
@@ -89,11 +142,13 @@ export function TrackingDetails({ billId, initialData }: TrackingDetailsProps) {
       </Select>
 
       <Input
+        id="weightInput"
         label="Package Weight (kg)"
         type="number"
         step="0.01"
         value={formData.weight}
         onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
+        onKeyDown={handleWeightKeyDown}
         required
       />
 
@@ -108,6 +163,7 @@ export function TrackingDetails({ billId, initialData }: TrackingDetailsProps) {
           type="button"
           variant="secondary"
           onClick={() => router.back()}
+          disabled={isLoading}
         >
           Cancel
         </Button>

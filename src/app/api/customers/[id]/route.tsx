@@ -97,15 +97,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid customer ID' }, { status: 400 });
     }
 
+    // First, delete related records that depend on customerId
+    await prisma.transactionRecord.deleteMany({ where: { customerId: customerId } });
+    await prisma.customerSubmission.deleteMany({ where: { customerId: customerId } });
+
+    // Now delete the customer
     await prisma.customer.delete({
       where: {
         id: customerId,
-        organisationId: parseInt(session.user.id)
-      }
+        organisationId: parseInt(session.user.id),
+      },
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error(error); // Log error to see more details
     return NextResponse.json(
       { error: 'Failed to delete customer' },
       { status: 500 }

@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
             paymentMethod: 'razorpay_link',
             paymentId: webhookData.payload.payment_link.entity.payment_id,
             paymentStatus: 'PAID',
-            status: 'paid'
+            status: 'processing'
           },
           include: {
             customer: true,
