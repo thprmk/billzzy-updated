@@ -526,7 +526,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
                            <select
                         value={bill.paymentStatus || ''}
                         onChange={(e) => handlePaymentStatusChange(bill.id, e.target.value)}
-                        className="ml-2 text-sm border rounded px-2 py-1"
+                        className=" text-sm border rounded-full px-2  py-1"
                         disabled={isLoading}
                       >
                         <option value="">Select Status</option>
