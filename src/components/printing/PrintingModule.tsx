@@ -86,7 +86,7 @@ export default function PrintingModule() {
       }
 
       const data = await response.json();
-      setBills(data.bills.length)
+      await setBills(data.bills.length)
 
       if (data.bills.length === 0) {
         alert('No bills available for printing');
@@ -348,7 +348,7 @@ export default function PrintingModule() {
           disabled={isLoading}
           className="w-full"
         >
-          {isLoading ? `Preparing ${bills} Bills...` : 'Print All Processing Bills'}
+          {isLoading ? `Preparing Bills...` : 'Print All Processing Bills'}
         </Button>
       </div>
     </div>
