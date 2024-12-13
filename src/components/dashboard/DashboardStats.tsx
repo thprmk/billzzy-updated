@@ -123,7 +123,7 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1">
+      <div className="">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <motion.div

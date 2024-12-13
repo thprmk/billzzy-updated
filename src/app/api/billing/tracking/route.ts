@@ -23,30 +23,31 @@ function determineShippingPartner(trackingNumber: string): string {
   return "Unknown";
 }
 
-function getTrackingUrl(shippingPartner: string, trackingNumber: string): string {
+function getTrackingUrl(shippingPartner: string): string {
   switch (shippingPartner) {
     case "INDIA POST":
-      return `https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx?${trackingNumber}`;
+      return `https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx`;
     case "ST COURIER":
-      return `https://stcourier.com/track/shipment?${trackingNumber}`;
+      return `https://stcourier.com/track/shipment`;
     case "DTDC":
-      return `https://www.dtdc.in/track.asp?awbno=${trackingNumber}`;
+      return `https://www.dtdc.in/track`;
     case "TRACKON":
-      return `https://trackon.in/data/SingleShipment/?tracking_number=${trackingNumber}`;
+      return `https://trackon.in`;
     case "SHIP ROCKET":
-      return `https://www.shiprocket.in/shipment-tracking/?${trackingNumber}`;
+      return `https://www.shiprocket.in/shipment-tracking`;
     case "DELHIVERY":
-      return `https://www.delhivery.com/?id=${trackingNumber}`;
+      return `https://www.delhivery.com/track/package`;
     case "ECOM":
-      return `https://ecomexpress.in/tracking/?awb=${trackingNumber}`;
+      return `https://ecomexpress.in/tracking`;
     case "EKART":
-      return `https://ekartlogistics.com/track?awb=${trackingNumber}`;
+      return `https://ekartlogistics.com/track`;
     case "XPRESSBEES":
-      return `https://www.xpressbees.com/track?awb=${trackingNumber}`;
+      return `https://www.xpressbees.com/track`;
     default:
-      return `https://vaseegrahveda.com/tracking/${trackingNumber}`;
+      return `https://vaseegrahveda.com/tracking`;
   }
 }
+
 
 export async function POST(request: Request) {
   try {
