@@ -120,7 +120,7 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
       setRows(prevRows =>
         prevRows.map(row =>
           row.id === rowId
-            ? { ...row, productOptions: products.slice(0, 10) }
+            ? { ...row, productOptions: products.slice(0, 40) }
             : row
         )
       );
