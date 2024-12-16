@@ -207,24 +207,26 @@ const handleProductSelect = useCallback((rowId: string, product: Product) => {
   const handleQuantityChange = useCallback((rowId: string, quantityStr: string) => {
     const quantity = parseInt(quantityStr, 10);
     if (isNaN(quantity) || quantity < 0) return;
-
+  
     setRows((prevRows) =>
       prevRows.map((row) => {
         if (row.id !== rowId) return row;
         
-        if (quantity > row.availableQuantity) {
+        const finalQuantity = quantity > row.availableQuantity ? row.availableQuantity : quantity;
+        
+        if (finalQuantity !== quantity) {
           toast.error(`Only ${row.availableQuantity} units available`);
-          return row;
         }
-
+  
         return {
           ...row,
-          quantity,
-          total: row.sellingPrice * quantity,
+          quantity: finalQuantity,
+          total: row.sellingPrice * finalQuantity,
         };
       })
     );
   }, []);
+  
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent, rowId: string) => {
     const options = rows.find(r => r.id === rowId)?.productOptions || [];

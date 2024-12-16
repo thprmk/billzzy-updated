@@ -5,9 +5,9 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { z } from 'zod';
-import { sendBillingSMS } from '@/lib/msg91';
 import moment from 'moment-timezone';
 import { revalidatePath } from 'next/cache';
+import { sendBillingSMS } from '@/lib/msg91';
 
 const createBillSchema = z.object({
   customerId: z.number().int().positive(),
@@ -20,7 +20,8 @@ const createBillSchema = z.object({
     })
   ),
   billingMode: z.string().optional().default('online'),
-  notes: z.string().nullable().optional().default(null)
+  notes: z.string().nullable().optional().default(null),
+  shippingMethodId: z.number().int().positive().nullable().default(null)
 });
 
 interface TransactionOptions {
@@ -147,7 +148,7 @@ async function createTransactionRecord(
   customerId: number,
   totalPrice: number,
   billingMode: string,
-  notes:string
+  notes: string | null
 ) {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
@@ -163,7 +164,6 @@ async function createTransactionRecord(
   
   // Format time as HH:mm:ss
   const indianTime = indianDateTime.format('HH:mm:ss');
-  console.log(indianDate,indianTime,"time and date");
 
   return await tx.transactionRecord.create({
     data: {
@@ -174,12 +174,12 @@ async function createTransactionRecord(
       billingMode,
       organisationId,
       customerId,
-      date: new Date(indianDate), // Store the date
-      time: new Date(`1970-01-01T${indianTime}.000Z`), // Store the time
+      date: new Date(indianDate),
+      time: new Date(`1970-01-01T${indianTime}.000Z`),
       status: 'paymentPending',
       paymentStatus: 'PENDING',
       paymentMethod: 'offline',
-      notes:notes
+      notes: notes,
     },
   });
 }
@@ -193,7 +193,6 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const parsedData = createBillSchema.safeParse(body);
-console.log(parsedData,"data-----");
 
     if (!parsedData.success) {
       return NextResponse.json(
@@ -202,9 +201,8 @@ console.log(parsedData,"data-----");
       );
     }
 
-    const { customerId, items, billingMode,notes } = parsedData.data;
+    const { customerId, items, billingMode, notes, shippingMethodId } = parsedData.data;
     const organisationId = parseInt(session.user.id, 10);
-    // const organisationId = 2;
 
     if (items.length === 0) {
       return NextResponse.json(
@@ -213,22 +211,66 @@ console.log(parsedData,"data-----");
       );
     }
 
+    // If shippingMethodId is provided, validate it
+    let shippingMethod = null;
+    if (shippingMethodId !== null) {
+      shippingMethod = await prisma.shippingMethod.findFirst({
+        where: {
+          id: shippingMethodId,
+          organisationId: organisationId,
+          isActive: true,
+        },
+      });
+
+      if (!shippingMethod) {
+        return NextResponse.json(
+          { success: false, message: 'Invalid or inactive shipping method.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    let baseRate;
+
     const result = await executeWithRetry(async () => {
       return await prisma.$transaction(async (tx) => {
         const customer = await tx.customer.findUnique({
           where: { id: customerId },
         });
 
-        if (!customer) {
-          throw new Error(`Customer not found with ID: ${customerId}`);
+        if (!customer || customer.organisationId !== organisationId) {
+          throw new Error('Customer not found or does not belong to your organisation.');
         }
 
-        if (customer.organisationId !== organisationId) {
-          throw new Error('Customer does not belong to your organisation.');
+        const { productDetails, totalPrice: itemsTotalPrice, transactionItemsData } = await processItems(tx, items, organisationId);
+
+        let shippingCost = 0;
+        let totalWeight: number | null = null;
+
+        if (shippingMethod) {
+          // Compute shipping cost if shipping method is selected
+          if (shippingMethod.type === 'FREE_SHIPPING') {
+            if (shippingMethod.minAmount && itemsTotalPrice < shippingMethod.minAmount) {
+              // If below min amount, still 0 or handle differently if needed
+              shippingCost = 0;
+            } else {
+              shippingCost = 0;
+            }
+          } else if (shippingMethod.type === 'COURIER_PARTNER') {
+            if (shippingMethod.useWeight && shippingMethod.ratePerKg) {
+              totalWeight = items.reduce((sum, item) => sum + ((item.productWeight || 0) * item.quantity), 0);
+              shippingCost = totalWeight * shippingMethod.ratePerKg;
+            } else {
+              shippingCost = shippingMethod.fixedRate || 0;
+            }
+          }
+        } else {
+          // No shipping method selected, shipping cost = 0
+          shippingCost = 0;
         }
 
-        const { productDetails, totalPrice, transactionItemsData } = await processItems(tx, items, organisationId);
-        const newBill = await createTransactionRecord(tx, organisationId, customer.id, totalPrice, billingMode,notes);
+        const finalTotal = itemsTotalPrice + shippingCost;
+        const newBill = await createTransactionRecord(tx, organisationId, customer.id, finalTotal, billingMode || 'online', notes || null);
 
         await tx.transactionItem.createMany({
           data: transactionItemsData.map((item) => ({
@@ -238,6 +280,26 @@ console.log(parsedData,"data-----");
             totalPrice: item.totalPrice,
           })),
         });
+
+        // Only create a TransactionShipping record if a shipping method is selected
+        if (shippingMethod) {
+          baseRate = (!shippingMethod.useWeight && shippingMethod.fixedRate !== null && shippingMethod.fixedRate !== undefined)
+            ? shippingMethod.fixedRate
+            : null;
+          const weightCharge = (shippingMethod.useWeight && shippingMethod.ratePerKg) ? shippingMethod.ratePerKg : null;
+
+          await tx.transactionShipping.create({
+            data: {
+              transactionId: newBill.id,
+              methodName: shippingMethod.name,
+              methodType: shippingMethod.type,
+              baseRate: baseRate === null ? 0 : baseRate,
+              weightCharge: weightCharge,
+              totalWeight: totalWeight,
+              totalCost: shippingCost,
+            }
+          });
+        }
 
         return { newBill, customer, productDetails };
       });
@@ -253,7 +315,6 @@ console.log(parsedData,"data-----");
       throw new Error('Organisation not found');
     }
 
-    // Format date and time in Indian timezone
     const indianDateTime = moment(newBill.date).tz('Asia/Kolkata');
     const formattedDate = indianDateTime.format('YYYY-MM-DD');
     const formattedTime = indianDateTime.format('hh:mm A');
@@ -299,17 +360,27 @@ console.log(parsedData,"data-----");
         const productsString = productDetails
           .map((item) => `${item.productName} x ${item.quantity}`)
           .join(', ');
-    
+      
         const fullAddress = [
           customer.flatNo,
           customer.street,
           customer.district,
           customer.state,
           customer.pincode,
-        ]
-          .filter(Boolean)
-          .join(', ');
-    
+        ].filter(Boolean).join(', ');
+
+        let message: string;
+
+        if (shippingMethod) {
+          // If shippingMethod is chosen, include details in the SMS
+          const shippingName = shippingMethod.name;
+          const shippingRate = baseRate === null ? 0 : baseRate;
+          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingName} (₹${shippingRate}).`;
+        } else {
+          // No shipping method selected
+          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
+        }
+
         await sendBillingSMS({
           phone: customer.phone,
           companyName: organisation.shopName,
@@ -317,8 +388,11 @@ console.log(parsedData,"data-----");
           amount: newBill.totalPrice,
           address: fullAddress,
           organisationId: organisation.id,
-          billNo: newBill.billNo // Add this line
+          billNo: newBill.billNo,
+          // if shippingMethod is null, we skip sending shipping details
         });
+
+        console.log("SMS message:", message);
       }
     } catch (smsError) {
       console.error('SMS sending failed:', smsError);
@@ -326,15 +400,11 @@ console.log(parsedData,"data-----");
         {
           success: false,
           error: smsError,
-          // details: error.message,
         },
         { status: 500 }
       );
     }
-
-    revalidatePath('/billing/online');
-    revalidatePath('/dashboard');
-
+  
     return NextResponse.json(responseData, { status: 200 });
   } catch (error: any) {
     console.error('Error details:', {

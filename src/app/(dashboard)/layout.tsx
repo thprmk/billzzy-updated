@@ -26,5 +26,5 @@ export default async function Layout({
   }
 
   return <DashboardLayout>        <OfflineMessage /> {/* Add the component here */}
-{children}</DashboardLayout>;
+    {children}</DashboardLayout>;
 }

@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/Select';
 import { toast } from 'react-toastify';
 import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 import React from 'react';  // Add this import
+import { ShippingSettings } from './ShippingSettings';
 
 interface OrganisationDetails {
   id: number;
@@ -36,7 +37,7 @@ export default function SettingsForm({
   initialData: OrganisationDetails
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'shop' | 'password' | 'whatsapp' | 'integrations'>('shop');
+  const [activeTab, setActiveTab] = useState<'shop' | 'password' | 'whatsapp' | 'integrations' | 'shipping'>('shop');
   const [isLoading, setIsLoading] = useState(false);
 
   // Shop Details State
@@ -85,11 +86,11 @@ export default function SettingsForm({
       const response = await fetch('/api/razorpay', {
         method: 'POST',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to initiate Razorpay connection');
       }
-      
+
       const { authUrl } = await response.json();
       window.location.href = authUrl;
     } catch (error) {
@@ -104,11 +105,11 @@ export default function SettingsForm({
       const response = await fetch('/api/razorpay/disconnect', {
         method: 'POST',
       });
-  
+
       if (!response.ok) {
         throw new Error('Failed to disconnect Razorpay');
       }
-  
+
       toast.success('Razorpay disconnected successfully');
       router.refresh();
     } catch (error) {
@@ -197,6 +198,13 @@ export default function SettingsForm({
             onClick={() => setActiveTab('password')}
           >
             Password
+          </button>
+          <button
+            className={`px-6 py-3 font-medium ${activeTab === 'shipping' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
+              }`}
+            onClick={() => setActiveTab('shipping')}
+          >
+            Shipping
           </button>
           <button
             className={`px-6 py-3 font-medium ${activeTab === 'whatsapp' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
@@ -503,6 +511,9 @@ export default function SettingsForm({
             </div>
           )}
 
+{activeTab === 'shipping' && <ShippingSettings />}
+
+
           {activeTab === 'whatsapp' && (
             <form onSubmit={handleWhatsAppUpdate} className="space-y-4">
               <div>
@@ -525,81 +536,81 @@ export default function SettingsForm({
             </form>
           )}
 
-{activeTab === 'integrations' && (
-  <div className="space-y-6">
-    <div className="bg-white p-6 rounded-lg border">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          {/* <Image
+          {activeTab === 'integrations' && (
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-lg border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    {/* <Image
             src="/razorpay-logo.png"
             alt="Razorpay"
             width={32}
             height={32}
             className="object-contain"
           /> */}
-          <div>
-            <h3 className="text-lg font-medium">Razorpay</h3>
-            <p className="text-sm text-gray-600">Accept online payments</p>
-          </div>
-        </div>
-        
-        {initialData.razorpayAccessToken ? (
-          <div className="flex items-center space-x-4">
-            <span className="flex items-center text-green-600">
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              Connected
-            </span>
-            <button
-              onClick={handleRazorpayDisconnect}
-              className="text-sm text-red-600 hover:text-red-800"
-            >
-              Disconnect
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleConnect}
-            disabled={isLoading}
-            className="flex items-center px-4 py-2 border border-[#02042B] rounded-md hover:bg-gray-50 transition-all duration-200"
-          >
-            {isLoading ? (
-              <span>Connecting...</span>
-            ) : (
-              <>
-                <span>Connect</span>
-                <svg
-                  className="w-4 h-4 ml-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </>
-            )}
-          </button>
-        )}
-      </div>
-    </div>
-  </div>
-)}
+                    <div>
+                      <h3 className="text-lg font-medium">Razorpay</h3>
+                      <p className="text-sm text-gray-600">Accept online payments</p>
+                    </div>
+                  </div>
+
+                  {initialData.razorpayAccessToken ? (
+                    <div className="flex items-center space-x-4">
+                      <span className="flex items-center text-green-600">
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        Connected
+                      </span>
+                      <button
+                        onClick={handleRazorpayDisconnect}
+                        className="text-sm text-red-600 hover:text-red-800"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleConnect}
+                      disabled={isLoading}
+                      className="flex items-center px-4 py-2 border border-[#02042B] rounded-md hover:bg-gray-50 transition-all duration-200"
+                    >
+                      {isLoading ? (
+                        <span>Connecting...</span>
+                      ) : (
+                        <>
+                          <span>Connect</span>
+                          <svg
+                            className="w-4 h-4 ml-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

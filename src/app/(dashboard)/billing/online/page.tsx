@@ -1,12 +1,28 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CustomerForm } from '@/components/billing/CustomerSearch';
 import { ProductTable } from '@/components/billing/ProductTable';
 import { Button } from '@/components/ui/Button';
 import type { CustomerDetails, BillItem } from '@/types/billing';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
+import { Select } from '@/components/ui/Select';
+
+interface ShippingMethod {
+  id: number;
+  name: string;
+  type: 'FREE_SHIPPING' | 'COURIER_PARTNER';
+  minAmount?: number;
+  useWeight: boolean;
+  ratePerKg?: number;
+  fixedRate?: number;
+  isActive: boolean;
+}
+
+function calculateTotalWeight(items: BillItem[]): number {
+  return items.reduce((sum, item) => sum + (item.productWeight || 0) * item.quantity, 0);
+}
 
 export default function OnlineBillPage() {
   const router = useRouter();
@@ -15,18 +31,97 @@ export default function OnlineBillPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<string>('');
-  
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
+  const [selectedShippingId, setSelectedShippingId] = useState<number | null>(null);
+  const [shippingCost, setShippingCost] = useState<number>(0);
+
   const customerFormRef = useRef<{ resetForm: () => void }>(null);
   const productTableRef = useRef<{ 
     resetTable: () => void;
     focusFirstProductInput: () => void;
   }>(null);
 
+  useEffect(() => {
+    fetchShippingMethods();
+  }, []);
+
+  useEffect(() => {
+    calculateShipping();
+  }, [selectedShippingId, items, shippingMethods]);
+
+  // Automatically select free shipping if conditions are met
+  useEffect(() => {
+    if (shippingMethods.length === 0 || items.length === 0) return;
+
+    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+    const freeShippingMethod = shippingMethods.find(m => m.type === 'FREE_SHIPPING');
+    if (freeShippingMethod) {
+      // If there's a minAmount, check it
+      if (freeShippingMethod.minAmount && subtotal >= freeShippingMethod.minAmount) {
+        // Automatically select free shipping method
+        setSelectedShippingId(freeShippingMethod.id);
+      } else if (!freeShippingMethod.minAmount) {
+        // If no minAmount required, always select free shipping
+        setSelectedShippingId(freeShippingMethod.id);
+      }
+    }
+  }, [items, shippingMethods]);
+
+  const fetchShippingMethods = async () => {
+    try {
+      const res = await fetch('/api/settings/shipping/methods');
+      if (!res.ok) throw new Error('Failed to fetch shipping methods');
+      const data = await res.json();
+      setShippingMethods(data.filter((m: ShippingMethod) => m.isActive));
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to fetch shipping methods');
+    }
+  };
+
+  const calculateShipping = () => {
+    // If no shipping methods or no items, shipping cost = 0
+    if (shippingMethods.length === 0 || items.length === 0) {
+      setShippingCost(0);
+      return;
+    }
+
+    if (!selectedShippingId) {
+      setShippingCost(0);
+      return;
+    }
+
+    const method = shippingMethods.find((m) => m.id === selectedShippingId);
+    if (!method) {
+      setShippingCost(0);
+      return;
+    }
+
+    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+    let cost = 0;
+
+    if (method.type === 'FREE_SHIPPING') {
+      // If minAmount is required, check if we meet it. If not met, cost=0 but show message.
+      cost = 0;
+    } else if (method.type === 'COURIER_PARTNER') {
+      if (method.useWeight && method.ratePerKg) {
+        const totalWeight = calculateTotalWeight(items);
+        cost = totalWeight * method.ratePerKg;
+      } else {
+        cost = method.fixedRate || 0;
+      }
+    }
+
+    setShippingCost(cost);
+  };
+
   const resetForm = async () => {
     setCustomer(null);
     setItems([]);
     setNotes('');
     setError(null);
+    setSelectedShippingId(null);
+    setShippingCost(0);
     
     if (customerFormRef.current) {
       customerFormRef.current.resetForm();
@@ -46,6 +141,13 @@ export default function OnlineBillPage() {
     if (items.length === 0) {
       setError('Please add at least one item.');
       toast.error('Please add at least one item.');
+      return;
+    }
+
+    // If there are no shipping methods at all, it's implicitly free
+    if (shippingMethods.length > 0 && !selectedShippingId) {
+      setError('Please select a shipping method.');
+      toast.error('Please select a shipping method.');
       return;
     }
 
@@ -78,7 +180,8 @@ export default function OnlineBillPage() {
           customerId,
           items,
           billingMode: 'online',
-          notes: notes.trim() || null
+          notes: notes.trim() || null,
+          shippingMethodId: shippingMethods.length === 0 ? null : selectedShippingId,
         })
       });
 
@@ -99,6 +202,13 @@ export default function OnlineBillPage() {
       setIsLoading(false);
     }
   };
+
+  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+  const totalAmount = subtotal + shippingCost;
+
+  // Check if there's a free shipping method with a minAmount
+  const freeShippingMethod = shippingMethods.find(m => m.type === 'FREE_SHIPPING' && m.minAmount);
+  const showMinAmountMessage = freeShippingMethod && subtotal < freeShippingMethod.minAmount;
 
   return (
     <div className="space-y-6 p-4">
@@ -122,6 +232,42 @@ export default function OnlineBillPage() {
           onChange={setItems}
           onCreateBill={handleSubmit} 
         />
+      </div>
+
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h2 className="text-lg font-medium mb-4">Shipping Method</h2>
+        {shippingMethods.length === 0 ? (
+          <div className="text-gray-700 mb-4">
+            No shipping methods found. If no shipping is needed, shipping cost = ₹0 by default.
+          </div>
+        ) : (
+          <>
+            <Select
+              label="Selected Shipping Method"
+              value={selectedShippingId?.toString() || ''}
+              onChange={(e) => setSelectedShippingId(e.target.value ? parseInt(e.target.value) : null)}
+            >
+              <option value="">--Select a method--</option>
+              {shippingMethods.map((method) => (
+                <option key={method.id} value={method.id}>
+                  {method.name}
+                </option>
+              ))}
+            </Select>
+            {showMinAmountMessage && (
+              <p className="text-red-600 mt-2 text-[12px]">
+                Your order hasn't reached the minimum amount (₹{freeShippingMethod!.minAmount}) for free shipping. 
+                Please select a courier partner method or add more items.
+              </p>
+            )}
+          </>
+        )}
+        
+        <div className="mt-4 space-y-1">
+          <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
+          <p>Shipping: ₹{shippingCost.toFixed(2)}</p>
+          <p className="font-bold">Total: ₹{totalAmount.toFixed(2)}</p>
+        </div>
       </div>
 
       <div className="bg-white shadow-sm rounded-lg p-6">

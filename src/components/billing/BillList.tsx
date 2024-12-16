@@ -481,6 +481,10 @@ export function BillList({ initialBills, mode }: BillListProps) {
                     </span>
                   </div>
                 ))}
+                {
+  bill.shipping? <div className="font-semibold">Shipping: {bill?.shipping.methodName} (₹{bill?.shipping.totalCost})</div>:<>null</>
+
+}
                 <div className="font-semibold">Total: ₹{bill.totalPrice}</div>
               </div>
             </td>
@@ -506,7 +510,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 w-[150px]">
                   <section className="flex justify-between items-center mb-2">
                     <div className="text-[13px] text-gray-600">Payment:</div>
-                    {bill.paymentMethod === 'razorpay_link' ? (
+                    {bill.paymentStatus === 'processing' ? (
                       <div className='w-[120px] ml-4'>
                         <div
                         className={`
@@ -625,6 +629,10 @@ export function BillList({ initialBills, mode }: BillListProps) {
                 {item.SKU} × {item.quantity} = ₹{item.totalPrice}
               </div>
             ))}
+{
+  bill.shipping? <div className="font-semibold">Shipping: ₹{bill?.shipping.methodName}</div>:<>null</>
+
+}
             <div className="font-semibold">Total: ₹{bill.totalPrice}</div>
           </div>
         </div>
