@@ -53,7 +53,7 @@ export async function POST(
       });
   
     } catch (error) {
-      console.error('Packing status update error:', error);
+      console.error('Packing status update error:', error.message);
       return NextResponse.json(
         { error: 'Failed to update packing status' },
         { status: 500 }

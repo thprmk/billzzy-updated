@@ -35,6 +35,34 @@ export function splitProducts(products: string) {
   ];
 }
 
+interface BillingSMSParams {
+  phone: string;
+  companyName: string;
+  products: string;
+  amount: number;
+  address: string;
+  organisationId: number;
+  shippingMethod?: {
+    name: string;
+    type: string;
+    cost: number;
+  } | null;
+}
+
+interface BillingSMSParams {
+  phone: string;
+  companyName: string;
+  products: string;
+  amount: number;
+  address: string;
+  organisationId: number;
+  shippingMethod?: {
+    name: string;
+    type: string;
+    cost: number;
+  } | null;
+}
+
 export async function sendBillingSMS({ 
   phone, 
   companyName, 
@@ -42,10 +70,11 @@ export async function sendBillingSMS({
   amount, 
   address, 
   organisationId, 
-  billNo 
+  billNo,
+  shippingMethod 
 }: BillingSMSParams & { billNo: number }) {
   try {
-    // Check if organization has Razorpay integration
+    // Check Razorpay integration and generate payment link
     const organisation = await prisma.organisation.findUnique({
       where: { id: organisationId },
       select: { razorpayAccountId: true, razorpayAccessToken: true }
@@ -53,7 +82,6 @@ export async function sendBillingSMS({
 
     let paymentLink = '';
     
-    // If organization has Razorpay integration, create payment link
     if (organisation?.razorpayAccessToken) {
       try {
         const accessToken = await getValidAccessToken(organisationId);
@@ -64,46 +92,68 @@ export async function sendBillingSMS({
           billNo
         });
         paymentLink = paymentLinkResponse.short_url;
-        console.log(paymentLink,"payment link");
-        
       } catch (error) {
         console.error('Razorpay payment link creation failed:', error);
       }
     }
 
+    // Process product and address information
     const [productsPart1, productsPart2] = splitProducts(products);
     const [addressPart1, addressPart2, addressPart3] = splitAddressIntoThreeParts(address);
 
-    // Choose template and variables based on payment link existence
+    // Determine shipping details
+    let shippingPartnerText = 'Courier name will be sent soon';
+    let shippingCostText = 'Free';
+
+    if (shippingMethod) {
+      if (shippingMethod.type === 'FREE_SHIPPING') {
+         shippingPartnerText = 'Courier name will be sent soon';
+
+        shippingCostText = '0';
+      } else {
+        shippingPartnerText = shippingMethod.name;
+        shippingCostText = shippingMethod.cost.toString();
+      }
+    }
+
+    // Select template and prepare variables
     let template_id, variables;
     
     if (paymentLink) {
-      // Template with payment link - keep original variable structure
-      template_id = '67517b94d6fc0556e76f4e12';
-      variables = {
-        var1: companyName,
-        var2: productsPart1,
-        var3: productsPart2 || '',
-        var4: amount.toFixed(2),
-        var5: paymentLink,
-        var6: addressPart1,
-        var7: addressPart2,
-        var8: addressPart3
-      };
-    } else {
-      // Template without payment link - use sequential numbering with ## format
-      template_id = '6751a899d6fc0508417cdff2';
+      // Template with payment link
+      template_id = '67614070d6fc0550d71d63e2';
       variables = {
         var1: companyName,            // Company name
-        var2: productsPart1,          // Products part 1
-        var3: productsPart2 || '',    // Products part 2
-        var4: amount.toFixed(2),      // Amount
-        var5: addressPart1,           // Address part 1
-        var6: addressPart2,           // Address part 2
-        var7: addressPart3            // Address part 3
+        var2: productsPart1,          // First part of products
+        var3: productsPart2 || '',    // Second part of products
+        var4: addressPart1,           // First part of address
+        var5: addressPart2,           // Second part of address
+        var6: addressPart3,           // Third part of address
+        var7: shippingPartnerText,    // Shipping partner name
+        var8: shippingCostText,       // Shipping cost
+        var9: amount.toFixed(2),      // Total amount
+        var10: paymentLink            // Payment link
+      };
+    } else {
+      // Template without payment link
+      template_id = '67613fa6d6fc054f4b52a1e6';
+      variables = {
+        var1: companyName,            // Company name
+        var2: productsPart1,          // First part of products
+        var3: productsPart2 || '',    // Second part of products
+        var4: addressPart1,           // First part of address
+        var5: addressPart2,           // Second part of address
+        var6: addressPart3,           // Third part of address
+        var7: shippingPartnerText,    // Shipping partner name
+        var8: shippingCostText,       // Shipping cost
+        var9: amount.toFixed(2)       // Total amount
       };
     }
 
+    console.log(variables,"template");
+    
+
+    // Update transaction record if payment link exists
     if (paymentLink) {
       await prisma.transactionRecord.update({
         where: { billNo },
@@ -111,6 +161,7 @@ export async function sendBillingSMS({
       });
     }
 
+    // Send SMS
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -128,18 +179,8 @@ export async function sendBillingSMS({
       })
     });
 
-    console.log(response, 'smsmsg');
-    
     if (!response.ok) {
       throw new Error(`SMS sending failed: ${response.statusText}`);
-    }
-
-    // Update transaction if payment link exists
-    if (paymentLink) {
-      await prisma.transactionRecord.update({
-        where: { billNo },
-        data: { paymentMethod: 'razorpay_link' }
-      });
     }
 
     // Update SMS count
@@ -154,7 +195,6 @@ export async function sendBillingSMS({
     throw error;
   }
 }
-
 
 async function updateSMSCount(organisationId: number) {
   try {

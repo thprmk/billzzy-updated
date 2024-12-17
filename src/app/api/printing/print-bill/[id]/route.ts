@@ -29,8 +29,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
         },
       },
     });
+    console.log(bill);
+    
 
     if (!bill) {
+      
       return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
     }
 

@@ -25,7 +25,20 @@ export default function PackingModule() {
   const [currentBill, setCurrentBill] = useState<PackingBill | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isManualMode, setIsManualMode] = useState(false);
+
+  // Initialize isManualMode to false for consistent SSR
+  const [isManualMode, setIsManualMode] = useState<boolean>(false);
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedMode = localStorage.getItem('isManualMode');
+      if (storedMode !== null) {
+        setIsManualMode(JSON.parse(storedMode));
+      }
+      setIsHydrated(true);
+    }
+  }, []);
 
   const focusBillInput = () => {
     const billInput = document.getElementById('billInput');
@@ -45,7 +58,8 @@ export default function PackingModule() {
 
   useEffect(() => {
     focusBillInput();
-  }, []);
+  }, [isHydrated]); // Ensure focus after hydration
+  // Alternatively, you can have a separate useEffect to focus after hydration
 
   const handleBillNoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -78,8 +92,8 @@ export default function PackingModule() {
       setTimeout(focusSKUInput, 100);
 
     } catch (error) {
-      setError('Error fetching bill details. Please try again.');
       console.error('Fetch error:', error);
+      setError('Error fetching bill details. Please try again.');
       setBillNo('');
       focusBillInput();
     } finally {
@@ -91,7 +105,7 @@ export default function PackingModule() {
     const value = e.target.value.toUpperCase();
     setSKU(value);
 
-    if (value.length >= 2) {
+    if (value.length >= 3 && !isManualMode) {
       verifySKU(value);
     }
   };
@@ -100,6 +114,8 @@ export default function PackingModule() {
     if (!currentBill || !skuValue) return;
 
     const product = currentBill.products.find(p => p.SKU === skuValue && !p.verified);
+    console.log(product);
+    
     if (!product) {
       setError('Invalid SKU or product already verified');
       // playErrorSound();
@@ -179,13 +195,48 @@ export default function PackingModule() {
   };
 
   const handleManualModeToggle = () => {
-    setIsManualMode(!isManualMode);
-    setError('');
-    setBillNo('');
-    setSKU('');
-    setCurrentBill(null);
-    focusBillInput();
+    setIsManualMode((prev) => {
+      const newMode = !prev;
+      // Update localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('isManualMode', JSON.stringify(newMode));
+      }
+      // Reset states
+      setError('');
+      setBillNo('');
+      setSKU('');
+      setCurrentBill(null);
+      focusBillInput();
+      return newMode;
+    });
   };
+
+  // Handle bill number submission
+  const handleBillSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (billNo.length >= 2) {
+      fetchBillDetails(billNo);
+    } else {
+      setError('Bill number must be at least 2 characters.');
+      focusBillInput();
+    }
+  };
+
+  // Handle SKU submission
+  const handleSKUSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (SKU.length >= 3) {
+      verifySKU(SKU);
+    } else {
+      setError('SKU must be at least 3 characters.');
+      focusSKUInput();
+    }
+  };
+
+  // If not hydrated, avoid rendering to prevent mismatch
+  if (!isHydrated) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
@@ -201,7 +252,8 @@ export default function PackingModule() {
           </Button>
         </div>
 
-        <div className="flex gap-4 mb-6">
+        {/* Bill Number Section */}
+        <form onSubmit={isManualMode ? handleBillSubmit : undefined} className="flex gap-4 mb-6">
           <Input
             id="billInput"
             type="text"
@@ -209,21 +261,22 @@ export default function PackingModule() {
             value={billNo}
             onChange={handleBillNoChange}
             className="flex-1"
-            // disabled={isLoading || currentBill !== null}
+            disabled={isLoading || (!isManualMode && currentBill !== null)}
           />
           {isManualMode && (
             <Button
-              onClick={() => fetchBillDetails(billNo)}
+              type="submit"
               disabled={isLoading || !billNo}
-              className="px-4"
+              className="px-8 w-[150px]"
             >
               Fetch Bill
             </Button>
           )}
-        </div>
+        </form>
 
+        {/* SKU Section */}
         {currentBill && (
-          <div className="space-y-4">
+          <form onSubmit={isManualMode ? handleSKUSubmit : undefined}>
             <Input
               id="skuInput"
               type="text"
@@ -233,7 +286,11 @@ export default function PackingModule() {
               className="w-full"
               disabled={isLoading || currentBill.allVerified}
             />
+          </form>
+        )}
 
+        {currentBill && (
+          <div className="space-y-4">
             <div className="mt-4">
               <h3 className="font-semibold mb-2">Products to Pack:</h3>
               <div className="space-y-2">

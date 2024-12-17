@@ -389,7 +389,11 @@ export async function POST(request: Request) {
           address: fullAddress,
           organisationId: organisation.id,
           billNo: newBill.billNo,
-          // if shippingMethod is null, we skip sending shipping details
+          shippingMethod: shippingMethod ? {
+            name: shippingMethod.name,
+            type: shippingMethod.type,
+            cost: baseRate || 0
+          } : null
         });
 
         console.log("SMS message:", message);

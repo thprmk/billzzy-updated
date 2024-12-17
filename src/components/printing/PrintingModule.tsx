@@ -59,7 +59,7 @@ export default function PrintingModule() {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/printing/${billId}`);
+      const response = await fetch(`/api/printing/print-bill/${billId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch bill details');
@@ -67,7 +67,8 @@ export default function PrintingModule() {
 
       const data = await response.json();
       printBills([data]);
-
+      console.log(data);
+      
     } catch (error) {
       alert('Error fetching bill details. Please try again.');
       console.error('Print error:', error);

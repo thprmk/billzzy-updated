@@ -1,4 +1,4 @@
-// app/api/packing/[billNo]/route.ts
+// app/api/packing/packingId/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -15,15 +15,24 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const billNo = parseInt(params.id);
+    
+    // Ensure params exists and extract id
+    if (!context.params?.id) {
+      return NextResponse.json({ error: 'Bill number is required' }, { status: 400 });
+    }
+
+    const billNo = parseInt(context.params.id);
+    if (isNaN(billNo)) {
+      return NextResponse.json({ error: 'Invalid bill number' }, { status: 400 });
+    }
+
     const organisationId = parseInt(session.user.id);
-console.log("triggered",billNo);
 
     const bill = await prisma.transactionRecord.findFirst({
       where: {
         billNo,
         organisationId,
-        // status: 'Processing'
+        // status: 'printed'
       },
       include: {
         items: {
@@ -35,10 +44,7 @@ console.log("triggered",billNo);
     });
 
     if (!bill) {
-      return NextResponse.json(
-        { error: 'Bill not found or not in processing status' },
-        { status: 204 }
-      );
+      return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
     }
 
     const products = bill.items.map(item => ({
@@ -47,19 +53,20 @@ console.log("triggered",billNo);
       name: item.product.name,
       quantity: item.quantity
     }));
+
     revalidatePath('/transactions/online');
     revalidatePath('/dashboard');
+    
     return NextResponse.json({
       billNo: bill.billNo,
       products
     });
 
   } catch (error) {
-    console.error('Packing fetch error:', error.message);
+    console.error('Packing fetch error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch bill details' },
       { status: 500 }
     );
   }
 }
-
