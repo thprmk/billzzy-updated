@@ -819,7 +819,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
       </Modal>
 
       {/* Delete All Bills Modal */}
-      <Modal
+      {/* <Modal
         isOpen={isDeleteAllModalOpen}
         onClose={() => setIsDeleteAllModalOpen(false)}
       >
@@ -845,7 +845,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
             </Button>
           </div>
         </div>
-      </Modal>
+      </Modal> */}
 
       {/* Tracking Details Modal */}
       <Modal
