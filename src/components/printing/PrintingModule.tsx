@@ -254,7 +254,7 @@ export default function PrintingModule() {
         .join("\n");
 
       const canvas = document.createElement('canvas');
-      JsBarcode(canvas, bill.bill_id.toString(), {
+      JsBarcode(canvas, bill.bill_details.bill_no.toString(), {
         format: "CODE128",
         width: 1,
         height: 20,
@@ -268,9 +268,9 @@ export default function PrintingModule() {
             <div class="header">
               <div class="logo">${bill.organisation_details.shopName}</div>
               <div class="barcode">
-                <img src="${barcodeDataUrl}" alt="Barcode ${bill.bill_id}">
+                <img src="${barcodeDataUrl}" alt="Barcode ${bill.bill_details.bill_no}">
               </div>
-              <div>Bill ID: ${bill.bill_id}</div>
+              <div>Bill ID: ${bill.bill_details.bill_no}</div>
             </div>
             <div class="address-box">
               <h2>TO:</h2>

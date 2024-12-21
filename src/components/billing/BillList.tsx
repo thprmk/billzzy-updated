@@ -578,6 +578,20 @@ export function BillList({ initialBills, mode }: BillListProps) {
             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
               {bill.notes ? bill.notes : '-'}
             </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex space-x-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          setBillToDelete(bill.id);
+                          setIsDeleteModalOpen(true);
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </td>
           </tr>
         ))}
       </tbody>
@@ -734,6 +748,8 @@ export function BillList({ initialBills, mode }: BillListProps) {
             {bill.notes ? bill.notes : '-'}
           </div>
         </div>
+
+    
       </div>
     ))}
   </div>
