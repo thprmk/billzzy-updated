@@ -1,14 +1,11 @@
-// app/tracking/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { toast } from 'react-toastify';
-import React from 'react';  // Add this import
-
-
+import React from 'react';
 
 export default function TrackingPage() {
   const router = useRouter();
@@ -17,12 +14,64 @@ export default function TrackingPage() {
   const [weight, setWeight] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const billIdRef = useRef<HTMLInputElement>(null);
+  const trackingNumberRef = useRef<HTMLInputElement>(null);
+  const weightRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    // Set initial focus on bill ID input when component mounts
+    if (billIdRef.current) {
+      billIdRef.current.focus();
+    }
+  }, []);
+
+  const handleBillIdKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && billId) {
+      e.preventDefault();
+      trackingNumberRef.current?.focus();
+    }
+  };
+
+  const handleTrackingNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && trackingNumber) {
+      e.preventDefault();
+      weightRef.current?.focus();
+    }
+  };
+
+  const handleWeightKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && weight) {
+      e.preventDefault();
+      handleSubmit(e as any);
+    }
+  };
+
+  const validateInputs = () => {
+    if (!billId.trim()) {
+      toast.error('Please enter Bill ID');
+      billIdRef.current?.focus();
+      return false;
+    }
+
+    if (!trackingNumber.trim()) {
+      toast.error('Please enter Tracking Number');
+      trackingNumberRef.current?.focus();
+      return false;
+    }
+
+    if (!weight.trim()) {
+      toast.error('Please enter Weight');
+      weightRef.current?.focus();
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!billId || !trackingNumber) {
-      toast.error('Please enter tracking number');
+    
+    if (!validateInputs()) {
       return;
     }
 
@@ -32,10 +81,10 @@ export default function TrackingPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            billId:billId,
+          billId: billId,
           trackingNumber,
-          weight: weight ? parseFloat(weight) : null,
-          status: 'sent' // Update status as per your requirements
+          weight: parseFloat(weight),
+          status: 'sent'
         }),
       });
 
@@ -43,11 +92,17 @@ export default function TrackingPage() {
         const error = await response.json();
         throw new Error(error.message);
       }
-      setBillId('')
-      setTrackingNumber('')
-      setWeight('')
 
       toast.success('Tracking details updated successfully');
+      
+      // Reset form
+      setBillId('');
+      setTrackingNumber('');
+      setWeight('');
+      
+      // Set focus back to bill ID for next entry
+      billIdRef.current?.focus();
+      
       router.push('/tracking');
     } catch (error) {
       toast.error('Failed to update tracking details');
@@ -63,72 +118,71 @@ export default function TrackingPage() {
 
         <div className="bg-white shadow-lg rounded-lg overflow-hidden">
           <div className="p-6">
-            {/* Bill ID Search */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bill ID
-              </label>
-              <div className="flex gap-4">
-                <Input
-                  type="text"
-                  value={billId}
-                  onChange={(e) => setBillId(e.target.value)}
-                  placeholder="Enter Bill ID"
-                  className="flex-1"
-                />
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bill ID
+                  </label>
+                  <Input
+                    ref={billIdRef}
+                    type="text"
+                    value={billId}
+                    onChange={(e) => setBillId(e.target.value)}
+                    onKeyDown={handleBillIdKeyDown}
+                    placeholder="Enter Bill ID"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tracking Number
+                  </label>
+                  <Input
+                    ref={trackingNumberRef}
+                    type="text"
+                    value={trackingNumber}
+                    onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
+                    onKeyDown={handleTrackingNumberKeyDown}
+                    required
+                    placeholder="Enter tracking number"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Weight (kg)
+                  </label>
+                  <Input
+                    ref={weightRef}
+                    type="number"
+                    step="0.01"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    onKeyDown={handleWeightKeyDown}
+                    required
+                    placeholder="Enter weight"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => router.push('/billing/online')}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    isLoading={isLoading}
+                  >
+                    Save Tracking Details
+                  </Button>
+                </div>
               </div>
- 
-            </div>
-
-
-
-                {/* Tracking Form */}
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Tracking Number
-                      </label>
-                      <Input
-                        type="text"
-                        value={trackingNumber}
-                        onChange={(e) => setTrackingNumber(e.target.value.toUpperCase())}
-                        required
-                        placeholder="Enter tracking number"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Weight (kg)
-                      </label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={weight}
-                        onChange={(e) => setWeight(e.target.value)}
-                        placeholder="Enter weight (optional)"
-                      />
-                    </div>
-
-                    <div className="flex justify-end space-x-3 pt-4">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => router.push('/billing/online')}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        isLoading={isLoading}
-                      >
-                        Save Tracking Details
-                      </Button>
-                    </div>
-                  </div>
-                </form>
-
+            </form>
           </div>
         </div>
       </div>
