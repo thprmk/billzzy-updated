@@ -134,6 +134,9 @@ export default function PrintingModule() {
     };
   };
 
+  console.log(bills);
+  
+
   const generatePrintContent = (bills: Bill[]) => {
     const styles = `
       <style>
@@ -293,7 +296,8 @@ export default function PrintingModule() {
               </div>
               <div>
                 <strong>Date:</strong> ${bill.bill_details.date}<br>
-                <strong>Time:</strong> ${bill.bill_details.time}
+                <strong>Shipping Details:</strong> ${bill.shipping_details.method_name}
+
               </div>
             </div>
             <div class="items">

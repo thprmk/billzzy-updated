@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth-options';
-import { revalidatePath } from 'next/cache';
-import { sendOrderStatusSMS, splitProducts } from '@/lib/msg91';
+// app/api/print-bills/[id]/route.ts
+
+import { authOptions } from "@/lib/auth-options";
+import { sendOrderStatusSMS, splitProducts } from "@/lib/msg91";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { revalidatePath } from "next/cache";
+import { NextResponse } from "next/server";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
@@ -27,17 +29,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
             product: true,
           },
         },
+        TransactionShipping: true, // Use transactionShipping instead of shipping
       },
     });
-    console.log(bill);
+
+
+    console.log(bill?.TransactionShipping);
     
 
     if (!bill) {
-      
       return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
     }
 
-    // Update the bill status to "printed"
     await prisma.transactionRecord.update({
       where: {
         id: bill.id
@@ -75,25 +78,42 @@ export async function GET(request: Request, { params }: { params: { id: string }
         unitPrice: item.product.sellingPrice,
         amount: item.totalPrice,
       })),
+      shipping_details: bill.TransactionShipping ? {
+        method_name: bill.TransactionShipping[0].methodName,
+        method_type: bill.TransactionShipping[0].methodType,
+        base_rate: bill.TransactionShipping[0].baseRate,
+        weight_charge: bill.TransactionShipping[0].weightCharge,
+        total_weight: bill.TransactionShipping[0].totalWeight,
+        total_cost: bill.TransactionShipping[0].totalCost,
+      } : null,
       total_amount: bill.totalPrice,
     };
+
+    console.log(printData);
+    
+
     const products = bill.items.map((item) => item.product.name);
-const productList = products.join(', ');
-const [productsPart1, productsPart2] = splitProducts(productList);
+    const productList = products.join(', ');
+    const [productsPart1, productsPart2] = splitProducts(productList);
 
-const smsVariables = {
-  var1: organisation?.shopName || '',
-  var2: productsPart1,
-  var3: productsPart2,
-  var4: organisation?.shopName || ''
-};
 
-await sendOrderStatusSMS({
-  phone: bill.customer?.phone || '',
-  organisationId: parseInt(session.user.id),
-  status: 'packed',
-  smsVariables
-});
+
+    const smsVariables = {
+      var1: organisation?.shopName || '',
+      var2: productsPart1,
+      var3: productsPart2,
+      var4: organisation?.shopName || '',
+    };
+
+    if (bill.customer?.phone) {
+      await sendOrderStatusSMS({
+        phone: bill.customer.phone,
+        organisationId: organisationId,
+        status: 'packed',
+        smsVariables
+      });
+    }
+
     revalidatePath('/transactions/online');
     revalidatePath('/dashboard');
 
