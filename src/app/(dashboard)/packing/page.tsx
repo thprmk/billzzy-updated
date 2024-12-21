@@ -105,7 +105,7 @@ export default function PackingModule() {
     const value = e.target.value.toUpperCase();
     setSKU(value);
 
-    if (value.length >= 3 && !isManualMode) {
+    if (value.length >= 2 && !isManualMode) {
       verifySKU(value);
     }
   };
@@ -225,7 +225,7 @@ export default function PackingModule() {
   // Handle SKU submission
   const handleSKUSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (SKU.length >= 3) {
+    if (SKU.length >= 2) {
       verifySKU(SKU);
     } else {
       setError('SKU must be at least 3 characters.');
