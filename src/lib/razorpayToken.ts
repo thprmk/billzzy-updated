@@ -98,6 +98,7 @@ export async function createRazorpayPaymentLink(accessToken: string, {
   const timestamp = Date.now();
   const reference_id = `PAY-${timestamp}-${Math.random().toString(36).substring(7)}`;
 
+
   const payload = {
     amount: Math.round(amount * 100),
     currency: 'INR',
@@ -116,6 +117,9 @@ export async function createRazorpayPaymentLink(accessToken: string, {
     },
     reminder_enable: true
   };
+
+  console.log(payload,"link payload");
+  
 
   const response = await fetch('https://api.razorpay.com/v1/payment_links', {
     method: 'POST',

@@ -17,7 +17,10 @@ export async function GET(request: Request) {
     const bills = await prisma.transactionRecord.findMany({
       where: {
         organisationId,
-        status: 'Processing',
+        OR: [
+          { status: 'processing' }
+          // { status: 'printed' }
+        ]
       },
       include: {
         customer: true,
@@ -26,6 +29,7 @@ export async function GET(request: Request) {
             product: true,
           },
         },
+        TransactionShipping: true,
       },
     });
 
@@ -45,12 +49,10 @@ export async function GET(request: Request) {
     });
 
     const formattedBills = await Promise.all(bills.map(async bill => {
-      // Process products for each individual bill
       const products = bill.items.map(item => item.product.name);
       const productList = products.join(', ');
       const [productsPart1, productsPart2] = splitProducts(productList);
 
-      // Prepare SMS variables for this specific bill
       const smsVariables = {
         var1: organisation?.shopName || '',
         var2: productsPart1,
@@ -58,27 +60,26 @@ export async function GET(request: Request) {
         var4: organisation?.shopName || ''
       };
 
-      // Send SMS for this specific bill
-      if (bill.customer?.phone) {
-        try {
-          await sendOrderStatusSMS({
-            phone: bill.customer.phone,
-            organisationId: organisationId,
-            status: 'packed',
-            smsVariables
-          });
-        } catch (error) {
-          console.error(`Failed to send SMS for bill ${bill.billNo}:`, error);
-        }
-      }
+      // if (bill.customer?.phone) {
+      //   try {
+      //     await sendOrderStatusSMS({
+      //       phone: bill.customer.phone,
+      //       organisationId: organisationId,
+      //       status: 'packed',
+      //       smsVariables
+      //     });
+      //   } catch (error) {
+      //     console.error(`Failed to send SMS for bill ${bill.billNo}:`, error);
+      //   }
+      // }
 
-      // Return formatted bill data
       return {
         bill_id: bill.id,
         bill_details: {
           bill_no: bill.billNo,
           date: bill.date.toISOString().split('T')[0],
           time: new Date(bill.time).toLocaleTimeString(),
+          status: bill.status
         },
         customer_details: {
           id: bill.customer?.id,
@@ -97,9 +98,21 @@ export async function GET(request: Request) {
           unitPrice: item.product.sellingPrice,
           amount: item.totalPrice,
         })),
+        shipping_details: bill.TransactionShipping?.[0] ? {
+          method_name: bill.TransactionShipping[0].methodName,
+          method_type: bill.TransactionShipping[0].methodType,
+          base_rate: bill.TransactionShipping[0].baseRate,
+          weight_charge: bill.TransactionShipping[0].weightCharge,
+          total_weight: bill.TransactionShipping[0].totalWeight,
+          total_cost: bill.TransactionShipping[0].totalCost,
+        } : null,
+        
         total_amount: bill.totalPrice,
       };
     }));
+
+    console.log(formattedBills);
+    
 
     revalidatePath('/transactions/online');
     revalidatePath('/dashboard');

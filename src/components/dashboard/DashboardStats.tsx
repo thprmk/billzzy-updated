@@ -216,7 +216,7 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
             <div className="w-1/3 bg-green-50 text-green-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
               <Printer className="h-6 w-6" />
               <div className="mt-2 text-sm font-medium">Printed Orders</div>
-              <div className="text-2xl font-bold text-green-700">{data.dispatchOrdersCount}</div>
+              <div className="text-2xl font-bold text-green-700">{data.printedOrdersCount}</div>
             </div>
           </div>
 

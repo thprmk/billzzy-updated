@@ -22,7 +22,7 @@ async function getDashboardData(organisationId: string) {
     totalCustomers,
     ordersNeedingTracking,
     packingOrdersCount,
-    dispatchOrdersCount,
+   printedOrdersCount,
   ] = await Promise.all([
     // Today's stats
     prisma.transactionRecord.aggregate({
@@ -114,7 +114,7 @@ async function getDashboardData(organisationId: string) {
         organisationId: parseInt(organisationId),
         billingMode: 'online',
         status: {
-          in: ['processing', 'printed']
+          in: ['processing','packed' ]
         }
       },
     })
@@ -129,7 +129,7 @@ async function getDashboardData(organisationId: string) {
     totalCustomers,
     ordersNeedingTracking,
     packingOrdersCount,
-    dispatchOrdersCount,
+    printedOrdersCount,
   };
 }
 
