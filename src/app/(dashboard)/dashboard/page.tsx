@@ -104,7 +104,10 @@ async function getDashboardData(organisationId: string) {
       where: {
         organisationId: parseInt(organisationId),
         billingMode: 'online',
-        status: 'processing',
+        status: {
+          in: ['processing','printed' ]
+        }
+      
       },
     }),
 
@@ -114,7 +117,7 @@ async function getDashboardData(organisationId: string) {
         organisationId: parseInt(organisationId),
         billingMode: 'online',
         status: {
-          in: ['processing','packed' ]
+          in: ['processing' ]
         }
       },
     })
