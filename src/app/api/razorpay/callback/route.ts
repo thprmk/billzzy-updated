@@ -4,12 +4,16 @@ import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+const BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://billzzy.com' 
+  : 'http://localhost:3000';
+
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   console.log("trigg the callback");
 
   if (!session) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(`${BASE_URL}/login`);
   }
 
   const searchParams = request.nextUrl.searchParams;
@@ -26,13 +30,11 @@ export async function GET(request: NextRequest) {
     }
   });
 
-  
-
   if (!organisation ||
     organisation.razorpayState !== state ||
     !organisation.razorpayStateExpiresAt ||
     new Date() > organisation.razorpayStateExpiresAt) {
-    return NextResponse.redirect(new URL('/dashboard?razorpay=invalid', request.url));
+    return NextResponse.redirect(`${BASE_URL}/dashboard?razorpay=invalid`);
   }
 
   try {
@@ -44,19 +46,15 @@ export async function GET(request: NextRequest) {
         grant_type: 'authorization_code',
         client_id: process.env.NEXT_RAZORPAY_CLIENT_ID!,
         client_secret: process.env.NEXT_RAZORPAY_CLIENT_SECRET!,
-        redirect_uri: `https://billzzy.com/api/razorpay/callback`
+        redirect_uri: `${BASE_URL}/api/razorpay/callback`
       })
     });
 
     const tokenData = await tokenResponse.json();
 
-
-
     const expiryDate = tokenData.expires_in ?
       new Date(Date.now() + (parseInt(tokenData.expires_in) * 1000)) :
       null;
-
-
 
     await prisma.organisation.update({
       where: { id: parseInt(session.user.id) },
@@ -70,9 +68,9 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.redirect(new URL('/dashboard?razorpay=connected', request.url));
+    return NextResponse.redirect(`${BASE_URL}/dashboard?razorpay=connected`);
   } catch (error) {
     console.error('Razorpay OAuth error:', error.message);
-    return NextResponse.redirect(new URL('/dashboard?razorpay=error', request.url));
+    return NextResponse.redirect(`${BASE_URL}/dashboard?razorpay=error`);
   }
 }
