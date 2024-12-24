@@ -105,12 +105,6 @@ export async function createRazorpayPaymentLink(accessToken: string, {
     accept_partial: false,
     reference_id,
     description: description,
-    customer: {
-      contact: customerPhone.startsWith('91') ? customerPhone : `91${customerPhone}`
-    },
-    notify: {
-      sms: false
-    },
     notes: {
       bill_no: billNo.toString(),
       description: description
