@@ -31,7 +31,7 @@ export default function RootLayout({
           <Analytics/>
           <main className="flex-grow">
             {children}
-            <Footer />
+            {/* <Footer /> */}
 
           </main>
         </SessionProvider>

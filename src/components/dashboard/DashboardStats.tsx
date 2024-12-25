@@ -17,13 +17,19 @@ import { Dialog } from '@headlessui/react';
 import { toast } from 'react-toastify';
 import RecentTransactions from './RecentTransactions';
 import DashboardCharts from './DashboardCharts';
-import React from 'react';  // Add this import
+import DateFilter from './DateFilter';
 import { PackageCheck, PackageMinusIcon, Printer, Truck } from 'lucide-react';
+import React from 'react';  // Add this import
 
 interface Product {
   id: number;
   name: string;
   quantity: number;
+}
+
+interface FilteredStats {
+  totalOrders: number;
+  totalSales: number;
 }
 
 interface DashboardStatsProps {
@@ -46,11 +52,47 @@ interface DashboardStatsProps {
   };
 }
 
-export default function DashboardStats({ data }: DashboardStatsProps) {
+export default function DashboardStats({ data,session }: DashboardStatsProps) {
   const [showLowStockTooltip, setShowLowStockTooltip] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [updateQuantity, setUpdateQuantity] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Date filter states
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [filteredStats, setFilteredStats] = useState<FilteredStats | null>(null);
+
+  const handleAllTime = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/analytics/filtered-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          allTime: true,  // New flag for all time
+          organisationId: data.organisationId,
+        }),
+      });
+  
+      if (!response.ok) throw new Error('Failed to fetch filtered data');
+  
+      const filteredData = await response.json();
+      setFilteredStats(filteredData);
+      // Clear date inputs when using All Time
+      setStartDate('');
+      setEndDate('');
+    } catch (error) {
+      console.error('Error fetching all time data:', error);
+      toast.error('Failed to fetch all time data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
 
   const handleUpdateStock = async () => {
     if (!updateQuantity || parseInt(updateQuantity) <= 0) {
@@ -71,9 +113,7 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update stock');
-      }
+      if (!response.ok) throw new Error('Failed to update stock');
 
       toast.success('Stock updated successfully');
       setIsUpdateModalOpen(false);
@@ -86,18 +126,61 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
     }
   };
 
+  const handleFilterApply = async () => {
+    if (!startDate || !endDate) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/analytics/filtered-stats', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          startDate,
+          endDate,
+          organisationId: data.organisationId,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch filtered data');
+
+      const filteredData = await response.json();
+      setFilteredStats(filteredData);
+    } catch (error) {
+      console.error('Error fetching filtered data:', error);
+      toast.error('Failed to fetch filtered data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    setStartDate('');
+    setEndDate('');
+    setFilteredStats(null);
+  };
+
   const stats = [
     {
-      name: "Today's Sales",
-      value: `₹${data.todayStats._sum.totalPrice?.toFixed(2) || '0.00'}`,
+      name: filteredStats 
+      ? startDate || endDate 
+        ? "Filtered Sales" 
+        : "All Time Sales"
+      : "Today's Sales",
+    value: `₹${(filteredStats?.totalSales ?? data.todayStats._sum.totalPrice ?? 0).toFixed(2)}`,
       icon: CurrencyRupeeIcon,
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-500',
       valueColor: 'text-blue-700',
     },
     {
-      name: "Today's Orders",
-      value: data.todayStats._count.toString(),
+      name: filteredStats 
+      ? startDate || endDate 
+        ? "Filtered Orders" 
+        : "All Time Orders"
+      : "Today's Orders",
+    value: (filteredStats?.totalOrders ?? data.todayStats._count).toString(),
       icon: DocumentTextIcon,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-500',
@@ -123,6 +206,19 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
 
   return (
     <div className="flex flex-col h-full">
+      <DateFilter
+  startDate={startDate}
+  endDate={endDate}
+  onStartDateChange={setStartDate}
+  onEndDateChange={setEndDate}
+  onFilterApply={handleFilterApply}
+  onReset={handleReset}
+  onAllTime={handleAllTime}  // Add this
+  isLoading={isLoading}
+  data={data}
+/>
+
+
       <div className="">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
@@ -139,7 +235,6 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
               <div className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-               
                     <div className={`text-sm font-medium ${stat.iconColor}`}>
                       {stat.name}
                     </div>
@@ -148,9 +243,15 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
                     </div>
                   </div>
                   <div className="flex flex-col justify-between h-[100%] items-center space-x-2">
-                  
                     <div className={`p-3 rounded-lg cursor-pointer ${stat.bgColor} ${stat.iconColor}`}>
-                      <stat.icon onClick={() => setIsUpdateModalOpen(true)} className={`h-6 w-6 ${stat.iconColor}`} />
+                      <stat.icon 
+                        onClick={() => {
+                          if (stat.name === 'Low Stock Items') {
+                            setIsUpdateModalOpen(true);
+                          }
+                        }} 
+                        className={`h-6 w-6 ${stat.iconColor}`} 
+                      />
                     </div>
                   </div>
                 </div>
@@ -174,11 +275,12 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
                 )}
               </div>
 
-              {(stat.name === "Today's Sales" || stat.name === "Today's Orders") && (
+              {(stat.name === "Today's Sales" || stat.name === "Filtered Sales" || 
+                stat.name === "Today's Orders" || stat.name === "Filtered Orders") && (
                 <div className="h-1 w-full bg-gray-200 rounded-b-xl">
                   <div
                     className={`h-full ${
-                      stat.name === "Today's Sales" ? 'bg-blue-500' : 'bg-green-500'
+                      stat.name.includes('Sales') ? 'bg-blue-500' : 'bg-green-500'
                     } rounded-b-xl`}
                     style={{ width: '70%' }}
                   />
@@ -216,7 +318,7 @@ export default function DashboardStats({ data }: DashboardStatsProps) {
             <div className="w-1/3 bg-green-50 text-green-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
               <Printer className="h-6 w-6" />
               <div className="mt-2 text-sm font-medium">Printed Orders</div>
-              <div className="text-2xl font-bold text-green-700">{data.printedOrdersCount}</div>
+              <div className="text-2xl font-bold text-green-700">{data.dispatchOrdersCount}</div>
             </div>
           </div>
 

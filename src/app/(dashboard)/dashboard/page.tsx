@@ -149,7 +149,7 @@ console.log(session,"db");
     <div className="h-[100vh]  flex flex-col">
       {/* Main Content */}
       <div className="flex-1  py-4">
-        <DashboardStats data={{ ...data, organisationId: session.user.id }} />
+        <DashboardStats data={{ ...data, organisationId: session.user.id,session }} />
       </div>
     </div>
   );
