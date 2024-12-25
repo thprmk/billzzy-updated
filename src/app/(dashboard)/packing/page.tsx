@@ -10,6 +10,7 @@ interface Product {
   SKU: string;
   name: string;
   quantity: number;
+  verifiedQuantity: number;
   verified: boolean;
 }
 
@@ -19,14 +20,19 @@ interface PackingBill {
   allVerified: boolean;
 }
 
+interface VerificationMessage {
+  timestamp: string;
+  text: string;
+  type: 'progress' | 'complete';
+}
+
 export default function PackingModule() {
   const [billNo, setBillNo] = useState('');
   const [SKU, setSKU] = useState('');
   const [currentBill, setCurrentBill] = useState<PackingBill | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Initialize isManualMode to false for consistent SSR
+  const [verificationHistory, setVerificationHistory] = useState<VerificationMessage[]>([]);
   const [isManualMode, setIsManualMode] = useState<boolean>(false);
   const [isHydrated, setIsHydrated] = useState<boolean>(false);
 
@@ -58,8 +64,7 @@ export default function PackingModule() {
 
   useEffect(() => {
     focusBillInput();
-  }, [isHydrated]); // Ensure focus after hydration
-  // Alternatively, you can have a separate useEffect to focus after hydration
+  }, [isHydrated]);
 
   const handleBillNoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -76,6 +81,7 @@ export default function PackingModule() {
     try {
       setIsLoading(true);
       setError('');
+      setVerificationHistory([]);
 
       const response = await fetch(`/api/packing/packingId/${billNumber}`);
       if (!response.ok) {
@@ -85,7 +91,11 @@ export default function PackingModule() {
       const data = await response.json();
       setCurrentBill({
         billNo: data.billNo,
-        products: data.products.map((p: any) => ({ ...p, verified: false })),
+        products: data.products.map((p: any) => ({ 
+          ...p, 
+          verified: false,
+          verifiedQuantity: 0 
+        })),
         allVerified: false
       });
       setBillNo('');
@@ -113,12 +123,17 @@ export default function PackingModule() {
   const verifySKU = async (skuValue: string) => {
     if (!currentBill || !skuValue) return;
 
-    const product = currentBill.products.find(p => p.SKU === skuValue && !p.verified);
-    console.log(product);
+    const product = currentBill.products.find(p => 
+      p.SKU === skuValue && p.verifiedQuantity < p.quantity
+    );
     
     if (!product) {
-      setError('Invalid SKU or product already verified');
-      // playErrorSound();
+      const overVerifiedProduct = currentBill.products.find(p => p.SKU === skuValue);
+      if (overVerifiedProduct) {
+        setError(`All ${overVerifiedProduct.quantity} units of ${overVerifiedProduct.name} have already been verified`);
+      } else {
+        setError('Invalid SKU or product not found in this bill');
+      }
       setSKU('');
       focusSKUInput();
       return;
@@ -128,9 +143,26 @@ export default function PackingModule() {
       setIsLoading(true);
       setError('');
 
-      const updatedProducts = currentBill.products.map(p => 
-        p.SKU === skuValue ? { ...p, verified: true } : p
-      );
+      const updatedProducts = currentBill.products.map(p => {
+        if (p.SKU === skuValue) {
+          const newVerifiedQuantity = p.verifiedQuantity + 1;
+          
+          const message: VerificationMessage = {
+            timestamp: new Date().toLocaleTimeString(),
+            text: `Unit ${newVerifiedQuantity} of ${p.quantity} verified for ${p.name}`,
+            type: newVerifiedQuantity === p.quantity ? 'complete' : 'progress'
+          };
+
+          setVerificationHistory(prev => [...prev, message]);
+
+          return {
+            ...p,
+            verifiedQuantity: newVerifiedQuantity,
+            verified: newVerifiedQuantity === p.quantity
+          };
+        }
+        return p;
+      });
 
       const allVerified = updatedProducts.every(p => p.verified);
       
@@ -141,11 +173,15 @@ export default function PackingModule() {
       });
 
       setSKU('');
-      // playSuccessSound();
 
       if (allVerified) {
-        console.log('triggered');
-        
+        const finalMessage: VerificationMessage = {
+          timestamp: new Date().toLocaleTimeString(),
+          text: 'All products have been fully verified! Completing packing...',
+          type: 'complete'
+        };
+        setVerificationHistory(prev => [...prev, finalMessage]);
+
         try {
           const response = await fetch(`/api/packing/packingComplete/${currentBill.billNo}`, {
             method: 'POST',
@@ -157,9 +193,7 @@ export default function PackingModule() {
           if (!response.ok) {
             throw new Error('Failed to update packing status');
           }
-          console.log(response);
           
-          // Display success message and reload page after a delay
           setTimeout(() => {
             window.location.reload();
           }, 200);
@@ -169,7 +203,6 @@ export default function PackingModule() {
           focusSKUInput();
         }
       } else {
-        // Continue with next SKU verification
         setTimeout(() => {
           focusSKUInput();
         }, 100);
@@ -184,34 +217,22 @@ export default function PackingModule() {
     }
   };
 
-  const playSuccessSound = () => {
-    const audio = new Audio('/sounds/success.mp3');
-    audio.play().catch(() => {});
-  };
-
-  const playErrorSound = () => {
-    const audio = new Audio('/sounds/error.mp3');
-    audio.play().catch(() => {});
-  };
-
   const handleManualModeToggle = () => {
     setIsManualMode((prev) => {
       const newMode = !prev;
-      // Update localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('isManualMode', JSON.stringify(newMode));
       }
-      // Reset states
       setError('');
       setBillNo('');
       setSKU('');
       setCurrentBill(null);
+      setVerificationHistory([]);
       focusBillInput();
       return newMode;
     });
   };
 
-  // Handle bill number submission
   const handleBillSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (billNo.length >= 2) {
@@ -222,20 +243,18 @@ export default function PackingModule() {
     }
   };
 
-  // Handle SKU submission
   const handleSKUSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (SKU.length >= 2) {
       verifySKU(SKU);
     } else {
-      setError('SKU must be at least 3 characters.');
+      setError('SKU must be at least 2 characters.');
       focusSKUInput();
     }
   };
 
-  // If not hydrated, avoid rendering to prevent mismatch
   if (!isHydrated) {
-    return null; // Or a loading spinner
+    return null;
   }
 
   return (
@@ -252,7 +271,6 @@ export default function PackingModule() {
           </Button>
         </div>
 
-        {/* Bill Number Section */}
         <form onSubmit={isManualMode ? handleBillSubmit : undefined} className="flex gap-4 mb-6">
           <Input
             id="billInput"
@@ -274,7 +292,6 @@ export default function PackingModule() {
           )}
         </form>
 
-        {/* SKU Section */}
         {currentBill && (
           <form onSubmit={isManualMode ? handleSKUSubmit : undefined}>
             <Input
@@ -304,8 +321,15 @@ export default function PackingModule() {
                       <div className="flex justify-between items-center">
                         <div>
                           <span className="font-medium">{product.name}</span>
+                          <span className="text-sm text-gray-500 ml-2">
+                            (SKU: {product.SKU})
+                          </span>
                         </div>
-                        <div className="text-sm">Qty: {product.quantity}</div>
+                        <div className="text-sm">
+                          <span className={product.verifiedQuantity > 0 ? 'text-blue-600' : ''}>
+                            {product.verifiedQuantity} / {product.quantity} units verified
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -330,13 +354,34 @@ export default function PackingModule() {
                           </span>
                         </div>
                         <div className="text-sm">
-                          Qty: {product.quantity} ✓
+                          All {product.quantity} units verified ✓
                         </div>
                       </div>
                     </div>
                   ))}
               </div>
             </div>
+
+            {verificationHistory.length > 0 && (
+              <div className="mt-4 space-y-2">
+                <h3 className="font-semibold">Verification History:</h3>
+                <div className="max-h-40 overflow-y-auto space-y-2">
+                  {verificationHistory.map((message, index) => (
+                    <div 
+                      key={index} 
+                      className={`p-2 rounded-lg ${
+                        message.type === 'complete' 
+                          ? 'bg-green-50 text-green-700' 
+                          : 'bg-blue-50 text-blue-700'
+                      }`}
+                    >
+                      {/* <span className="text-sm font-medium">{message.timestamp}</span> */}
+                      <span className="ml-2">{message.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {currentBill.allVerified && (
               <div className="mt-4 p-4 bg-green-50 text-green-700 rounded-lg">
