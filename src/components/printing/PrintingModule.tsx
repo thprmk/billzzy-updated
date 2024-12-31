@@ -248,6 +248,9 @@ export default function PrintingModule() {
           display: block;
           vertical-align: middle;
         }
+          .weight{
+          padding-bottom: 14px;
+          }
       </style>
     `;
 
@@ -296,7 +299,11 @@ export default function PrintingModule() {
               </div>
               <div>
                 <strong>Date:</strong> ${bill.bill_details.date}<br>
-                <strong>Shipping Details:</strong> ${bill.shipping_details.method_name}
+                <strong>Shipping Details:</strong> ${bill.shipping_details.method_name}<br><br>
+              <strong class='weight'>Weight:</strong> <br>
+              <strong>Packed By:</strong> 
+
+
 
               </div>
             </div>
@@ -324,30 +331,32 @@ export default function PrintingModule() {
   };
 
   return (
-    <div className=" w-[50%] mx-auto p-6 space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Print Single Bill</h2>
-        <div className="flex gap-4">
+   <div className="w-full max-w-2xl mx-auto py-4 sm:p-6 space-y-6">
+      {/* Single Print Section */}
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">Print Single Bill</h2>
+        <div className="flex flex-col sm:flex-row gap-4">
           <Input
             type="text"
             placeholder="Enter Bill ID"
             value={billId}
             onChange={(e) => setBillId(e.target.value)}
-            className="w-[100%]"
+            className="w-full"
             disabled={isLoading}
           />
           <Button
             onClick={handleSinglePrint}
             disabled={isLoading}
-            className='w-[160px]'
+            className="w-full sm:w-40"
           >
             {isLoading ? 'Printing...' : 'Print Bill'}
           </Button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Bulk Printing</h2>
+      {/* Bulk Print Section */}
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">Bulk Printing</h2>
         <Button
           onClick={handleBulkPrint}
           disabled={isLoading}

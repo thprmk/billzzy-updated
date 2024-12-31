@@ -4,8 +4,6 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 
 
-
-
 // Modified GET handler in /api/products/route.ts
 export async function GET(request: Request) {
   try {

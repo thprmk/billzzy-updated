@@ -103,15 +103,16 @@ export default async function BillsPage({ params }: PageProps) {
 
     return (
       <div className="container mx-auto px-0 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {mode === 'online' ? 'Online' : 'Offline'} Bills
-            </h1>
-            <p className="text-gray-600">
-              Manage your {mode} transactions
-            </p>
-          </div>
+        <div className="flex justify-between items-center mb-4">
+        <div className="space-y-1 flex gap-x-2 ">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  {mode === 'online' ? 'Online' : 'Offline'} Bills
+                </h1> 
+                <div>|</div>
+                <p className="text-sm sm:text-base text-gray-600">
+                  Manage your {mode} transactions
+                </p>
+              </div>
         </div>
 
         <BillList

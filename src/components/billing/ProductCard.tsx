@@ -310,7 +310,6 @@ const handleProductSelect = useCallback((rowId: string, product: Product) => {
 
   return (
     <div className="space-y-4">
-      <div className="hidden md:block">
       <table className="min-w-full bg-white border">
         <thead>
           <tr>
@@ -409,119 +408,6 @@ const handleProductSelect = useCallback((rowId: string, product: Product) => {
           </tr>
         </tfoot>
       </table>
-   </div>
-      {/* Mobile View */}
-<div className="md:hidden">
-  <div className="space-y-4">
-    {rows.map((row) => (
-      <div key={row.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {/* Search Input Section */}
-        <div className="p-4 relative">
-          <input
-            ref={(el) => {
-              inputRefs.current[row.id] = el;
-            }}
-            type="text"
-            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Search product..."
-            value={row.productName}
-            onChange={(e) => handleInputChange(row.id, e.target.value.toUpperCase())}
-            onKeyDown={(e) => handleKeyDown(e, row.id)}
-          />
-          
-          {/* Loading Spinner */}
-          {loading[row.id] && (
-            <div className="absolute right-6 top-6">
-              <LoadingSpinner />
-            </div>
-          )}
-
-          {/* Search Results Dropdown */}
-          {row.productOptions.length > 0 && (
-            <ul className="absolute z-10 left-4 right-4 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
-              {row.productOptions.map((product, index) => (
-                <li
-                  key={product.id}
-                  className={`p-3 border-b last:border-b-0 ${
-                    index === selectedOptionIndex ? 'bg-gray-100' : 'hover:bg-gray-50'
-                  }`}
-                  onClick={() => handleProductSelect(row.id, product)}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">{product.name}</span>
-                    <span className="text-blue-600">₹{product.sellingPrice.toFixed(2)}</span>
-                  </div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    SKU: {product.SKU} • Stock: {product.quantity}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Product Details Section */}
-        <div className="px-4 pb-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Available Quantity */}
-            <div className="bg-gray-50 p-3 rounded-md">
-              <label className="text-sm text-gray-500 block mb-1">Available</label>
-              <span className="font-medium">{row.availableQuantity}</span>
-            </div>
-
-            {/* Quantity Input */}
-            <div className="bg-gray-50 p-3 rounded-md">
-              <label className="text-sm text-gray-500 block mb-1">Quantity</label>
-              <Input
-                type="number"
-                min="1"
-                max={row.availableQuantity}
-                value={row.quantity}
-                onChange={(e) => handleQuantityChange(row.id, e.target.value)}
-                disabled={!row.productId}
-                className="w-full"
-              />
-            </div>
-
-            {/* Price */}
-            <div className="bg-gray-50 p-3 rounded-md">
-              <label className="text-sm text-gray-500 block mb-1">Price</label>
-              <span className="font-medium">₹{row.sellingPrice.toFixed(2)}</span>
-            </div>
-
-            {/* Total */}
-            <div className="bg-gray-50 p-3 rounded-md">
-              <label className="text-sm text-gray-500 block mb-1">Total</label>
-              <span className="font-medium">₹{row.total.toFixed(2)}</span>
-            </div>
-          </div>
-
-          {/* Remove Button */}
-          {rows.length > 1 && (
-            <div className="mt-4 flex justify-end">
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => removeRow(row.id)}
-                className="w-full sm:w-auto"
-              >
-                Remove
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-    ))}
-
-    {/* Total Amount Card */}
-    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-      <div className="flex justify-between items-center">
-        <span className="font-semibold text-gray-700">Total Amount</span>
-        <span className="text-lg font-bold text-blue-600">₹{totalAmount.toFixed(2)}</span>
-      </div>
-    </div>
-  </div>
-</div>
     </div>
   );
 });

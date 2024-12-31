@@ -27,7 +27,7 @@ export default function DateFilter({
     console.log(data);
     
   return (
-    <div className="flex items-center justify-between space-x-4 mb-6  ">
+    <div className="md:flex items-center justify-between space-x-4 mb-4  hidden  ">
       {/* <Calendar className="text-gray-500 w-5 h-5" /> */}
       <div className="flex items-center space-x-2">
         <input

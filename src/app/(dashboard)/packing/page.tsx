@@ -258,24 +258,34 @@ export default function PackingModule() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Packing Verification</h2>
+    <div className="max-w-3xl mx-auto p-2 sm:p-6 space-y-6">
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-0">
+            Packing Verification
+          </h2>
           <Button
             onClick={handleManualModeToggle}
             variant="outline"
             size="sm"
+            className="w-full sm:w-auto"
           >
             {isManualMode ? 'Scanner Mode' : 'Manual Mode'}
           </Button>
         </div>
 
-        <form onSubmit={isManualMode ? handleBillSubmit : undefined} className="flex gap-4 mb-6">
+        {/* Bill Number Input */}
+        <form
+          onSubmit={isManualMode ? handleBillSubmit : undefined}
+          className="flex flex-col sm:flex-row gap-4 mb-6"
+        >
           <Input
             id="billInput"
             type="text"
-            placeholder={isManualMode ? "Enter Bill Number" : "Scan Bill Number"}
+            placeholder={
+              isManualMode ? 'Enter Bill Number' : 'Scan Bill Number'
+            }
             value={billNo}
             onChange={handleBillNoChange}
             className="flex-1"
@@ -285,19 +295,23 @@ export default function PackingModule() {
             <Button
               type="submit"
               disabled={isLoading || !billNo}
-              className="px-8 w-[150px]"
+              className="mt-2 sm:mt-0 sm:w-[150px]"
             >
               Fetch Bill
             </Button>
           )}
         </form>
 
+        {/* SKU Input */}
         {currentBill && (
-          <form onSubmit={isManualMode ? handleSKUSubmit : undefined}>
+          <form
+            onSubmit={isManualMode ? handleSKUSubmit : undefined}
+            className="mb-6"
+          >
             <Input
               id="skuInput"
               type="text"
-              placeholder={isManualMode ? "Enter SKU" : "Scan SKU"}
+              placeholder={isManualMode ? 'Enter SKU' : 'Scan SKU'}
               value={SKU}
               onChange={handleSKUChange}
               className="w-full"
@@ -306,93 +320,108 @@ export default function PackingModule() {
           </form>
         )}
 
+        {/* Current Bill Details */}
         {currentBill && (
-          <div className="space-y-4">
-            <div className="mt-4">
-              <h3 className="font-semibold mb-2">Products to Pack:</h3>
+          <div className="space-y-6">
+            {/* Products to Pack */}
+            <div>
+              <h3 className="text-md sm:text-lg font-semibold mb-2">
+                Products to Pack:
+              </h3>
               <div className="space-y-2">
                 {currentBill.products
-                  .filter(product => !product.verified)
+                  .filter((product) => !product.verified)
                   .map((product) => (
                     <div
                       key={product.SKU}
-                      className="p-3 rounded-lg border border-gray-200 bg-white"
+                      className="p-3 rounded-lg border border-gray-200 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center"
                     >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-medium">{product.name}</span>
-                          <span className="text-sm text-gray-500 ml-2">
-                            (SKU: {product.SKU})
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          <span className={product.verifiedQuantity > 0 ? 'text-blue-600' : ''}>
-                            {product.verifiedQuantity} / {product.quantity} units verified
-                          </span>
-                        </div>
+                      <div className="mb-2 sm:mb-0">
+                        <span className="font-medium">{product.name}</span>
+                      
+                      </div>
+                      <div className="text-sm">
+                        <span
+                          className={
+                            product.verifiedQuantity > 0
+                              ? 'text-blue-600'
+                              : ''
+                          }
+                        >
+                          {product.verifiedQuantity} / {product.quantity} units
+                          verified
+                        </span>
                       </div>
                     </div>
                   ))}
               </div>
             </div>
 
-            <div className="mt-4">
-              <h3 className="font-semibold mb-2">Verified Products:</h3>
+            {/* Verified Products */}
+            <div>
+              <h3 className="text-md sm:text-lg font-semibold mb-2">
+                Verified Products:
+              </h3>
               <div className="space-y-2">
                 {currentBill.products
-                  .filter(product => product.verified)
+                  .filter((product) => product.verified)
                   .map((product) => (
                     <div
                       key={product.SKU}
-                      className="p-3 rounded-lg border border-green-200 bg-green-50"
+                      className="p-3 rounded-lg border border-green-200 bg-green-50 flex flex-col sm:flex-row justify-between items-start sm:items-center"
                     >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-medium">{product.name}</span>
-                          <span className="text-sm text-gray-500 ml-2">
-                            (SKU: {product.SKU})
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          All {product.quantity} units verified ✓
-                        </div>
+                      <div className="mb-2 sm:mb-0">
+                        <span className="font-medium">{product.name}</span>
+                        <span className="text-sm text-gray-500 ml-2">
+                          (SKU: {product.SKU})
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        All {product.quantity} units verified ✓
                       </div>
                     </div>
                   ))}
               </div>
             </div>
 
+            {/* Verification History */}
             {verificationHistory.length > 0 && (
-              <div className="mt-4 space-y-2">
-                <h3 className="font-semibold">Verification History:</h3>
-                <div className="max-h-40 overflow-y-auto space-y-2">
+              <div>
+                <h3 className="text-md sm:text-lg font-semibold mb-2">
+                  Verification History:
+                </h3>
+                <div className="max-h-40 overflow-y-auto space-y-2 p-2 bg-gray-50 rounded">
                   {verificationHistory.map((message, index) => (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className={`p-2 rounded-lg ${
-                        message.type === 'complete' 
-                          ? 'bg-green-50 text-green-700' 
+                        message.type === 'complete'
+                          ? 'bg-green-50 text-green-700'
                           : 'bg-blue-50 text-blue-700'
                       }`}
                     >
                       {/* <span className="text-sm font-medium">{message.timestamp}</span> */}
-                      <span className="ml-2">{message.text}</span>
+                      <span className="ml-2 text-sm">{message.text}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
+            {/* All Verified Message */}
             {currentBill.allVerified && (
-              <div className="mt-4 p-4 bg-green-50 text-green-700 rounded-lg">
-                <p className="font-semibold">All products verified successfully!</p>
+              <div className="p-4 bg-green-50 text-green-700 rounded-lg">
+                <p className="font-semibold">
+                  All products verified successfully!
+                </p>
               </div>
             )}
           </div>
         )}
 
+        {/* Error Message */}
         {error && (
-          <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-lg">
+          <div className="p-4 bg-red-50 text-red-700 rounded-lg">
             {error}
           </div>
         )}

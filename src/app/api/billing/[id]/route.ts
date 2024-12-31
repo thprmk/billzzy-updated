@@ -53,3 +53,107 @@ export async function DELETE(
     }, { status: 500 });
   }
 }
+
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const billId = parseInt(params.id);
+    const { items } = await request.json();
+
+    // Start a transaction
+    const updatedBill = await prisma.$transaction(async (tx) => {
+      // Get the original bill
+      const originalBill = await tx.transactionRecord.findUnique({
+        where: { id: billId },
+        include: {
+          items: {
+            include: { product: true }
+          }
+        }
+      });
+
+      if (!originalBill) {
+        throw new Error('Bill not found');
+      }
+
+      // Restore original quantities
+      for (const item of originalBill.items) {
+        await tx.product.update({
+          where: { id: item.product.id },
+          data: { quantity: { increment: item.quantity } }
+        });
+      }
+
+      // Delete old items
+      await tx.transactionItem.deleteMany({
+        where: { transactionId: billId }
+      });
+
+      // Calculate new total
+      let totalPrice = 0;
+      const transactionItems = [];
+
+      // Process new items
+      for (const item of items) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId }
+        });
+
+        if (!product) {
+          throw new Error(`Product not found: ${item.productId}`);
+        }
+
+        if (product.quantity < item.quantity) {
+          throw new Error(`Insufficient quantity for product: ${product.name}`);
+        }
+
+        // Update product quantity
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { quantity: { decrement: item.quantity } }
+        });
+
+        const itemTotal = item.price * item.quantity;
+        totalPrice += itemTotal;
+
+        transactionItems.push({
+          transactionId: billId,
+          productId: item.productId,
+          quantity: item.quantity,
+          totalPrice: itemTotal
+        });
+      }
+
+      // Create new items
+      await tx.transactionItem.createMany({
+        data: transactionItems
+      });
+
+      // Update bill
+      return await tx.transactionRecord.update({
+        where: { id: billId },
+        data: {
+          totalPrice,
+          balance: totalPrice - originalBill.amountPaid,
+          isEdited: true // Set the edited flag
+        }
+      });
+    });
+
+    return NextResponse.json(updatedBill);
+  } catch (error: any) {
+    console.error('Update bill error:', error);
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
+  }
+}

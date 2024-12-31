@@ -6,10 +6,8 @@ import {
   ExclamationTriangleIcon,
   DocumentTextIcon,
   TruckIcon,
-  ClipboardDocumentListIcon,
   UserGroupIcon,
   ChatBubbleLeftIcon,
-  InboxArrowDownIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -18,7 +16,7 @@ import { toast } from 'react-toastify';
 import RecentTransactions from './RecentTransactions';
 import DashboardCharts from './DashboardCharts';
 import DateFilter from './DateFilter';
-import { PackageCheck, PackageMinusIcon, Printer, Truck } from 'lucide-react';
+import { PackageMinusIcon, Printer } from 'lucide-react';
 import React from 'react';  // Add this import
 
 interface Product {
@@ -47,17 +45,17 @@ interface DashboardStatsProps {
     totalCustomers: number;
     ordersNeedingTracking: number;
     packingOrdersCount: number;
-    dispatchOrdersCount: number;
+    printedOrdersCount: number;
     organisationId: string;
   };
 }
 
-export default function DashboardStats({ data,session }: DashboardStatsProps) {
+export default function DashboardStats({ data, session }: DashboardStatsProps) {
   const [showLowStockTooltip, setShowLowStockTooltip] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [updateQuantity, setUpdateQuantity] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
-  
+
   // Date filter states
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -77,9 +75,9 @@ export default function DashboardStats({ data,session }: DashboardStatsProps) {
           organisationId: data.organisationId,
         }),
       });
-  
+
       if (!response.ok) throw new Error('Failed to fetch filtered data');
-  
+
       const filteredData = await response.json();
       setFilteredStats(filteredData);
       // Clear date inputs when using All Time
@@ -92,7 +90,7 @@ export default function DashboardStats({ data,session }: DashboardStatsProps) {
       setIsLoading(false);
     }
   };
-  
+
 
   const handleUpdateStock = async () => {
     if (!updateQuantity || parseInt(updateQuantity) <= 0) {
@@ -128,7 +126,7 @@ export default function DashboardStats({ data,session }: DashboardStatsProps) {
 
   const handleFilterApply = async () => {
     if (!startDate || !endDate) return;
-    
+
     setIsLoading(true);
     try {
       const response = await fetch('/api/analytics/filtered-stats', {
@@ -163,24 +161,24 @@ export default function DashboardStats({ data,session }: DashboardStatsProps) {
 
   const stats = [
     {
-      name: filteredStats 
-      ? startDate || endDate 
-        ? "Filtered Sales" 
-        : "All Time Sales"
-      : "Today's Sales",
-    value: `₹${(filteredStats?.totalSales ?? data.todayStats._sum.totalPrice ?? 0).toFixed(2)}`,
+      name: filteredStats
+        ? startDate || endDate
+          ? "Filtered Sales"
+          : "All Time Sales"
+        : "Today's Sales",
+      value: `₹${(filteredStats?.totalSales ?? data.todayStats._sum.totalPrice ?? 0).toFixed(2)}`,
       icon: CurrencyRupeeIcon,
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-500',
       valueColor: 'text-blue-700',
     },
     {
-      name: filteredStats 
-      ? startDate || endDate 
-        ? "Filtered Orders" 
-        : "All Time Orders"
-      : "Today's Orders",
-    value: (filteredStats?.totalOrders ?? data.todayStats._count).toString(),
+      name: filteredStats
+        ? startDate || endDate
+          ? "Filtered Orders"
+          : "All Time Orders"
+        : "Today's Orders",
+      value: (filteredStats?.totalOrders ?? data.todayStats._count).toString(),
       icon: DocumentTextIcon,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-500',
@@ -207,16 +205,16 @@ export default function DashboardStats({ data,session }: DashboardStatsProps) {
   return (
     <div className="flex flex-col h-full">
       <DateFilter
-  startDate={startDate}
-  endDate={endDate}
-  onStartDateChange={setStartDate}
-  onEndDateChange={setEndDate}
-  onFilterApply={handleFilterApply}
-  onReset={handleReset}
-  onAllTime={handleAllTime}  // Add this
-  isLoading={isLoading}
-  data={data}
-/>
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+        onFilterApply={handleFilterApply}
+        onReset={handleReset}
+        onAllTime={handleAllTime}  // Add this
+        isLoading={isLoading}
+        data={data}
+      />
 
 
       <div className="">
@@ -244,13 +242,13 @@ export default function DashboardStats({ data,session }: DashboardStatsProps) {
                   </div>
                   <div className="flex flex-col justify-between h-[100%] items-center space-x-2">
                     <div className={`p-3 rounded-lg cursor-pointer ${stat.bgColor} ${stat.iconColor}`}>
-                      <stat.icon 
+                      <stat.icon
                         onClick={() => {
                           if (stat.name === 'Low Stock Items') {
                             setIsUpdateModalOpen(true);
                           }
-                        }} 
-                        className={`h-6 w-6 ${stat.iconColor}`} 
+                        }}
+                        className={`h-6 w-6 ${stat.iconColor}`}
                       />
                     </div>
                   </div>
@@ -275,17 +273,16 @@ export default function DashboardStats({ data,session }: DashboardStatsProps) {
                 )}
               </div>
 
-              {(stat.name === "Today's Sales" || stat.name === "Filtered Sales" || 
+              {(stat.name === "Today's Sales" || stat.name === "Filtered Sales" ||
                 stat.name === "Today's Orders" || stat.name === "Filtered Orders") && (
-                <div className="h-1 w-full bg-gray-200 rounded-b-xl">
-                  <div
-                    className={`h-full ${
-                      stat.name.includes('Sales') ? 'bg-blue-500' : 'bg-green-500'
-                    } rounded-b-xl`}
-                    style={{ width: '70%' }}
-                  />
-                </div>
-              )}
+                  <div className="h-1 w-full bg-gray-200 rounded-b-xl">
+                    <div
+                      className={`h-full ${stat.name.includes('Sales') ? 'bg-blue-500' : 'bg-green-500'
+                        } rounded-b-xl`}
+                      style={{ width: '70%' }}
+                    />
+                  </div>
+                )}
             </motion.div>
           ))}
         </div>
@@ -318,7 +315,7 @@ export default function DashboardStats({ data,session }: DashboardStatsProps) {
             <div className="w-1/3 bg-green-50 text-green-500 shadow-sm rounded-lg p-4 flex flex-col items-center justify-center">
               <Printer className="h-6 w-6" />
               <div className="mt-2 text-sm font-medium">Printed Orders</div>
-              <div className="text-2xl font-bold text-green-700">{data.dispatchOrdersCount}</div>
+              <div className="text-2xl font-bold text-green-700">{data.printedOrdersCount}</div>
             </div>
           </div>
 
@@ -343,7 +340,7 @@ export default function DashboardStats({ data,session }: DashboardStatsProps) {
         className="relative z-50"
       >
         <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
-        
+
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <Dialog.Panel className="bg-white rounded-lg p-6 max-w-sm w-full">
             <Dialog.Title className="text-lg font-medium mb-4">

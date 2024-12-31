@@ -180,385 +180,481 @@ export default function SettingsForm({
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
-
-      <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-        <div className="flex border-b">
-          <button
-            className={`px-6 py-3 font-medium ${activeTab === 'shop' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
+    <div className="min-h-screen bg-gray-100 p-1 md:p-8">
+    <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row border-b">
+        {/* Tabs */}
+        <div className="flex overflow-x-auto">
+          {[
+            { name: 'Shop Information', key: 'shop' },
+            { name: 'Password', key: 'password' },
+            { name: 'Shipping', key: 'shipping' },
+            { name: 'WhatsApp', key: 'whatsapp' },
+            { name: 'Integrations', key: 'integrations' },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              className={`flex-shrink-0 px-4 py-2 font-medium ${
+                activeTab === tab.key
+                  ? 'bg-gray-100 border-b-2 border-indigo-500'
+                  : 'hover:bg-gray-50'
               }`}
-            onClick={() => setActiveTab('shop')}
-          >
-            Shop Information
-          </button>
-          <button
-            className={`px-6 py-3 font-medium ${activeTab === 'password' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
-              }`}
-            onClick={() => setActiveTab('password')}
-          >
-            Password
-          </button>
-          <button
-            className={`px-6 py-3 font-medium ${activeTab === 'shipping' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
-              }`}
-            onClick={() => setActiveTab('shipping')}
-          >
-            Shipping
-          </button>
-          <button
-            className={`px-6 py-3 font-medium ${activeTab === 'whatsapp' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
-              }`}
-            onClick={() => setActiveTab('whatsapp')}
-          >
-            WhatsApp
-          </button>
-          <button
-            className={`px-6 py-3 font-medium ${activeTab === 'integrations' ? 'bg-gray-100 border-b-2 border-indigo-500' : ''
-              }`}
-            onClick={() => setActiveTab('integrations')}
-          >
-            Integrations
-          </button>
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.name}
+            </button>
+          ))}
         </div>
+      </div>
 
-        <div className="p-6">
-          {activeTab === 'shop' && (
-            <form onSubmit={handleShopUpdate} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Shop Name
-                  </label>
-                  <Input
-                    type="text"
-                    value={shopDetails.shopName}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      shopName: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email
-                  </label>
-                  <Input
-                    type="email"
-                    value={shopDetails.email}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      email: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <Input
-                    type="tel"
-                    value={shopDetails.phone}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      phone: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Flat No
-                  </label>
-                  <Input
-                    type="text"
-                    value={shopDetails.flatNo}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      flatNo: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Street
-                  </label>
-                  <Input
-                    type="text"
-                    value={shopDetails.street}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      street: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    District
-                  </label>
-                  <Input
-                    type="text"
-                    value={shopDetails.district}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      district: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    State
-                  </label>
-                  <Input
-                    type="text"
-                    value={shopDetails.state}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      state: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country
-                  </label>
-                  <Input
-                    type="text"
-                    value={shopDetails.country}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      country: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Pincode
-                  </label>
-                  <Input
-                    type="text"
-                    value={shopDetails.pincode}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      pincode: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mobile Number
-                  </label>
-                  <Input
-                    type="tel"
-                    value={shopDetails.mobileNumber}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      mobileNumber: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Landline Number (Optional)
-                  </label>
-                  <Input
-                    type="tel"
-                    value={shopDetails.landlineNumber || ''}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      landlineNumber: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Website Address (Optional)
-                  </label>
-                  <Input
-                    type="url"
-                    value={shopDetails.websiteAddress || ''}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      websiteAddress: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    GST Number (Optional)
-                  </label>
-                  <Input
-                    type="text"
-                    value={shopDetails.gstNumber || ''}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      gstNumber: e.target.value
-                    })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Company Size
-                  </label>
-                  <Select
-                    value={shopDetails.companySize}
-                    onChange={(e) => setShopDetails({
-                      ...shopDetails,
-                      companySize: e.target.value
-                    })}
-                    required
-                  >
-                    <option value="">Select Company Size</option>
-                    <option value="1-10">1-10 employees</option>
-                    <option value="11-50">11-50 employees</option>
-                    <option value="51-200">51-200 employees</option>
-                    <option value="201-500">201-500 employees</option>
-                    <option value="500+">500+ employees</option>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button type="submit" isLoading={isLoading}>
-                  Update Shop Information
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {activeTab === 'password' && (
-            <div className="space-y-6">
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Current Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={passwordData.oldPassword}
-                    onChange={(e) => setPasswordData({
-                      ...passwordData,
-                      oldPassword: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    New Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData({
-                      ...passwordData,
-                      newPassword: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirm New Password
-                  </label>
-                  <Input
-                    type="password"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData({
-                      ...passwordData,
-                      confirmPassword: e.target.value
-                    })}
-                    required
-                  />
-                </div>
-
-                <div className="flex justify-end">
-                  <Button type="submit" isLoading={isLoading}>
-                    Update Password
-                  </Button>
-                </div>
-              </form>
-
-              <div className="pt-6 border-t">
-                <h3 className="text-lg font-medium mb-4">Forgot Password?</h3>
-                <ForgotPasswordForm />
-              </div>
-            </div>
-          )}
-
-{activeTab === 'shipping' && <ShippingSettings />}
-
-
-          {activeTab === 'whatsapp' && (
-            <form onSubmit={handleWhatsAppUpdate} className="space-y-4">
+      {/* Tab Content */}
+      <div className="p-6">
+        {activeTab === 'shop' && (
+          <form onSubmit={handleShopUpdate} className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Shop Name */}
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  WhatsApp Number
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Shop Name
+                </label>
+                <Input
+                  type="text"
+                  value={shopDetails.shopName}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      shopName: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <Input
+                  type="email"
+                  value={shopDetails.email}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      email: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone
                 </label>
                 <Input
                   type="tel"
-                  value={whatsappNumber}
-                  onChange={(e) => setWhatsappNumber(e.target.value)}
-                  placeholder="Enter WhatsApp number"
-                  pattern="[0-9]{10}"
-                  title="Please enter a valid 10-digit number"
+                  value={shopDetails.phone}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      phone: e.target.value,
+                    })
+                  }
                   required
+                  className="w-full"
                 />
               </div>
+
+              {/* Flat No */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Flat No
+                </label>
+                <Input
+                  type="text"
+                  value={shopDetails.flatNo}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      flatNo: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* Street */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Street
+                </label>
+                <Input
+                  type="text"
+                  value={shopDetails.street}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      street: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* District */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  District
+                </label>
+                <Input
+                  type="text"
+                  value={shopDetails.district}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      district: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* State */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  State
+                </label>
+                <Input
+                  type="text"
+                  value={shopDetails.state}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      state: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* Country */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Country
+                </label>
+                <Input
+                  type="text"
+                  value={shopDetails.country}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      country: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* Pincode */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Pincode
+                </label>
+                <Input
+                  type="text"
+                  value={shopDetails.pincode}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      pincode: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* Mobile Number */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mobile Number
+                </label>
+                <Input
+                  type="tel"
+                  value={shopDetails.mobileNumber}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      mobileNumber: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* Landline Number (Optional) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Landline Number (Optional)
+                </label>
+                <Input
+                  type="tel"
+                  value={shopDetails.landlineNumber || ''}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      landlineNumber: e.target.value,
+                    })
+                  }
+                  className="w-full"
+                />
+              </div>
+
+              {/* Website Address (Optional) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Website Address (Optional)
+                </label>
+                <Input
+                  type="url"
+                  value={shopDetails.websiteAddress || ''}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      websiteAddress: e.target.value,
+                    })
+                  }
+                  className="w-full"
+                />
+              </div>
+
+              {/* GST Number (Optional) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  GST Number (Optional)
+                </label>
+                <Input
+                  type="text"
+                  value={shopDetails.gstNumber || ''}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      gstNumber: e.target.value,
+                    })
+                  }
+                  className="w-full"
+                />
+              </div>
+
+              {/* Company Size */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Company Size
+                </label>
+                <Select
+                  value={shopDetails.companySize}
+                  onChange={(e) =>
+                    setShopDetails({
+                      ...shopDetails,
+                      companySize: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                >
+                  <option value="">Select Company Size</option>
+                  <option value="1-10">1-10 employees</option>
+                  <option value="11-50">11-50 employees</option>
+                  <option value="51-200">51-200 employees</option>
+                  <option value="201-500">201-500 employees</option>
+                  <option value="500+">500+ employees</option>
+                </Select>
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end">
               <Button type="submit" isLoading={isLoading}>
-                Update WhatsApp Number
+                Update Shop Information
               </Button>
+            </div>
+          </form>
+        )}
+
+        {activeTab === 'password' && (
+          <div className="space-y-6">
+            {/* Password Change Form */}
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              {/* Current Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Password
+                </label>
+                <Input
+                  type="password"
+                  value={passwordData.oldPassword}
+                  onChange={(e) =>
+                    setPasswordData({
+                      ...passwordData,
+                      oldPassword: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Password
+                </label>
+                <Input
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) =>
+                    setPasswordData({
+                      ...passwordData,
+                      newPassword: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* Confirm New Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm New Password
+                </label>
+                <Input
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordData({
+                      ...passwordData,
+                      confirmPassword: e.target.value,
+                    })
+                  }
+                  required
+                  className="w-full"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end">
+                <Button type="submit" isLoading={isLoading}>
+                  Update Password
+                </Button>
+              </div>
             </form>
-          )}
 
-          {activeTab === 'integrations' && (
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg border">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    {/* <Image
-            src="/razorpay-logo.png"
-            alt="Razorpay"
-            width={32}
-            height={32}
-            className="object-contain"
-          /> */}
-                    <div>
-                      <h3 className="text-lg font-medium">Razorpay</h3>
-                      <p className="text-sm text-gray-600">Accept online payments</p>
-                    </div>
+            {/* Forgot Password Section */}
+            <div className="pt-6 border-t">
+              <h3 className="text-lg font-medium mb-4">Forgot Password?</h3>
+              <ForgotPasswordForm />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'shipping' && <ShippingSettings />}
+
+        {activeTab === 'whatsapp' && (
+          <form onSubmit={handleWhatsAppUpdate} className="space-y-4">
+            {/* WhatsApp Number */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                WhatsApp Number
+              </label>
+              <Input
+                type="tel"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                placeholder="Enter WhatsApp number"
+                pattern="[0-9]{10}"
+                title="Please enter a valid 10-digit number"
+                required
+                className="w-full"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <Button type="submit" isLoading={isLoading}>
+              Update WhatsApp Number
+            </Button>
+          </form>
+        )}
+
+        {activeTab === 'integrations' && (
+          <div className="space-y-6">
+            {/* Razorpay Integration */}
+            <div className="bg-white p-6 rounded-lg border">
+              <div className="flex flex-col sm:flex-row items-center justify-between">
+                <div className="flex items-center space-x-4 mb-4 sm:mb-0">
+                  {/* Uncomment and use Image component if needed */}
+                  {/* <Image
+                    src="/razorpay-logo.png"
+                    alt="Razorpay"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  /> */}
+                  <div>
+                    <h3 className="text-lg font-medium">Razorpay</h3>
+                    <p className="text-sm text-gray-600">Accept online payments</p>
                   </div>
+                </div>
 
-                  {initialData.razorpayAccessToken ? (
-                    <div className="flex items-center space-x-4">
-                      <span className="flex items-center text-green-600">
+                {initialData.razorpayAccessToken ? (
+                  <div className="flex items-center space-x-4">
+                    <span className="flex items-center text-green-600">
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                      Connected
+                    </span>
+                    <button
+                      onClick={handleRazorpayDisconnect}
+                      className="text-sm text-red-600 hover:text-red-800"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleConnect}
+                    disabled={isLoading}
+                    className="flex items-center px-4 py-2 border border-[#02042B] rounded-md hover:bg-gray-50 transition-all duration-200 w-full sm:w-auto"
+                  >
+                    {isLoading ? (
+                      <span>Connecting...</span>
+                    ) : (
+                      <>
+                        <span>Connect</span>
                         <svg
-                          className="w-5 h-5 mr-2"
+                          className="w-4 h-4 ml-2"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -567,52 +663,20 @@ export default function SettingsForm({
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M5 13l4 4L19 7"
+                            d="M9 5l7 7-7 7"
                           />
                         </svg>
-                        Connected
-                      </span>
-                      <button
-                        onClick={handleRazorpayDisconnect}
-                        className="text-sm text-red-600 hover:text-red-800"
-                      >
-                        Disconnect
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleConnect}
-                      disabled={isLoading}
-                      className="flex items-center px-4 py-2 border border-[#02042B] rounded-md hover:bg-gray-50 transition-all duration-200"
-                    >
-                      {isLoading ? (
-                        <span>Connecting...</span>
-                      ) : (
-                        <>
-                          <span>Connect</span>
-                          <svg
-                            className="w-4 h-4 ml-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
-  );
+  </div>
+);
+  
 }

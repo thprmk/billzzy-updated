@@ -146,6 +146,7 @@ model TransactionRecord {
   notes          String?       @db.Text
   paymentId      String?       @map("payment_id")
   paymentStatus  PaymentStatus @default(PENDING) @map("payment_status")
+  isEdited    Boolean   @default(false)  // Add this field
 
   // Relations
   organisation        Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)

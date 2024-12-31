@@ -1,5 +1,3 @@
-// File: components/Sidebar.tsx
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -55,6 +53,44 @@ interface CustomerSubmission {
   };
 }
 
+// Hamburger Button Component
+const HamburgerButton = ({ onClick, isOpen }: { onClick: () => void; isOpen: boolean }) => (
+  <button
+    className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none"
+    onClick={onClick}
+  >
+    {isOpen ? (
+      <svg
+        className="h-10 w-10"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    ) : (
+      <svg
+        className="h-8 w-10"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M4 6h16M4 12h16M4 18h16"
+        />
+      </svg>
+    )}
+  </button>
+);
+
 const SharePopup = ({ isOpen, onClose }: SharePopupProps) => {
   const [link, setLink] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
@@ -95,38 +131,80 @@ const SharePopup = ({ isOpen, onClose }: SharePopupProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg p-6  space-y-4 transform transition-all duration-300 ease-in-out animate-fadeIn">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Share Link</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-            ×
+    <div
+      className="
+        fixed inset-0 z-50 
+        flex items-center justify-center
+        bg-black bg-opacity-50
+        p-4
+      "
+    >
+      {/* Popup Container */}
+      <div
+        className="
+          w-full max-w-sm 
+          md:max-w-md 
+          lg:max-w-lg
+          bg-white 
+          rounded-md 
+          shadow-md 
+          p-6
+        "
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Share Link</h2>
+          <button
+            onClick={onClose}
+            className="
+              text-gray-500 
+              hover:text-gray-700 
+              transition-colors
+            "
+          >
+            &times;
           </button>
         </div>
 
+        {/* Loader or Content */}
         {isLoading ? (
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div className="flex justify-center py-4">
+            {/* Replace with your custom loader or spinner */}
+            <div className="loader border-t-transparent border-blue-500"></div>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className='text-[14px]'>{link}</div>
-            <button
-              onClick={copyToClipboard}
-              className="w-full flex items-center justify-center space-x-2 p-2 rounded bg-gray-100 hover:bg-gray-200 transition-colors"
-            >
-              <ClipboardIcon className="h-5 w-5" />
-              <span>Copy Link</span>
-            </button>
+          <>
+            {/* Link Preview */}
+            <div className="mb-4 break-words">{link}</div>
 
-            <button
-              onClick={shareToWhatsApp}
-              className="w-full flex items-center justify-center space-x-2 p-2 rounded bg-green-500 text-white hover:bg-green-600 transition-colors"
-            >
-              <ShareIcon className="h-5 w-5" />
-              <span>Share on WhatsApp</span>
-            </button>
-          </div>
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                className="
+                  bg-blue-500 text-white 
+                  py-2 px-4 
+                  rounded 
+                  hover:bg-blue-600
+                  transition-colors
+                "
+                onClick={copyToClipboard}
+              >
+                Copy Link
+              </button>
+              <button
+                className="
+                  bg-green-500 text-white 
+                  py-2 px-4 
+                  rounded 
+                  hover:bg-green-600
+                  transition-colors
+                "
+                onClick={shareToWhatsApp}
+              >
+                Share on WhatsApp
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
@@ -152,18 +230,8 @@ const navigation = [
     ],
   },
   { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
-  // Add this to your navigation array
-{
-  name: 'Printing',
-  href: '/printing',
-  icon: PrinterIcon, // Import from your icon library
-},
-{
-  name: 'Packing',
-  href: '/packing',
-  icon: PackageIcon, // Import from your icon library
-},
-
+  { name: 'Printing', href: '/printing', icon: PrinterIcon },
+  { name: 'Packing', href: '/packing', icon: PackageIcon },
   { name: 'Tracking Number', href: '/tracking', icon: Truck },
   {
     name: 'Products',
@@ -204,25 +272,22 @@ export default function Sidebar({
     setOpenItems((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
-  // Fetch organisation data
   const { data, error, isLoading } = useSWR<GetOrganisationResponse>(
     '/api/organisation',
     fetcher
   );
 
-  // Fetch pending submissions
   const {
     data: submissionsData,
     error: submissionsError,
   } = useSWR<{ submissions: CustomerSubmission[] }>(
     '/api/billing/customer_submission?status=pending',
     fetcher,
-    { refreshInterval: 30000 } // Refresh every 30 seconds
+    { refreshInterval: 30000 }
   );
 
   const pendingCount = submissionsData?.submissions?.length || 0;
 
-  // Remaining days calculation
   const remainingDays = useMemo(() => {
     if (data?.organisation?.endDate) {
       const endDate = parseISO(data.organisation.endDate);
@@ -255,26 +320,24 @@ export default function Sidebar({
 
   return (
     <>
+      <HamburgerButton onClick={() => setIsOpen(!isOpen)} isOpen={isOpen} />
+
+      {/* Mobile overlay */}
       <div
-        className={`fixed inset-0 z-40 md:hidden ${
-          isOpen ? 'block' : 'hidden'
-        }`}
+        className={`fixed inset-0 z-40 bg-gray-600 bg-opacity-75 transition-opacity duration-300 md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={() => setIsOpen(false)}
-      >
-        <div className="absolute inset-0 bg-gray-600 opacity-75" />
-      </div>
+      />
 
+      {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 flex flex-col justify-between`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-all duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          } md:translate-x-0 flex flex-col justify-between`}
       >
-        <div className="relative">
-          <div className="flex items-center justify-between h-16 px-4 bg-indigo-600 relative">
+        <div className="relative h-full overflow-y-auto">
+          <div className="flex items-center justify-between h-16 px-4 bg-indigo-600">
             <h1 className="text-white text-2xl font-bold">Billzzy</h1>
-
             <div className="flex items-center space-x-4">
-              {/* Notification Icon */}
               <button
                 className="relative text-white focus:outline-none"
                 onClick={() => {
@@ -288,27 +351,6 @@ export default function Sidebar({
                     {pendingCount}
                   </span>
                 )}
-              </button>
-
-              {/* Close Sidebar Button */}
-              <button
-                className="md:hidden text-white focus:outline-none"
-                onClick={() => setIsOpen(false)}
-              >
-                <svg
-                  className="h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
               </button>
             </div>
           </div>
@@ -338,26 +380,23 @@ export default function Sidebar({
                   <div key={item.name} className="space-y-1">
                     <button
                       onClick={() => toggleItem(item.name)}
-                      className={`w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${
-                        isActive
+                      className={`w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${isActive
                           ? 'bg-indigo-100 text-indigo-900'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center">
                         <item.icon
-                          className={`mr-3 h-6 w-6 ${
-                            isActive
+                          className={`mr-3 h-6 w-6 ${isActive
                               ? 'text-indigo-600'
                               : 'text-gray-400 group-hover:text-gray-500'
-                          }`}
+                            }`}
                         />
                         {item.name}
                       </div>
                       <ChevronDownIcon
-                        className={`h-5 w-5 transform transition-transform ${
-                          isItemOpen ? 'rotate-180' : ''
-                        }`}
+                        className={`h-5 w-5 transform transition-transform ${isItemOpen ? 'rotate-180' : ''
+                          }`}
                       />
                     </button>
                     {isItemOpen && (
@@ -366,11 +405,10 @@ export default function Sidebar({
                           <Link
                             key={child.name}
                             href={child.href}
-                            className={`block px-2 py-2 text-sm rounded-md ${
-                              pathname === child.href
+                            className={`block px-2 py-2 text-sm rounded-md ${pathname === child.href
                                 ? 'text-indigo-600'
                                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                            }`}
+                              }`}
                             onClick={() => setIsOpen(false)}
                           >
                             {child.name}
@@ -382,24 +420,21 @@ export default function Sidebar({
                 );
               }
 
-
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    isActive
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive
                       ? 'bg-indigo-100 text-indigo-900'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                    }`}
                   onClick={() => setIsOpen(false)}
                 >
                   <item.icon
-                    className={`mr-3 h-6 w-6 ${
-                      isActive
+                    className={`mr-3 h-6 w-6 ${isActive
                         ? 'text-indigo-600'
                         : 'text-gray-400 group-hover:text-gray-500'
-                    }`}
+                      }`}
                   />
                   {item.name}
                 </Link>
@@ -407,8 +442,7 @@ export default function Sidebar({
             })}
           </nav>
 
-          <RazorpayConnect/>
-
+          <RazorpayConnect />
         </div>
 
         <div className="px-4 py-6 border-t border-gray-200">

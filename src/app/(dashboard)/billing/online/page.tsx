@@ -211,7 +211,7 @@ export default function OnlineBillPage() {
   const showMinAmountMessage = freeShippingMethod && subtotal < freeShippingMethod.minAmount;
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-6 md:p-4 p-0">
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h2 className="text-lg font-medium mb-4">Customer Details</h2>
         <CustomerForm 

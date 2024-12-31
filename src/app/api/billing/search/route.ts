@@ -210,6 +210,7 @@ export async function GET(request: Request) {
           balance: bill.balance || 0,
           trackingNumber: bill.trackingNumber || null,
           weight: bill.weight || null,
+          isEdited: bill.isEdited,
           items: bill.items.map((item) => ({
             id: item.id,
             productName: item.product.name,

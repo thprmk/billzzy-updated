@@ -401,7 +401,7 @@ const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     <div className="space-y-6 mt-6">
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h2 className="text-lg font-medium mb-4">Customer Details</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-4">
           <div className="relative">
           <Input
   label="Phone Number"
