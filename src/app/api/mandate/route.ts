@@ -62,7 +62,7 @@ export async function POST(request: Request) {
     const mandateRequest: MandateRequest = {
       merchantId: '611392',
       subMerchantId: '611392',
-      terminalId: '5411',
+      terminalId: '5999',
       merchantName: 'TechVaseegrahUAT',
       subMerchantName: 'Test',
       payerVa,
@@ -74,16 +74,17 @@ export async function POST(request: Request) {
       requestType: 'C',
       validityStartDate: format(addDays(new Date(), 1), 'dd/MM/yyyy'),
       validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
-      amountLimit: 'F',
-      frequency: 'MT',
+      amountLimit: 'M',
+      frequency: 'AS',
       remark: 'Monthly Subscription',
       autoExecute: 'N',
-      debitDay: '10',
-      debitRule: 'ON',
       revokable: 'Y',
       blockfund: 'N',
       purpose: 'RECURRING',
     };
+
+    console.log('ICICI Mandate Request:', mandateRequest);
+    
 
     // 2. Encrypt the request using IciciCrypto
     const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(mandateRequest);
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        apikey: process.env.ICICI_API_KEY || 'YOUR_DEV_API_KEY',
+        apikey: process.env.ICICI_API_KEY || '',
         Accept: 'application/json',
       },
       body: JSON.stringify(encryptedPayload),

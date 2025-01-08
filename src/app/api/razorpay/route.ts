@@ -8,6 +8,9 @@ import crypto from 'crypto';
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   console.log("trigggered");
+
+  console.log(process.env.NEXT_PUBLIC_BASE_URL);
+  
   
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
 
   const authUrl = new URL('https://auth.razorpay.com/authorize');
   authUrl.searchParams.append('client_id', process.env.NEXT_RAZORPAY_CLIENT_ID!);
-  authUrl.searchParams.append('redirect_uri', `http://localhost:3000/api/razorpay/callback`);
+  authUrl.searchParams.append('redirect_uri', `${process.env.NEXT_PUBLIC_BASE_URL}/api/razorpay/callback`);
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('scope', 'read_write');
   authUrl.searchParams.append('state', state);

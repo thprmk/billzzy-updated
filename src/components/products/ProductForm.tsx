@@ -189,7 +189,7 @@ export default function ProductForm({ initialData, categories }: ProductFormProp
           name="categoryId"
           value={formData.categoryId}
           onChange={handleChange}
-          required
+          
           className="w-full"
         >
           <option value="">Select Category</option>
