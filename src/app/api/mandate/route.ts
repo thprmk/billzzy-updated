@@ -44,6 +44,8 @@ const API_BASE_URL =
 
 export async function POST(request: Request) {
   try {
+    
+
     const body = (await request.json()) as MandateRequestBody;
     const { payerVa } = body;
 
@@ -62,10 +64,10 @@ export async function POST(request: Request) {
     const mandateRequest: MandateRequest = {
       merchantId: '611392',
       subMerchantId: '611392',
-      terminalId: '5999',
+      terminalId: '5411',
       merchantName: 'TechVaseegrahUAT',
       subMerchantName: 'Test',
-      payerVa,
+      payerVa:'samsungqr15@icici',
       amount: '100.00',
       note: 'Mandate Request',
       collectByDate: format(validityEndDate, 'dd/MM/yyyy HH:mm a'),
@@ -74,15 +76,17 @@ export async function POST(request: Request) {
       requestType: 'C',
       validityStartDate: format(addDays(new Date(), 1), 'dd/MM/yyyy'),
       validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
-      amountLimit: 'M',
-      frequency: 'AS',
+      amountLimit: 'F',
+      frequency: 'MT',
       remark: 'Monthly Subscription',
       autoExecute: 'N',
+      debitDay: '10',
+      debitRule: 'ON',
       revokable: 'Y',
       blockfund: 'N',
       purpose: 'RECURRING',
     };
-
+   
     console.log('ICICI Mandate Request:', mandateRequest);
     
 

@@ -70,7 +70,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
     fetchBills(currentPage);
   }, [searchQuery, dateFilter, statusFilter, hasTrackingFilter]);
 
-console.log(bills,'bills'); 
+
 
   const fetchBills = async (page: number) => {
     setIsLoading(true);
@@ -83,56 +83,67 @@ console.log(bills,'bills');
         page: page.toString(),
         pageSize: pageSize.toString(),
       });
-
+  
       if (hasTrackingFilter !== 'all') {
         params.append('hasTracking', hasTrackingFilter);
       }
-
+  
       const response = await fetch(`/api/billing/search?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch bills');
       }
-
+  
       const data = await response.json();
-
+      
+      // Verify the data structure in development
+      console.log('Fetched bills:', data);
+  
       setBills(data.bills);
       setTotalCount(data.totalCount);
       setCurrentPage(page);
     } catch (error) {
+      console.error('Fetch error:', error);
       toast.error('Failed to fetch bills. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Call this function when component mounts or filters change
+  useEffect(() => {
+    fetchBills(currentPage);
+  }, [searchQuery, dateFilter, statusFilter, hasTrackingFilter]);
+  
+  // Update bill function for editing
+  const handleUpdateBill = async (items: BillItem[]) => {
+    try {
+      console.log('Updating bill:', billToEdit.id, items);
+      
+      const response = await fetch(`/api/billing/${billToEdit.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update bill');
+      }
+  
+      await fetchBills(currentPage);
+      toast.success('Bill updated successfully');
+      setIsEditModalOpen(false);
+      setBillToEdit(null);
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update bill');
     }
   };
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [billToEdit, setBillToEdit] = useState<any>(null);
 
-  // Add this function to handle bill updates:
-  const handleUpdateBill = async (items: BillItem[]) => {
-    try {
-      const response = await fetch(`/api/billing/${billToEdit.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items,
-        }),
-      });
 
-      if (!response.ok) {
-        throw new Error('Failed to update bill');
-      }
-
-      // Refresh the bills list
-      await fetchBills(currentPage);
-      toast.success('Bill updated successfully');
-      router.refresh();
-    } catch (error) {
-      console.error('Update error:', error);
-      toast.error('Failed to update bill');
-      throw error;
-    }
-  };
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
@@ -530,7 +541,7 @@ console.log(bills,'bills');
                     </th>
                   </>
                 )}
-                
+
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   Notes
                 </th>
@@ -551,7 +562,7 @@ console.log(bills,'bills');
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                     <div>{formatDate(bill.date)}</div>
                     <div className="text-xs text-gray-500">{bill.time}</div>
-                    {bill.isEdited ? <span className="text-xs text-gray-500">Edited</span>: null}
+                    {bill.isEdited ? <span className="text-xs text-gray-500">Edited</span> : null}
 
                   </td>
 
@@ -695,18 +706,18 @@ console.log(bills,'bills');
                       >
                         Delete
                       </Button>
-                {(bill.status === 'processing' || bill.status === 'paymentPending') && (
-  <Button 
-  variant="outline"
+                      {(bill.status === 'processing' || bill.status === 'paymentPending') && (
+                        <Button
+                          variant="outline"
 
-    onClick={() => {
-      setBillToEdit(bill);
-      setIsEditModalOpen(true);
-    }}
-  >
-    Edit
-  </Button>
-)}
+                          onClick={() => {
+                            setBillToEdit(bill);
+                            setIsEditModalOpen(true);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      )}
 
                     </div>
                   </td>
@@ -735,7 +746,7 @@ console.log(bills,'bills');
                 <div className="text-right">
                   <div className="text-gray-800">{formatDate(bill.date)}</div>
                   <div className="text-xs text-gray-500">{bill.time}</div>
-                  {bill.isEdited ? <span className="text-xs text-gray-500">Edited</span>: null}
+                  {bill.isEdited ? <span className="text-xs text-gray-500">Edited</span> : null}
 
                 </div>
               </div>
@@ -835,7 +846,7 @@ console.log(bills,'bills');
                     ${bill.status === 'shipped' ? 'bg-green-100 text-green-800' : ''}
                   `}
                       >
-                        {bill.status} 
+                        {bill.status}
                       </div>
                     </div>
                   </div>
@@ -866,7 +877,7 @@ console.log(bills,'bills');
                 <div className="text-gray-600 font-medium">Notes:</div>
                 <div className="text-gray-800 text-sm">
                   {bill.notes ? bill.notes : '-'}
-                  {bill.status} 
+                  {bill.status}
 
                 </div>
               </div>

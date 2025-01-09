@@ -244,7 +244,7 @@ const navigation = [
   },
   { name: 'Customers', href: '/customers', icon: UsersIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
-  // { name: 'Mandate', href: '/mandate', icon: CogIcon },
+  { name: 'Mandate', href: '/mandate', icon: CogIcon },
 
 ];
 

@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { ProductTable, ProductTableRef, BillItem } from '@/components/billing/ProductTable';
+import { ProductTable, ProductTableRef, BillItem } from './ProductTable';
 import { toast } from 'react-toastify';
 
 interface EditBillModalProps {
@@ -17,16 +17,20 @@ export function EditBillModal({ isOpen, onClose, bill, onSave }: EditBillModalPr
   const [isLoading, setIsLoading] = useState(false);
   const productTableRef = useRef<ProductTableRef>(null);
 
+  
+console.log(bill, 'bill');
+
   useEffect(() => {
     if (isOpen && bill && bill.items) {
       const initialItems = bill.items.map((item: any) => ({
-        productId: item.id || item.product?.id,
+        productId: item.productId,
         name: item.productName,
         quantity: item.quantity,
-        SKU: item.SKU,
-        total: item.totalPrice
+        price: item.price || item.totalPrice / item.quantity,
+        total: item.totalPrice,
+        SKU: item.SKU || '',
+        availableQuantity: item.availableQuantity || 0
       }));
-      console.log('Mapped Items:', initialItems);
       setItems(initialItems);
     }
   }, [isOpen, bill]);
@@ -48,9 +52,6 @@ export function EditBillModal({ isOpen, onClose, bill, onSave }: EditBillModalPr
       setIsLoading(false);
     }
   };
-
-  console.log(items,'items');
-  
 
   return (
     <Modal 
