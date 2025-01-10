@@ -60,6 +60,7 @@ async function getDashboardData(organisationId: string) {
     prisma.transactionRecord.findMany({
       where: {
         organisationId: parseInt(organisationId),
+        paymentStatus: 'PAID'  // Added this condition
       },
       include: {
         customer: true,
@@ -67,7 +68,6 @@ async function getDashboardData(organisationId: string) {
       orderBy: {
         date: 'desc',
       },
-      take: 10,
     }),
 
     // SMS count from organisation

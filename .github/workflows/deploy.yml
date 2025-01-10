@@ -1,0 +1,32 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]  # This means it runs when you push to main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Step 1: Get your code
+    - uses: actions/checkout@v2
+    
+    # Step 2: Set up SSH access
+    - name: Setup SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ secrets.AWS_EC2_HOST }} >> ~/.ssh/known_hosts
+    
+    # Step 3: Deploy to EC2
+    - name: Deploy to EC2
+      run: |
+        ssh -i ~/.ssh/deploy_key ${{ secrets.AWS_EC2_USERNAME }}@${{ secrets.AWS_EC2_HOST }} '
+          cd /var/www/nextjs &&
+          git pull origin main &&
+          npm install &&
+          npm run build &&
+          pm2 restart nextjs
+        '

@@ -1,5 +1,3 @@
-// components/dashboard/RecentTransactions.tsx
-
 import { format } from "date-fns";
 import React from 'react';
 
@@ -16,14 +14,17 @@ export default function RecentTransactions({ data }: RecentTransactionsProps) {
                     <table className="hidden md:table min-w-full divide-y divide-gray-200">
                         <thead>
                             <tr>
-                                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Date
                                 </th>
-                                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Customer
                                 </th>
-                                <th className="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Total Amount
+                                </th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
                                 </th>
                             </tr>
                         </thead>
@@ -38,6 +39,13 @@ export default function RecentTransactions({ data }: RecentTransactionsProps) {
                                     </td>
                                     <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
                                         ₹{transaction.totalPrice.toFixed(2)}
+                                    </td>
+                                    <td className="px-4 py-2 whitespace-nowrap">
+                                        {transaction.paymentStatus === 'PAID' && (
+                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                Paid
+                                            </span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -56,8 +64,15 @@ export default function RecentTransactions({ data }: RecentTransactionsProps) {
                                         ₹{transaction.totalPrice.toFixed(2)}
                                     </span>
                                 </div>
-                                <div className="text-sm text-gray-600">
-                                    {transaction.customer?.name || 'N/A'}
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">
+                                        {transaction.customer?.name || 'N/A'}
+                                    </span>
+                                    {transaction.paymentStatus === 'PAID' && (
+                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                            Paid
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         ))}
