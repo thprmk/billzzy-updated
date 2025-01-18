@@ -60,18 +60,18 @@ export async function GET(request: Request) {
         var4: organisation?.shopName || ''
       };
 
-      if (bill.customer?.phone) {
-        try {
-          await sendOrderStatusSMS({
-            phone: bill.customer.phone,
-            organisationId: organisationId,
-            status: 'packed',
-            smsVariables
-          });
-        } catch (error) {
-          console.error(`Failed to send SMS for bill ${bill.billNo}:`, error);
-        }
-      }
+      // if (bill.customer?.phone) {
+      //   try {
+      //     await sendOrderStatusSMS({
+      //       phone: bill.customer.phone,
+      //       organisationId: organisationId,
+      //       status: 'packed',
+      //       smsVariables
+      //     });
+      //   } catch (error) {
+      //     console.error(`Failed to send SMS for bill ${bill.billNo}:`, error);
+      //   }
+      // }
 
       return {
         bill_id: bill.id,

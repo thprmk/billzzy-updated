@@ -112,13 +112,24 @@ export default function PrintingModule() {
       alert('Unable to open print window. Please disable your pop-up blocker and try again.');
       return;
     }
-
+  
     const printContent = generatePrintContent(bills);
     
+    // Create and trigger automatic download
+    const blob = new Blob([printContent], { type: 'text/html' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `bills_${new Date().getTime()}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  
+    // Display content in print window
     printWindow.document.open();
     printWindow.document.write(printContent);
     printWindow.document.close();
-
+  
     printWindow.onload = function () {
       setTimeout(() => {
         try {
@@ -132,6 +143,9 @@ export default function PrintingModule() {
         }
       }, 500);
     };
+  
+    // Cleanup
+    URL.revokeObjectURL(downloadUrl);
   };
 
   console.log(bills);
@@ -251,6 +265,10 @@ export default function PrintingModule() {
           .weight{
           padding-bottom: 14px;
           }
+
+          .billId{
+          font-size:12px;
+          }
       </style>
     `;
 
@@ -276,7 +294,7 @@ export default function PrintingModule() {
               <div class="barcode">
                 <img src="${barcodeDataUrl}" alt="Barcode ${bill.bill_details.bill_no}">
               </div>
-              <div>Bill ID: ${bill.bill_details.bill_no}</div>
+              <div class="billId">Bill ID: ${bill.bill_details.bill_no}</div>
             </div>
             <div class="address-box">
               <h2>TO:</h2>

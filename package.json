@@ -37,6 +37,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^11.11.17",
     "jsbarcode": "^3.11.6",
+    "jspdf": "^2.5.2",
     "lodash": "^4.17.21",
     "lucide-react": "^0.460.0",
     "moment-timezone": "^0.5.46",

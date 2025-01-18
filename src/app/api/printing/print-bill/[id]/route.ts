@@ -34,7 +34,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     });
 
 
-    console.log(bill?.TransactionShipping);
+    console.log(bill);
     
 
     if (!bill) {
@@ -78,7 +78,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         unitPrice: item.product.sellingPrice,
         amount: item.totalPrice,
       })),
-      shipping_details: bill.TransactionShipping ? {
+      shipping_details: bill.TransactionShipping.length!=0 ? {
         method_name: bill.TransactionShipping[0].methodName,
         method_type: bill.TransactionShipping[0].methodType,
         base_rate: bill.TransactionShipping[0].baseRate,
@@ -105,14 +105,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
       var4: organisation?.shopName || '',
     };
 
-    if (bill.customer?.phone) {
-      await sendOrderStatusSMS({
-        phone: bill.customer.phone,
-        organisationId: organisationId,
-        status: 'packed',
-        smsVariables
-      });
-    }
+    // if (bill.customer?.phone) {
+    //   await sendOrderStatusSMS({
+    //     phone: bill.customer.phone,
+    //     organisationId: organisationId,
+    //     status: 'packed',
+    //     smsVariables
+    //   });
+    // }
 
     revalidatePath('/transactions/online');
     revalidatePath('/dashboard');

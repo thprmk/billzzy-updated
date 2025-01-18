@@ -21,8 +21,8 @@ const MSG91_CONFIG: SMSConfig = {
 
 };
 
-const url = 'https://control.msg91.com/api/v5/flow/';
-// const url = 'https://control.msg91.com//v5//'
+// const url = 'https://control.msg91.com/api/v5/flow/';
+const url = 'https://control.msg91.com//v5//'
 
 
 
@@ -274,4 +274,3 @@ export async function sendOrderStatusSMS({
 
 
 
-// VaseegrahVeda$2012

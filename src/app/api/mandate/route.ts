@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const mandateRequest: MandateRequest = {
       merchantId: '611392',
       subMerchantId: '611392',
-      terminalId: '5411',
+      terminalId: '6012',
       merchantName: 'TechVaseegrahUAT',
       subMerchantName: 'Test',
       payerVa:'samsungqr15@icici',
@@ -74,14 +74,14 @@ export async function POST(request: Request) {
       merchantTranId,
       billNumber: `BILL_${Date.now()}`,
       requestType: 'C',
-      validityStartDate: format(addDays(new Date(), 1), 'dd/MM/yyyy'),
+      validityStartDate: '15/01/2025',
       validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
-      amountLimit: 'F',
-      frequency: 'MT',
+      amountLimit: 'M',
+      frequency: 'AS',
       remark: 'Monthly Subscription',
       autoExecute: 'N',
-      debitDay: '10',
-      debitRule: 'ON',
+      debitDay:"NA",
+   debitRule:"NA",
       revokable: 'Y',
       blockfund: 'N',
       purpose: 'RECURRING',
@@ -105,7 +105,6 @@ export async function POST(request: Request) {
       optionalParam: '',
     };
 
-    console.log('Encrypted ICICI payload:', encryptedPayload);
 
     // 4. Send the request to ICICI
     const response = await fetch(`https://apibankingonesandbox.icicibank.com/api/MerchantAPI/UPI2/v1/CreateMandate`, {
@@ -117,6 +116,9 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify(encryptedPayload),
     });
+
+    console.log(process.env.ICICI_API_KEY);
+    
 
     if (!response.ok) {
       const errorText = await response.text();

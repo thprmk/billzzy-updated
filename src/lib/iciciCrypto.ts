@@ -8,10 +8,7 @@ import forge from 'node-forge';
 export class IciciCrypto {
   private static readonly AES_ALGO = 'aes-128-cbc';
 
-  /**
-   * Reads the ICICI public certificate and extracts the public key.
-   * @returns {forge.pki.rsa.PublicKey} The extracted public key.
-   */
+
   private static getPublicKey(): forge.pki.rsa.PublicKey {
     try {
       const certPath = path.join(process.cwd(), 'certificates', 'icici_public.cer');
@@ -30,10 +27,7 @@ export class IciciCrypto {
     }
   }
 
-  /**
-   * Reads the private key from the specified file.
-   * @returns {string} The private key in PEM format.
-   */
+ 
   private static getPrivateKey(): string {
     try {
       const privateKeyPath = path.join(process.cwd(), 'certificates', 'privateBillzzy.key');
@@ -45,11 +39,7 @@ export class IciciCrypto {
     }
   }
 
-  /**
-   * Encrypts the given JSON payload using hybrid encryption (RSA + AES) with PKCS1 padding.
-   * @param jsonPayload - The JSON data to encrypt.
-   * @returns An object containing the encryptedKey, iv, and encryptedData in Base64 encoding.
-   */
+
   public static encrypt<T>(jsonPayload: T) {
     // Generate a random 16-byte AES session key
     const sessionKey = crypto.randomBytes(16);
@@ -81,14 +71,7 @@ export class IciciCrypto {
     };
   }
 
-  /**
-   * Decrypts the given encrypted data using hybrid decryption (RSA + AES) with PKCS1 padding.
-   * If IV is not provided, it is assumed to be embedded in the first 16 bytes of the encryptedData.
-   * @param encryptedData - The Base64-encoded encrypted data.
-   * @param encryptedKey - The Base64-encoded encrypted AES session key.
-   * @param iv - (Optional) The Base64-encoded Initialization Vector.
-   * @returns {Record<string, any>} The decrypted JSON object.
-   */
+ 
   static decrypt(encryptedData: string, encryptedKey: string, iv?: string) {
     try {
       // Step 1: Decode the Base64-encoded encryptedKey and encryptedData
