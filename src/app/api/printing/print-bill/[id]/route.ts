@@ -105,14 +105,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
       var4: organisation?.shopName || '',
     };
 
-    // if (bill.customer?.phone) {
-    //   await sendOrderStatusSMS({
-    //     phone: bill.customer.phone,
-    //     organisationId: organisationId,
-    //     status: 'packed',
-    //     smsVariables
-    //   });
-    // }
+    if (bill.customer?.phone) {
+      await sendOrderStatusSMS({
+        phone: bill.customer.phone,
+        organisationId: organisationId,
+        status: 'packed',
+        smsVariables
+      });
+    }
 
     revalidatePath('/transactions/online');
     revalidatePath('/dashboard');
