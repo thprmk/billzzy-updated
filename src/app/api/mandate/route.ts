@@ -1,194 +1,232 @@
-// app/api/create-mandate/route.ts
-
 import { NextResponse } from 'next/server';
-import { format, addYears, addDays } from 'date-fns';
+import { format, addYears, addMinutes, addMonths } from 'date-fns';
 import { IciciCrypto } from '@/lib/iciciCrypto';
+import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
-// Define the request body interface
 interface MandateRequestBody {
-  payerVa: string;
+ payerVa: string;
 }
 
-// Define the full mandate request interface
 interface MandateRequest {
-  merchantId: string;
-  subMerchantId: string;
-  terminalId: string;
-  merchantName: string;
-  subMerchantName: string;
-  payerVa: string;
-  amount: string;
-  note: string;
-  collectByDate: string;
-  merchantTranId: string;
-  billNumber: string;
-  requestType: string;
-  validityStartDate: string;
-  validityEndDate: string;
-  amountLimit: string;
-  frequency: string;
-  remark: string;
-  autoExecute: string;
-  debitDay: string;
-  debitRule: string;
-  revokable: string;
-  blockfund: string;
-  purpose: string;
+ merchantId: string;
+ subMerchantId: string;
+ terminalId: string;
+ merchantName: string; 
+ subMerchantName: string;
+ payerVa: string;
+ amount: string;
+ note: string;
+ collectByDate: string;
+ merchantTranId: string;
+ billNumber: string;
+ requestType: string;
+ validityStartDate: string;
+ validityEndDate: string;
+ amountLimit: string;
+ frequency: string;
+ remark: string;
+ autoExecute: string;
+ debitDay: string;
+ debitRule: string;
+ revokable: string;
+ blockfund: string;
+ purpose: string;
+ validatePayerAccFlag?: string;
 }
-
-// Example: If you must switch between sandbox & production
-const API_BASE_URL =
-  process.env.NODE_ENV === 'production'
-    ? 'https://yourproductionhost.icicibank.com'
-    : 'https://apibankingonesandbox.icicibank.com';
 
 export async function POST(request: Request) {
-  try {
+ try {
+   const session = await getServerSession(authOptions);
+   if (!session) {
+     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+   }
+
+   const merchantName = session?.user?.name;
+   if (!merchantName) {
+     return NextResponse.json(
+       { error: 'Merchant name not found in session' },
+       { status: 400 }
+     );
+   }
+
+   const body = (await request.json()) as MandateRequestBody;
+   const { payerVa } = body;
+   if (!payerVa) {
+     return NextResponse.json(
+       { error: 'Payer Virtual Address is required' },
+       { status: 400 }
+     );
+   }
+
+   const organisationId = session?.user?.id;
+   if (!organisationId) {
+     return NextResponse.json(
+       { error: 'Organisation ID not found in session' },
+       { status: 400 }
+     );
+   }
+
+   const today = new Date();
+   const collectByDate = addMinutes(today, 180);
+   const validityEndDate = addYears(today, 12);
+   const debitDay = today.getDate().toString();
+   const nextMandateDate = addMonths(today, 1);
+   const merchantTranId = `MANDATE_${Date.now()}`;
+   const billNumber = `BILL_${Date.now()}`;
+
+   const mandateRequest: MandateRequest = {
+     merchantId: "611392",
+     subMerchantId: "611392", 
+     terminalId: "5411",
+     merchantName,
+     subMerchantName: "Test",
+     payerVa,
+     amount: "100.00",
+     note: "mandaterequest",
+     collectByDate: format(collectByDate, 'dd/MM/yyyy hh:mm a'),
+     merchantTranId,
+     billNumber,
+     validityStartDate: format(today, 'dd/MM/yyyy'),
+     validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
+     amountLimit: "M",
+     remark: "Mandate Request",
+     autoExecute: "N",
+     requestType: "C",
+     frequency: "AS",
+    //  debitDay,
+     debitRule: "ON",
+     revokable: "Y",
+     blockfund: "N",
+     purpose: "RECURRING",
+     validatePayerAccFlag: "N"
+   };
+
+   const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(mandateRequest);
+
+   const encryptedPayload = {
+     requestId: merchantTranId,
+     service: "AccountCreation", 
+     encryptedKey,
+     oaepHashingAlgorithm: "NONE",
+     iv,
+     encryptedData,
+     clientInfo: "",
+     optionalParam: ""
+   };
+
+   const response = await fetch(
+     "https://apibankingonesandbox.icicibank.com/api/MerchantAPI/UPI2/v1/CreateMandate",
+     {
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+         apikey: process.env.ICICI_API_KEY || "",
+         Accept: "application/json"
+       },
+       body: JSON.stringify(encryptedPayload)
+     }
+   );
+
+   if (!response.ok) {
+     return NextResponse.json(
+       { 
+         success: false,
+         error: "Failed to create mandate",
+         details: await response.text()
+       }, 
+       { status: response.status }
+     );
+   }
+
+   const apiResponse = await response.json();
+
+   let decryptedResponse;
+   if (apiResponse?.encryptedData && apiResponse?.encryptedKey) {
+     try {
+       decryptedResponse = IciciCrypto.decrypt(
+         apiResponse.encryptedData,
+         apiResponse.encryptedKey,
+         apiResponse.iv
+       );
+
+       console.log(decryptedResponse);
+       
+
+       if (!decryptedResponse.success) {
+
+         // Send error response based on ICICI error codes
+         const errorCode = decryptedResponse.response;
     
 
-    const body = (await request.json()) as MandateRequestBody;
-    const { payerVa } = body;
+         return NextResponse.json({
+           success: false,
+           error: decryptedResponse.message,
+           code: errorCode,
+           details: decryptedResponse.RespCodeDescription || decryptedResponse.respCodeDescription
+         }, { status: 400 });
+       }
 
-    if (!payerVa) {
-      return NextResponse.json(
-        { error: 'Payer Virtual Address is required' },
-        { status: 400 }
-      );
-    }
+       const mandateRecord = await prisma.mandate.create({
+         data: {
+           organisationId: parseInt(organisationId.toString(), 10),
+           merchantTranId: decryptedResponse.merchantTranId || merchantTranId,
+           bankRRN: decryptedResponse.BankRRN || null,
+           UMN: null,
+           amount: parseFloat(mandateRequest.amount),
+           status: 'INITIATED',
+           payerVA: mandateRequest.payerVa,
+           payerName: null,
+           payerMobile: null,
+           txnInitDate: null,
+           txnCompletionDate: null,
+           responseCode: decryptedResponse.response || null,
+           respCodeDescription: decryptedResponse.message || null,
+         }
+       });
 
-    const today = new Date();
-    const validityEndDate = addYears(today, 1);
-    const merchantTranId = `MANDATE_${Date.now()}`;
+       await prisma.organisation.update({
+         where: { id: parseInt(organisationId.toString(), 10) },
+         data: { endDate: nextMandateDate }
+       });
 
-    // 1. Construct your plain JSON request
-    const mandateRequest: MandateRequest = {
-      merchantId: '611392',
-      subMerchantId: '611392',
-      terminalId: '6012',
-      merchantName: 'TechVaseegrahUAT',
-      subMerchantName: 'Test',
-      payerVa:'samsungqr15@icici',
-      amount: '100.00',
-      note: 'Mandate Request',
-      collectByDate: format(validityEndDate, 'dd/MM/yyyy HH:mm a'),
-      merchantTranId,
-      billNumber: `BILL_${Date.now()}`,
-      requestType: 'C',
-      validityStartDate: '15/01/2025',
-      validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
-      amountLimit: 'M',
-      frequency: 'AS',
-      remark: 'Monthly Subscription',
-      autoExecute: 'N',
-      debitDay:"NA",
-   debitRule:"NA",
-      revokable: 'Y',
-      blockfund: 'N',
-      purpose: 'RECURRING',
-    };
-   
-    console.log('ICICI Mandate Request:', mandateRequest);
-    
+       return NextResponse.json({
+         success: true,
+         message: "Mandate creation initiated",
+         data: {
+           merchantTranId: decryptedResponse.merchantTranId || merchantTranId,
+           BankRRN: decryptedResponse.BankRRN,
+           status: "INITIATED"
+         }
+       });
 
-    // 2. Encrypt the request using IciciCrypto
-    const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(mandateRequest);
+     } catch (error) {
+       return NextResponse.json(
+         { 
+           success: false,
+           error: "Failed to decrypt mandate response",
+           details: error instanceof Error ? error.message : "Unknown error"
+         },
+         { status: 500 }
+       );
+     }
+   }
 
-    // 3. Create final encrypted request body
-    const encryptedPayload = {
-      requestId: merchantTranId,
-      service: 'NLI',
-      encryptedKey,
-      oaepHashingAlgorithm: 'NONE',
-      iv, // recommended approach
-      encryptedData,
-      clientInfo: '',
-      optionalParam: '',
-    };
+   return NextResponse.json({
+     success: false,
+     error: "Invalid response from bank",
+     details: "Missing encrypted data in response"
+   }, { status: 500 });
 
-
-    // 4. Send the request to ICICI
-    const response = await fetch(`https://apibankingonesandbox.icicibank.com/api/MerchantAPI/UPI2/v1/CreateMandate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: process.env.ICICI_API_KEY || '',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify(encryptedPayload),
-    });
-
-    console.log(process.env.ICICI_API_KEY);
-    
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('ICICI API Error =>', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-      });
-      return NextResponse.json(
-        { error: 'Failed to create mandate', details: errorText },
-        { status: response.status }
-      );
-    }
-
-    // 5. Parse the API’s JSON response
-    const apiResponse = await response.json();
-    console.log('Mandate Creation Response:', apiResponse);
-
-    // 6. Decrypt the response (if needed)
-    // If the response is also Hybrid-encrypted, we can do:
-    if (apiResponse?.encryptedData && apiResponse?.encryptedKey) {
-      let decrypted: Record<string, any>;
-
-      try {
-        // Determine if IV is provided or embedded
-        if (!apiResponse.iv || apiResponse.iv.trim() === '') {
-          // IV is embedded in the encryptedData
-          decrypted = IciciCrypto.decrypt(
-            apiResponse.encryptedData,
-            apiResponse.encryptedKey
-            // IV is not provided, so it's extracted within the decrypt method
-          );
-        } else {
-          // IV is provided separately
-          decrypted = IciciCrypto.decrypt(
-            apiResponse.encryptedData,
-            apiResponse.encryptedKey,
-            apiResponse.iv
-          );
-        }
-
-        console.log('Decrypted ICICI response =>', decrypted);
-      } catch (decryptError) {
-        console.error('Decryption of ICICI response failed:', decryptError);
-        return NextResponse.json(
-          { error: 'Failed to decrypt ICICI response', details: decryptError.message },
-          { status: 500 }
-        );
-      }
-    }
-
-    // 7. Return a relevant portion of the response in your final JSON
-    return NextResponse.json({
-      success: true,
-      message: 'Mandate creation initiated',
-      // If the response has these fields, pass them along
-      data: {
-        merchantTranId: apiResponse?.merchantTranId,
-        BankRRN: apiResponse?.BankRRN,
-        status: apiResponse?.status,
-      },
-    });
-  } catch (error: any) {
-    console.error('Mandate Creation Error:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error while creating mandate',
-        details: error?.message || 'Unknown error',
-      },
-      { status: 500 }
-    );
-  }
+ } catch (error) {
+   return NextResponse.json(
+     {
+       success: false,
+       error: "Internal server error while creating mandate",
+       details: error instanceof Error ? error.message : "Unknown error"
+     },
+     { status: 500 }
+   );
+ }
 }

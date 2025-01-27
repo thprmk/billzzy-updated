@@ -5,6 +5,8 @@ import { prisma } from "./prisma";
 import { compare } from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
+
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -23,7 +25,7 @@ export const authOptions: NextAuthOptions = {
         // Admin check
         if (
           credentials.email === 'admin@billz.com' &&
-          credentials.password === 'admin$2012'
+          credentials.password === 'Tech$feb14'
         ) {
           return {
             id: "admin",

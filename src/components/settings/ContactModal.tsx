@@ -2,7 +2,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import React from 'react';  // Add this import
+import React from 'react';  
 
 interface ContactModalProps {
   isOpen: boolean;
