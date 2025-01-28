@@ -73,8 +73,12 @@ export async function POST(request: Request) {
    const validityEndDate = addYears(today, 12);
    const debitDay = today.getDate().toString();
    const nextMandateDate = addMonths(today, 1);
+   console.log('Next Mandate Date:', nextMandateDate);
+   
    const merchantTranId = `MANDATE_${Date.now()}`;
    const billNumber = `BILL_${Date.now()}`;
+
+   
 
    const mandateRequest: MandateRequest = {
      merchantId: "611392",

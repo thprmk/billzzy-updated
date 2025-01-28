@@ -22,47 +22,73 @@ interface MandateCallback {
 }
 
 // app/api/mandate/callback/route.ts
+function addOneMonthClamped(date: Date): Date {
+  const newDate = new Date(date.getTime());
+  const currentDay = newDate.getDate();
+
+  // Increase the month by 1
+  newDate.setMonth(newDate.getMonth() + 1);
+
+  // If we overflowed into the following month, clamp to the last day of the new month
+  // (sign that we ended up in e.g. 03/03 instead of 02/XX)
+  if (newDate.getDate() < currentDay) {
+    // Setting date to 0 goes "one day before the 1st", i.e. the last day of previous month.
+    newDate.setDate(0);
+  }
+
+  return newDate;
+}
 
 
 export async function POST(request: Request) {
   try {
     const encryptedCallback = await request.json();
     let callbackData: MandateCallback;
- 
+
+
+
     if (encryptedCallback?.encryptedData) {
-      if (!encryptedCallback.encryptedKey || !encryptedCallback.iv) {
-        throw new Error('Missing encryption parameters');
+      if (!encryptedCallback.encryptedKey) {
+        throw new Error('Missing encrypted key');
       }
- 
+
       try {
         callbackData = IciciCrypto.decrypt(
           encryptedCallback.encryptedData,
           encryptedCallback.encryptedKey,
-          encryptedCallback.iv
+          encryptedCallback.iv || ''
         );
+
+        console.log('Decrypted callback:', callbackData);
       } catch (error) {
         console.error('Callback decryption failed:', error);
-        return NextResponse.json({ error: 'Decryption failed' }, { status: 400 });
+        return NextResponse.json({
+          error: 'Decryption failed',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 400 });
       }
     } else {
       callbackData = encryptedCallback;
     }
- 
-    if (!callbackData?.merchantTranId || !callbackData?.TxnStatus) {
-      return NextResponse.json({ error: 'Invalid callback data' }, { status: 400 });
-    }
- 
+    // if (!callbackData?.merchantTranId || callbackData?.TxnStatus==='CREATE-FAIL') {
+    //   return NextResponse.json({ error: 'Invalid callback data' }, { status: 400 });
+    // }
+
     const mandate = await prisma.mandate.findUnique({
       where: { merchantTranId: callbackData.merchantTranId },
+      // where: { merchantTranId: 'MANDATE_1738070892512' },
       include: { organisation: true }
     });
- 
+
+    // console.log('Mandate:', mandate);
+
+
     if (!mandate) return NextResponse.json({ error: "Mandate not found" }, { status: 404 });
- 
+
     const existingActiveMandate = await prisma.activeMandate.findUnique({
       where: { organisationId: mandate.organisationId }
     });
- 
+
     const newSeqNo = existingActiveMandate ? existingActiveMandate.mandateSeqNo + 1 : 1;
     const status = existingActiveMandate ? 'ACTIVATED' : 'INITIATED';
 
@@ -83,7 +109,7 @@ export async function POST(request: Request) {
         mandateSeqNo: newSeqNo
       }
     });
- 
+
     if (newSeqNo === 1) {
       const executePayload = {
         merchantId: "611392",
@@ -96,9 +122,9 @@ export async function POST(request: Request) {
         UMN: callbackData.UMN,
         purpose: "RECURRING"
       };
- 
+
       const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(executePayload);
- 
+
       const executeResponse = await fetch(
         'https://apibankingonesandbox.icicibank.com/api/MerchantAPI/UPI2/v1/ExecuteMandate',
         {
@@ -116,10 +142,10 @@ export async function POST(request: Request) {
           })
         }
       );
- 
+
       const responseData = await executeResponse.json();
       let decryptedResponse;
- 
+
       if (responseData?.encryptedData) {
         try {
           decryptedResponse = IciciCrypto.decrypt(
@@ -132,19 +158,37 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Execute response decryption failed' }, { status: 500 });
         }
       }
- 
+
       if (executeResponse.ok && decryptedResponse?.success === "true") {
-        const nextMonth = new Date();
+        const nextMonth = addOneMonthClamped(new Date());
         nextMonth.setMonth(nextMonth.getMonth() + 1);
- 
+
         await prisma.$transaction([
           prisma.activeMandate.update({
             where: { organisationId: mandate.organisationId },
-            data: { status: 'ACTIVATED' }
+            data: {
+              status: 'ACTIVATED',
+              payerName: callbackData.PayerName,
+              payerMobile: callbackData.PayerMobile,
+              UMN: callbackData.UMN
+            }
           }),
-          prisma.mandate.update({
-            where: { id: mandate.id },
-            data: { status: 'ACTIVATED' }
+          prisma.mandate.create({
+            data: {
+              organisationId: mandate.organisationId,
+              merchantTranId: executePayload.merchantTranId,
+              bankRRN: decryptedResponse.BankRRN,
+              UMN: callbackData.UMN,
+              amount: mandate.amount,
+              status: 'SUCCESS',
+              payerVA: mandate.payerVA,
+              payerName: callbackData.PayerName,
+              payerMobile: callbackData.PayerMobile,
+              txnInitDate: new Date(callbackData.TxnInitDate.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')),
+              txnCompletionDate: new Date(callbackData.TxnCompletionDate.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')),
+              responseCode: decryptedResponse.ResponseCode,
+              respCodeDescription: decryptedResponse.RespCodeDescription
+            }
           }),
           prisma.organisation.update({
             where: { id: mandate.organisationId },
@@ -153,17 +197,17 @@ export async function POST(request: Request) {
         ]);
       }
     }
-    console.log('Callback Success:', mandate);
-    
- 
-    return NextResponse.json({ 
-      success: true, 
+
+
+    return NextResponse.json({
+      success: true,
       data: mandate,
       seqNo: newSeqNo
     });
- 
+
   } catch (error) {
     console.error("Callback Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
- }
+}
+

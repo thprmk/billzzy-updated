@@ -7,7 +7,7 @@ export async function POST() {
   try {
     const now = new Date();
     console.log("Executing mandates at", now);
- 
+
     const pendingExecutions = await prisma.activeMandate.findMany({
       where: {
         organisation: { endDate: { gte: now } },
@@ -25,7 +25,7 @@ export async function POST() {
       },
       include: { organisation: true }
     });
- 
+
     const results = await Promise.all(
       pendingExecutions.map(async (mandate) => {
         try {
@@ -41,9 +41,9 @@ export async function POST() {
             purpose: "RECURRING",
             retryCount: mandate.retryCount.toString() // Current retry count
           };
- 
+
           const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(executePayload);
- 
+
           const response = await fetch(
             'https://apibankingonesandbox.icicibank.com/api/MerchantAPI/UPI2/v1/ExecuteMandate',
             {
@@ -61,12 +61,12 @@ export async function POST() {
               })
             }
           );
- 
+
           const responseData = await response.json();
-          const decryptedResponse = responseData?.encryptedData ? 
+          const decryptedResponse = responseData?.encryptedData ?
             IciciCrypto.decrypt(responseData.encryptedData, responseData.encryptedKey, responseData.iv) :
             null;
- 
+
           if (!response.ok || (!decryptedResponse?.success)) {
             // Handle failure based on retry count
             if (mandate.retryCount >= 9) {
@@ -79,9 +79,9 @@ export async function POST() {
                   lastAttemptAt: now
                 }
               });
-              return { 
-                id: mandate.id, 
-                status: 'failed', 
+              return {
+                id: mandate.id,
+                status: 'failed',
                 error: decryptedResponse?.message || 'Execution failed',
                 resetRetry: true,
                 newSeqNo: mandate.mandateSeqNo + 1
@@ -95,9 +95,9 @@ export async function POST() {
                   lastAttemptAt: now
                 }
               });
-              return { 
-                id: mandate.id, 
-                status: 'failed', 
+              return {
+                id: mandate.id,
+                status: 'failed',
                 error: decryptedResponse?.message || 'Execution failed',
                 retryCount: mandate.retryCount + 1
               };
@@ -108,15 +108,20 @@ export async function POST() {
           console.log('Execution successful:', decryptedResponse);
           const nextExecutionDate = new Date(mandate.organisation.endDate);
           nextExecutionDate.setMonth(nextExecutionDate.getMonth() + 1);
- 
+
+
           await prisma.$transaction([
             prisma.activeMandate.update({
               where: { id: mandate.id },
               data: {
                 mandateSeqNo: { increment: 1 },
                 notified: false,
-                retryCount: 0, // Reset retry count on success
-                lastAttemptAt: now
+                retryCount: 0,
+                lastAttemptAt: now,
+                // If you want to store updated UMN or payer data from the response:
+                UMN: decryptedResponse?.UMN || mandate.UMN,
+                payerName: decryptedResponse?.PayerName || mandate.payerName,
+                payerMobile: decryptedResponse?.PayerMobile || mandate.payerMobile
               }
             }),
             prisma.organisation.update({
@@ -127,23 +132,30 @@ export async function POST() {
               data: {
                 organisationId: mandate.organisationId,
                 merchantTranId: executePayload.merchantTranId,
-                UMN: mandate.UMN,
+                UMN: decryptedResponse?.UMN || mandate.UMN,
+                bankRRN: decryptedResponse?.BankRRN,
                 amount: mandate.amount,
                 status: 'SUCCESS',
                 payerVA: mandate.payerVA,
-                payerName: mandate.payerName,
-                payerMobile: mandate.payerMobile
+                payerName: decryptedResponse?.PayerName || mandate.payerName,
+                payerMobile: decryptedResponse?.PayerMobile || mandate.payerMobile,
+                txnInitDate: new Date(decryptedResponse.TxnInitDate.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')),
+                txnCompletionDate: new Date(decryptedResponse.TxnCompletionDate.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')),
+
+                responseCode: decryptedResponse?.ResponseCode,
+                respCodeDescription: decryptedResponse?.RespCodeDescription
               }
             })
           ]);
- 
-          return { 
-            id: mandate.id, 
+
+
+          return {
+            id: mandate.id,
             status: 'success',
             newSeqNo: mandate.mandateSeqNo + 1,
             retryCount: 0
           };
- 
+
         } catch (error) {
           console.error('Execution error:', error);
           // Handle unexpected errors same as API failures
@@ -165,9 +177,9 @@ export async function POST() {
               }
             });
           }
-          return { 
-            id: mandate.id, 
-            status: 'error', 
+          return {
+            id: mandate.id,
+            status: 'error',
             error: error.message,
             retryCount: mandate.retryCount >= 9 ? 0 : mandate.retryCount + 1
           };
@@ -181,7 +193,7 @@ export async function POST() {
       failed: results.filter(r => r.status === 'failed').length,
       retryResets: results.filter(r => r.retryCount === 0).length
     });
- 
+
     return NextResponse.json({
       success: true,
       processed: results.length,
@@ -189,7 +201,7 @@ export async function POST() {
       failed: results.filter(r => r.status !== 'success').length,
       results
     });
- 
+
   } catch (error) {
     console.error('Critical error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

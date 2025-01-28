@@ -1,42 +1,49 @@
-// app/settings/SettingsForm.tsx
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
 import { SettingsTabs } from '@/components/settings/Tabs';
 import { ShopSettings } from '@/components/settings/ShopSettings';
 import { PasswordSettings } from '@/components/settings/PasswordSettings';
 import { ShippingSettings } from '@/components/settings/ShippingSettings';
 import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings';
-import type { OrganisationDetails } from '@/types/settings';
 import React from 'react';  
+import type { OrganisationDetails } from '@/types/settings';
 import { WhatsAppSettings } from './WhatsappSettings';
+import { MandateForm } from '@/components/mandate/MandateForm';
+import { MandateHistory } from '@/components/mandate/MandateHistory';
 
-export default function SettingsForm({ initialData }: { initialData: OrganisationDetails }) {
+interface ExtendedOrganisationDetails extends OrganisationDetails {
+  subscriptionType?: string;
+  mandates?: any[];
+  activeMandate?: any;
+}
+
+export default function SettingsForm({ initialData }: { initialData: ExtendedOrganisationDetails }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations'>('shop');
+
+  console.log(initialData.endDate);
+  
+
+  const [activeTab, setActiveTab] = useState<
+    'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'billing'
+  >('shop');
 
   return (
     <div className="min-h-screen bg-gray-50 place-content-center md:p-4">
-      <div className="max-w-6xl min-h-[80vh] mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="max-w-[1280px] min-h-[90vh] mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row">
-          {/* Tab Navigation */}
+          {/* Left side: Tabs */}
           <SettingsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-          
-          {/* Content Area */}
-          <div className="flex-1 p-6 md:p-8">
+
+          {/* Right side: Content Area */}
+          <div className="flex-1 p-6 md:p-4">
             {activeTab === 'shop' && (
-              <ShopSettings
-                initialData={initialData}
-                onSuccess={() => router.refresh()}
-              />
+              <ShopSettings initialData={initialData} onSuccess={() => router.refresh()} />
             )}
 
             {activeTab === 'password' && (
-              <PasswordSettings
-                onSuccess={() => router.refresh()}
-              />
+              <PasswordSettings onSuccess={() => router.refresh()} />
             )}
 
             {activeTab === 'shipping' && <ShippingSettings />}
@@ -54,9 +61,36 @@ export default function SettingsForm({ initialData }: { initialData: Organisatio
                 onRazorpayUpdate={() => router.refresh()}
               />
             )}
+
+            {activeTab === 'billing' && (
+              <BillingTab
+                subscriptionType={initialData.subscriptionType}
+                mandates={initialData.mandates}
+                endDate={initialData.endDate}
+                activeMandate={initialData.activeMandate}
+              />
+            )}
           </div>
         </div>
       </div>
     </div>
   );
+}
+
+/** A small helper sub-component for Billing tab */
+function BillingTab({
+  subscriptionType,
+  mandates,
+  endDate,
+  activeMandate
+}: {
+  subscriptionType?: string;
+  mandates?: any[];
+  activeMandate?: any;
+}) {
+  if (subscriptionType === 'trial') {
+    return <MandateForm />;
+  }
+  // subscriptionType = 'pro' or something else
+  return <MandateHistory mandates={mandates} activeMandate={activeMandate} endDate={endDate} />;
 }

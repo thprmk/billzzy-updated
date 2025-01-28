@@ -16,6 +16,7 @@ export function SettingsTabs({
     { name: 'Password', key: 'password' },
     { name: 'Shipping', key: 'shipping' },
     { name: 'WhatsApp', key: 'whatsapp' },
+    { name: 'Billing', key: 'billing' },
     { name: 'Integrations', key: 'integrations' },
   ];
 

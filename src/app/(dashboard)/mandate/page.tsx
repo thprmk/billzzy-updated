@@ -1,7 +1,7 @@
 // app/dashboard/mandate/page.tsx
 
 import { MandateForm } from "@/components/mandate/MandateForm";
-
+import React from 'react';
 export default function MandatePage() {
   return (
     <div className="container mx-auto px-4 py-8">
