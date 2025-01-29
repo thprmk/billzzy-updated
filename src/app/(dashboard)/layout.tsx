@@ -18,12 +18,12 @@ export default async function Layout({
   }
 
   // Check subscription status on server side
-  if (session.user?.endDate) {
-    const endDate = new Date(session.user.endDate);
-    if (endDate < new Date()) {
-      redirect('/lock');
-    }
-  }
+  // if (session.user?.endDate) {
+  //   const endDate = new Date(session.user.endDate);
+  //   if (endDate < new Date()) {
+  //     redirect('/lock');
+  //   }
+  // }
 
   return <DashboardLayout>        <OfflineMessage /> {/* Add the component here */}
     {children}</DashboardLayout>;

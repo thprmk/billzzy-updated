@@ -14,9 +14,9 @@ export function Protected({ children }: { children: React.ReactNode }) {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
-    if (isAuthenticated && !checkSubscription()) {
-      router.push('/lock');
-    }
+    // if (isAuthenticated && !checkSubscription()) {
+    //   router.push('/lock');
+    // }
   }, [isLoading, isAuthenticated, router, checkSubscription]);
 
   if (isLoading) {

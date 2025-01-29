@@ -33,13 +33,16 @@ export async function POST() {
             merchantId: "611392",
             subMerchantId: "611392",
             terminalId: "5411",
-            merchantName: mandate.organisation.name,
+            merchantName: 'Tech Vaseegrah',
+            subMerchantName: mandate.organisation.name,
             amount: mandate.amount.toString(),
             merchantTranId: `EXEC_${Date.now()}_${mandate.id}`,
+            billNumber: `BILL_${Date.now()}`,
+            remark: "Mandate execution request",
+            retryCount: mandate.retryCount.toString(),
             mandateSeqNo: mandate.mandateSeqNo.toString(),
             UMN: mandate.UMN,
             purpose: "RECURRING",
-            retryCount: mandate.retryCount.toString() // Current retry count
           };
 
           const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(executePayload);

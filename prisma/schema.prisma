@@ -259,7 +259,7 @@ model Mandate {
  organisationId    Int
  merchantTranId    String       @unique
  bankRRN          String?
- UMN              String?      @unique
+ UMN              String?      
  amount           Float
  status           String
  payerVA          String
@@ -277,7 +277,7 @@ model Mandate {
 model ActiveMandate {
   id                      Int       @id @default(autoincrement())
   organisationId          Int       @unique
-  UMN                     String?   @unique
+  UMN                     String?   
   mandateSeqNo            Int       @default(1)
   amount                  Float
   notificationRetries     Int       @default(0)

@@ -49,7 +49,6 @@ export function MandateHistory({ mandates, activeMandate,  endDate
         <h2 className="text-xl font-semibold mb-2">Current Active Mandate</h2>
         {activeMandate ? (
           <div>
-            <p><strong>UMN:</strong> {activeMandate.UMN || 'N/A'}</p>
             <p><strong>Amount:</strong> ₹{activeMandate.amount}</p>
             <p><strong>Status:</strong> {activeMandate.status}</p>
             <p><strong>Payer VPA:</strong> {activeMandate.payerVA}</p>
@@ -77,8 +76,6 @@ export function MandateHistory({ mandates, activeMandate,  endDate
           <table className="w-full text-left">
             <thead>
               <tr className="border-b">
-                <th className="py-2">ID</th>
-                <th className="py-2">UMN</th>
                 <th className="py-2">Amount</th>
                 <th className="py-2">Status</th>
                 <th className="py-2">Payer VPA</th>
@@ -89,8 +86,7 @@ export function MandateHistory({ mandates, activeMandate,  endDate
             <tbody>
               {mandates.map((mandate) => (
                 <tr key={mandate.id} className="border-b hover:bg-gray-50">
-                  <td className="py-2">{mandate.id}</td>
-                  <td className="py-2">{mandate.UMN || 'N/A'}</td>
+            
                   <td className="py-2">₹{mandate.amount}</td>
                   <td className="py-2">{mandate.status}</td>
                   <td className="py-2">{mandate.payerVA}</td>
