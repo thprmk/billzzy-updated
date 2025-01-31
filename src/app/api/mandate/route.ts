@@ -107,6 +107,9 @@ export async function POST(request: Request) {
      validatePayerAccFlag: "N"
    };
 
+   console.log("request payload for create mandate", mandateRequest);
+
+
    const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(mandateRequest);
 
    const encryptedPayload = {
@@ -155,7 +158,7 @@ export async function POST(request: Request) {
          apiResponse.iv
        );
 
-       console.log(decryptedResponse);
+       console.log("payload of the response",decryptedResponse);
        
 
        if (!decryptedResponse.success) {

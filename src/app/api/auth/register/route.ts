@@ -1,6 +1,17 @@
+// app/api/register/route.ts (or similar)
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
+
+function addOneMonthClamped(date: Date): Date {
+  const newDate = new Date(date.getTime());
+  const currentDay = newDate.getDate();
+  newDate.setMonth(newDate.getMonth() + 1);
+  if (newDate.getDate() < currentDay) {
+    newDate.setDate(0);
+  }
+  return newDate;
+}
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +34,7 @@ export async function POST(request: Request) {
       gstNumber,
     } = body;
 
-    // Check if user exists
+    // 1. Check if user exists
     const existingUser = await prisma.organisation.findUnique({
       where: { email },
     });
@@ -35,17 +46,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Hash password
+    // 2. Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create organisation with trial subscription
+    // 3. Calculate endDate as "now + 1 month" with clamping
+    const now = new Date();
+    const trialEndDate = addOneMonthClamped(now);
+
+    // 4. Create organisation with trial subscription
     const organisation = await prisma.organisation.create({
       data: {
         email,
         password: hashedPassword,
         name,
         phone,
-        companySize:'0',
+        companySize: '0',
         shopName,
         flatNo,
         street,
@@ -57,8 +72,8 @@ export async function POST(request: Request) {
         websiteAddress,
         gstNumber,
         subscriptionType: 'trial',
-        // Set end date to yesterday for testing
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // +7 days from now
+        endDate: trialEndDate,    // set endDate to now+1 month (clamped)
+        monthlyUsage: 0,         // Start usage at 0
         smsCount: 0,
         smsCost: 0,
       },
@@ -76,7 +91,7 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Registration error:', error.message);
+    console.error('Registration error:', (error as Error).message);
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }

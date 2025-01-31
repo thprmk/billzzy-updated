@@ -8,6 +8,7 @@ import type { CustomerDetails, BillItem } from '@/types/billing';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { Select } from '@/components/ui/Select';
+import { MandateModal } from '@/components/mandate/MandateModal';
 
 interface ShippingMethod {
   id: number;
@@ -34,12 +35,23 @@ export default function OnlineBillPage() {
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [selectedShippingId, setSelectedShippingId] = useState<number | null>(null);
   const [shippingCost, setShippingCost] = useState<number>(0);
-
+  const [limitReached, setLimitReached] = useState(false);
+  const [nextResetDate, setNextResetDate] = useState<string | null>(null);
   const customerFormRef = useRef<{ resetForm: () => void }>(null);
   const productTableRef = useRef<{ 
     resetTable: () => void;
     focusFirstProductInput: () => void;
   }>(null);
+
+  const [showModal, setShowModal] = useState(false);
+
+  const handleUpgradeClick = () => {
+    setShowModal(true); // show the UPI ID popup
+  };
+
+  const handleClose = () => {
+    setShowModal(false);
+  };
 
   useEffect(() => {
     fetchShippingMethods();
@@ -187,6 +199,14 @@ export default function OnlineBillPage() {
 
       const data = await response.json();
 
+      if (response.status === 403) {
+        // We assume the server returned JSON like { success: false, message, nextResetDate }
+        setLimitReached(true);
+        setNextResetDate(data.nextResetDate); // might be an ISO date
+        setIsLoading(false);
+        return; // don't proceed
+      }
+
       if (!response.ok) {
         throw new Error(data.details || 'Failed to create bill');
       }
@@ -212,6 +232,7 @@ export default function OnlineBillPage() {
 
   return (
     <div className="space-y-6 md:p-4 p-0">
+
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h2 className="text-lg font-medium mb-4">Customer Details</h2>
         <CustomerForm 
@@ -298,7 +319,28 @@ export default function OnlineBillPage() {
         >
           {isLoading ? 'Creating Bill...' : 'Create Bill'}
         </Button>
+
       </div>
+      {limitReached && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 text-red-700">
+          <p className="font-bold">Monthly Limit Reached</p>
+          <p>You have reached the free limit of 50 orders this month.</p>
+          {nextResetDate && (
+            <p>
+              Your next cycle resets on: <strong>{new Date(nextResetDate).toLocaleDateString()}</strong>
+            </p>
+          )}
+      <button
+        onClick={handleUpgradeClick}
+        className="mt-2 inline-flex items-center px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+      >
+        Upgrade to Pro
+      </button>
+
+      {/* The popup for user to enter their UPI ID */}
+      <MandateModal isOpen={showModal} onClose={handleClose} />
+        </div>
+      )}
     </div>
   );
 }

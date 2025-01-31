@@ -11,39 +11,40 @@ export async function POST() {
    console.log('[Notification] Window:', { now, notificationWindow });
 
    const pendingNotifications = await prisma.activeMandate.findMany({
-     where: {
-       organisation: {
-         endDate: {
-           gt: now,
-           lte: notificationWindow
-         }
-       },
-       status: 'ACTIVATED',
-       OR: [
-         // Regular notification check
-         {
-           mandateSeqNo: { gt: 1 },
-           OR: [
-             { notificationRetries: 0 },
-             {
-               notificationRetries: { lt: 3 },
-               lastNotificationAttempt: {
-                 lt: new Date(now.getTime() - 3600000)
-               }
-             }
-           ]
-         },
-         // Reset condition when retries reach 3
-         {
-           notificationRetries: 3,
-           lastNotificationAttempt: {
-             lt: new Date(now.getTime() - 3600000)
-           }
-         }
-       ]
-     },
-     include: { organisation: true }
-   });
+    where: {
+      organisation: {
+        endDate: {
+          gt: now,
+          lte: notificationWindow
+        }
+      },
+      status: 'ACTIVATED',
+      notified: false, // Only get unnotified mandates
+      OR: [
+        // Regular notification check
+        {
+          mandateSeqNo: { gt: 1 },
+          OR: [
+            { notificationRetries: 0 },
+            {
+              notificationRetries: { lt: 3 },
+              lastNotificationAttempt: {
+                lt: new Date(now.getTime() - 3600000)
+              }
+            }
+          ]
+        },
+        // Reset condition when retries reach 3
+        {
+          notificationRetries: 3,
+          lastNotificationAttempt: {
+            lt: new Date(now.getTime() - 3600000)
+          }
+        }
+      ]
+    },
+    include: { organisation: true }
+  });
 
    console.log('[Notification] Found mandates:', pendingNotifications.length);
 

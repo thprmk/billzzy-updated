@@ -49,30 +49,31 @@ export async function POST(request: Request) {
 
     console.log('Decrypted callback:', callbackData);
 
-    // 2. Handle EXECUTE callbacks
+    // Check if this is an EXEC_ callback
     if (isExecuteCallback(callbackData.merchantTranId)) {
       console.log('Execute callback received:', callbackData);
     
-      // 1) Determine the final status based on TxnStatus
-      //    If "EXECUTE-SUCCESS" => "ACTIVATED", else "PENDING"
+      // Decide final status based on TxnStatus
       const finalStatus = callbackData.TxnStatus === 'EXECUTE-SUCCESS'
         ? 'ACTIVATED'
         : 'PENDING';
     
-      // 2) Parse out the orgId from merchantTranId
-      const orgIdStr = callbackData.merchantTranId.split('_')[2]; // e.g. EXEC_<timestamp>_<orgId>
+      // Parse org ID from "EXEC__"
+      const orgIdStr = callbackData.merchantTranId.split('_')[2];
       const organisationId = parseInt(orgIdStr, 10);
     
-      // 3) Perform both operations (mandate.create & activeMandate.upsert) in a transaction
+      // Perform everything in a single transaction
       await prisma.$transaction([
-        prisma.mandate.create({
-          data: {
+        // 1) Upsert in the mandates table
+        prisma.mandate.upsert({
+          where: { merchantTranId: callbackData.merchantTranId },
+          create: {
             organisationId,
             merchantTranId: callbackData.merchantTranId,
             bankRRN: callbackData.BankRRN,
             UMN: callbackData.UMN,
             amount: parseFloat(callbackData.PayerAmount),
-            status: finalStatus,                     // <-- set status based on TxnStatus
+            status: finalStatus,
             payerVA: callbackData.PayerVA,
             payerName: callbackData.PayerName,
             payerMobile: callbackData.PayerMobile,
@@ -80,26 +81,50 @@ export async function POST(request: Request) {
             respCodeDescription: callbackData.RespCodeDescription,
             txnInitDate: parseIciciDate(callbackData.TxnInitDate),
             txnCompletionDate: parseIciciDate(callbackData.TxnCompletionDate),
-          }
+          },
+          update: {
+            bankRRN: callbackData.BankRRN,
+            UMN: callbackData.UMN,
+            amount: parseFloat(callbackData.PayerAmount),
+            status: finalStatus,
+            payerVA: callbackData.PayerVA,
+            payerName: callbackData.PayerName,
+            payerMobile: callbackData.PayerMobile,
+            responseCode: callbackData.ResponseCode,
+            respCodeDescription: callbackData.RespCodeDescription,
+            txnInitDate: parseIciciDate(callbackData.TxnInitDate),
+            txnCompletionDate: parseIciciDate(callbackData.TxnCompletionDate),
+          },
         }),
+    
+        // 2) Upsert in the activeMandate table
         prisma.activeMandate.upsert({
           where: { organisationId },
           create: {
             organisationId,
             UMN: callbackData.UMN,
             amount: parseFloat(callbackData.PayerAmount),
-            status: finalStatus,                      // <-- set status
+            status: finalStatus,
             payerVA: callbackData.PayerVA,
             payerName: callbackData.PayerName,
             payerMobile: callbackData.PayerMobile,
-            mandateSeqNo: 1,    // or whatever makes sense
+            mandateSeqNo: 1, // or whatever makes sense for brand-new
           },
           update: {
-            status: finalStatus,                      // <-- set status
+            status: finalStatus,
             UMN: callbackData.UMN,
             payerName: callbackData.PayerName,
             payerMobile: callbackData.PayerMobile,
-          }
+            amount: parseFloat(callbackData.PayerAmount), // optional
+          },
+        }),
+    
+        // 3) Update the organisation's subscriptionType to 'pro'
+        prisma.organisation.update({
+          where: { id: organisationId },
+          data: {
+            subscriptionType: 'pro',
+          },
         }),
       ]);
     
@@ -110,7 +135,8 @@ export async function POST(request: Request) {
       });
     }
     
-    
+
+
 
     // 3. Handle Mandate Creation Fail
     if (callbackData.TxnStatus === 'CREATE-FAIL') {
@@ -124,7 +150,7 @@ export async function POST(request: Request) {
     //    (Remove the hard-coded string)
     const mandate = await prisma.mandate.findUnique({
       where: { merchantTranId: callbackData.merchantTranId },
-      // where: { merchantTranId: 'MANDATE_1738160757397'},
+      // where: { merchantTranId: 'MANDATE_1738325722604' },
       include: { organisation: true }
     });
 

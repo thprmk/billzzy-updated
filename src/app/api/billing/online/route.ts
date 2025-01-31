@@ -9,6 +9,16 @@ import moment from 'moment-timezone';
 import { revalidatePath } from 'next/cache';
 import { sendBillingSMS } from '@/lib/msg91';
 
+function addOneMonthClamped(date: Date): Date {
+  const newDate = new Date(date.getTime());
+  const currentDay = newDate.getDate();
+  newDate.setMonth(newDate.getMonth() + 1);
+  if (newDate.getDate() < currentDay) {
+    newDate.setDate(0);
+  }
+  return newDate;
+}
+
 const createBillSchema = z.object({
   customerId: z.number().int().positive(),
   items: z.array(
@@ -204,6 +214,53 @@ export async function POST(request: Request) {
     const { customerId, items, billingMode, notes, shippingMethodId } = parsedData.data;
     const organisationId = parseInt(session.user.id, 10);
 
+    const organisation = await prisma.organisation.findUnique({
+      where: { id: organisationId },
+    });
+
+    if (!organisation) {
+      throw new Error('Organisation not found');
+    }
+
+
+  // 1) If user is "pro", skip usage check
+  if (organisation.subscriptionType !== 'pro') {
+    // 2) If now >= endDate => reset monthlyUsage=0, endDate=+1month (clamped)
+    const now = new Date();
+    if (now >= organisation.endDate) {
+      const newEndDate = addOneMonthClamped(now);
+      await prisma.organisation.update({
+        where: { id: organisationId },
+        data: {
+          monthlyUsage: 0,
+          endDate: newEndDate
+        }
+      });
+      // Refresh the org object in memory
+      organisation.monthlyUsage = 0;
+      organisation.endDate = newEndDate;
+    }
+
+    // 3) If monthlyUsage >= 50, block
+    if (organisation.monthlyUsage >= 1) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'You have reached the monthly free limit (50 orders). Please wait until your next cycle or upgrade to Pro.'
+        },
+        { status: 403 }
+      );
+    }
+
+    // 4) monthlyUsage++ (They are under limit)
+    await prisma.organisation.update({
+      where: { id: organisationId },
+      data: {
+        monthlyUsage: { increment: 1 },
+      },
+    });
+  }
+
     if (items.length === 0) {
       return NextResponse.json(
         { success: false, message: 'At least one product is required.' },
@@ -307,13 +364,9 @@ export async function POST(request: Request) {
 
     const { newBill, customer, productDetails } = result;
 
-    const organisation = await prisma.organisation.findUnique({
-      where: { id: organisationId },
-    });
 
-    if (!organisation) {
-      throw new Error('Organisation not found');
-    }
+
+ 
 
     const indianDateTime = moment(newBill.date).tz('Asia/Kolkata');
     const formattedDate = indianDateTime.format('YYYY-MM-DD');

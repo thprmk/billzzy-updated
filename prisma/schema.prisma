@@ -41,6 +41,8 @@ model Organisation {
   razorpayAccountId      String?        @map("razorpay_account_id")
   razorpayState          String?        @map("razorpay_state")
   razorpayStateExpiresAt DateTime?      @map("razorpay_state_expires_at")
+  monthlyUsage      Int       @default(0) // how many orders used in the current cycle
+
 
   // Relations
   productCategories  ProductCategory[]

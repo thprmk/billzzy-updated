@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         endDate: true,
         subscriptionType: true,
         smsCount: true,
+        monthlyUsage:true
       },
     });
 

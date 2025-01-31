@@ -21,6 +21,7 @@ import { toast } from 'react-toastify';
 import EnhancedLogoutButton from '../ui/LogoutBtn';
 import { PackageIcon, PrinterIcon, Truck } from 'lucide-react';
 import RazorpayConnect from '../ui/RazorpayConnect';
+import { MandateModal } from '../mandate/MandateModal';
 
 interface Organisation {
   id: number;
@@ -30,6 +31,7 @@ interface Organisation {
   endDate: string;
   subscriptionType: 'trial' | 'active' | 'pro';
   smsCount: number;
+  monthlyUsage?: number; // Add this field
 }
 
 interface GetOrganisationResponse {
@@ -131,74 +133,34 @@ const SharePopup = ({ isOpen, onClose }: SharePopupProps) => {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="
-        fixed inset-0 z-50 
-        flex items-center justify-center
-        bg-black bg-opacity-50
-        p-4
-      "
-    >
-      {/* Popup Container */}
-      <div
-        className="
-          w-full max-w-sm 
-          md:max-w-md 
-          lg:max-w-lg
-          bg-white 
-          rounded-md 
-          shadow-md 
-          p-6
-        "
-      >
-        {/* Header */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+      <div className="w-full max-w-sm md:max-w-md lg:max-w-lg bg-white rounded-md shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Share Link</h2>
           <button
             onClick={onClose}
-            className="
-              text-gray-500 
-              hover:text-gray-700 
-              transition-colors
-            "
+            className="text-gray-500 hover:text-gray-700 transition-colors"
           >
             &times;
           </button>
         </div>
 
-        {/* Loader or Content */}
         {isLoading ? (
           <div className="flex justify-center py-4">
-            {/* Replace with your custom loader or spinner */}
             <div className="loader border-t-transparent border-blue-500"></div>
           </div>
         ) : (
           <>
-            {/* Link Preview */}
             <div className="mb-4 break-words">{link}</div>
-
-            {/* Action Buttons */}
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
-                className="
-                  bg-blue-500 text-white 
-                  py-2 px-4 
-                  rounded 
-                  hover:bg-blue-600
-                  transition-colors
-                "
+                className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
                 onClick={copyToClipboard}
               >
                 Copy Link
               </button>
               <button
-                className="
-                  bg-green-500 text-white 
-                  py-2 px-4 
-                  rounded 
-                  hover:bg-green-600
-                  transition-colors
-                "
+                className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition-colors"
                 onClick={shareToWhatsApp}
               >
                 Share on WhatsApp
@@ -245,7 +207,6 @@ const navigation = [
   { name: 'Customers', href: '/customers', icon: UsersIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
   { name: 'Mandate', href: '/mandate', icon: CogIcon },
-
 ];
 
 const fetcher = (url: string) =>
@@ -270,19 +231,21 @@ export default function Sidebar({
   const [openItems, setOpenItems] = useState<{ [key: string]: boolean }>({});
   const [isSharePopupOpen, setIsSharePopupOpen] = useState(false);
 
+  // For upgrade modal
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   const toggleItem = (name: string) => {
     setOpenItems((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
+  // fetch org data
   const { data, error, isLoading } = useSWR<GetOrganisationResponse>(
     '/api/organisation',
     fetcher
   );
 
-  const {
-    data: submissionsData,
-    error: submissionsError,
-  } = useSWR<{ submissions: CustomerSubmission[] }>(
+  // fetch pending submissions
+  const { data: submissionsData } = useSWR<{ submissions: CustomerSubmission[] }>(
     '/api/billing/customer_submission?status=pending',
     fetcher,
     { refreshInterval: 30000 }
@@ -320,21 +283,28 @@ export default function Sidebar({
     );
   }
 
+  const organisation = data?.organisation;
+  const usageLimit = 1;
+  const monthlyUsage = organisation?.monthlyUsage ?? 0;
+  const usageExceeded = monthlyUsage >= usageLimit;
+
   return (
     <>
       <HamburgerButton onClick={() => setIsOpen(!isOpen)} isOpen={isOpen} />
 
       {/* Mobile overlay */}
       <div
-        className={`fixed inset-0 z-40 bg-gray-600 bg-opacity-75 transition-opacity duration-300 md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
+        className={`fixed inset-0 z-40 bg-gray-600 bg-opacity-75 transition-opacity duration-300 md:hidden ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
         onClick={() => setIsOpen(false)}
       />
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-all duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          } md:translate-x-0 flex flex-col justify-between`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-all duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0 flex flex-col justify-between`}
       >
         <div className="relative h-full overflow-y-auto">
           <div className="flex items-center justify-between h-16 px-4 bg-indigo-600">
@@ -382,23 +352,26 @@ export default function Sidebar({
                   <div key={item.name} className="space-y-1">
                     <button
                       onClick={() => toggleItem(item.name)}
-                      className={`w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${isActive
+                      className={`w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${
+                        isActive
                           ? 'bg-indigo-100 text-indigo-900'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
+                      }`}
                     >
                       <div className="flex items-center">
                         <item.icon
-                          className={`mr-3 h-6 w-6 ${isActive
+                          className={`mr-3 h-6 w-6 ${
+                            isActive
                               ? 'text-indigo-600'
                               : 'text-gray-400 group-hover:text-gray-500'
-                            }`}
+                          }`}
                         />
                         {item.name}
                       </div>
                       <ChevronDownIcon
-                        className={`h-5 w-5 transform transition-transform ${isItemOpen ? 'rotate-180' : ''
-                          }`}
+                        className={`h-5 w-5 transform transition-transform ${
+                          isItemOpen ? 'rotate-180' : ''
+                        }`}
                       />
                     </button>
                     {isItemOpen && (
@@ -407,10 +380,11 @@ export default function Sidebar({
                           <Link
                             key={child.name}
                             href={child.href}
-                            className={`block px-2 py-2 text-sm rounded-md ${pathname === child.href
+                            className={`block px-2 py-2 text-sm rounded-md ${
+                              pathname === child.href
                                 ? 'text-indigo-600'
                                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                              }`}
+                            }`}
                             onClick={() => setIsOpen(false)}
                           >
                             {child.name}
@@ -426,17 +400,19 @@ export default function Sidebar({
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                    isActive
                       ? 'bg-indigo-100 text-indigo-900'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
+                  }`}
                   onClick={() => setIsOpen(false)}
                 >
                   <item.icon
-                    className={`mr-3 h-6 w-6 ${isActive
+                    className={`mr-3 h-6 w-6 ${
+                      isActive
                         ? 'text-indigo-600'
                         : 'text-gray-400 group-hover:text-gray-500'
-                      }`}
+                    }`}
                   />
                   {item.name}
                 </Link>
@@ -448,27 +424,41 @@ export default function Sidebar({
         </div>
 
         <div className="px-4 py-6 border-t border-gray-200">
-          {data?.organisation ? (
+          {organisation ? (
             <div className="space-y-8">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm font-medium text-gray-700">
-                    Subscription:{' '}
-                    {data.organisation.subscriptionType === 'trial' ? 'Trial' : 'Active'}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {remainingDays} day{remainingDays !== 1 ? 's' : ''} left
-                  </span>
+             
+              {/* Show usage if subscription not 'pro' */}
+              {organisation.subscriptionType !== 'pro' && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-700">
+                    Monthly Usage: {monthlyUsage}/{usageLimit}
+                  </p>
+
+                  {usageExceeded ? (
+                    <div className="bg-red-50 border border-red-200 p-3 rounded text-red-700">
+                      <p className="font-semibold mb-2">Limit Reached</p>
+                      <p className="mb-2">
+                        You have reached {usageLimit} orders this month.
+                        Please wait until{' '}
+                        <strong>{new Date(organisation.endDate).toLocaleDateString()}</strong>{' '}
+                        or upgrade to Pro.
+                      </p>
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                      >
+                        Upgrade to Pro
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      You can create up to {usageLimit} orders this month. Resets on{' '}
+                      {new Date(organisation.endDate).toLocaleDateString()}.
+                    </p>
+                  )}
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div
-                    className="bg-indigo-600 h-2.5 rounded-full"
-                    style={{
-                      width: `${Math.min((remainingDays / 30) * 100, 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
+              )}
+
               <EnhancedLogoutButton />
             </div>
           ) : (
@@ -478,6 +468,12 @@ export default function Sidebar({
       </div>
 
       <SharePopup isOpen={isSharePopupOpen} onClose={() => setIsSharePopupOpen(false)} />
+
+      {/* The Mandate (Upgrade) Modal */}
+      <MandateModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </>
   );
 }
