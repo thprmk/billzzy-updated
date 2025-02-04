@@ -79,7 +79,7 @@ export async function POST() {
             purpose: "RECURRING"
           };
 
-          // Encrypt
+          // Encrypt payload
           const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(executePayload);
 
           // Hit ICICI ExecuteMandate
@@ -111,10 +111,17 @@ export async function POST() {
               )
             : null;
 
-          // Check success/failure
-          if (!response.ok || !decryptedResponse?.success || decryptedResponse?.success !== "true") {
+          // Check success/failure:
+          // Success only if response is OK, decryptedResponse.success === "true" 
+          // AND decryptedResponse.message === "Transaction Initiated"
+          const isSuccess = response.ok &&
+            decryptedResponse &&
+            decryptedResponse.success === "true" &&
+            decryptedResponse.message === "Transaction Initiated";
+
+          if (!isSuccess) {
             console.log('[Execute] Failure or non-success:', decryptedResponse);
-            // If 9th retry => reset, else increment
+            // If 9th retry (or greater) => reset retry count and increment mandateSeqNo, else just increment retryCount.
             if (mandate.retryCount >= 1) {
               await prisma.activeMandate.update({
                 where: { id: mandate.id },
@@ -151,16 +158,16 @@ export async function POST() {
           // === SUCCESS ===
           console.log('[Execute] Success:', decryptedResponse);
 
-          // 3. Move organisation endDate by 1 month, clamped to last valid day
+          // 3. Calculate next execution date (1 month later, clamped)
           const nextExecutionDate = addOneMonthClamped(new Date(mandate.organisation.endDate));
 
-          // Safely parse any date fields if present (some might be missing)
+          // Safely parse any date fields if present
           const txnInitDate = parseIciciDate(decryptedResponse?.TxnInitDate);
           const txnCompletionDate = parseIciciDate(decryptedResponse?.TxnCompletionDate);
 
-          // DB updates
+          // DB updates in a transaction:
           await prisma.$transaction([
-            // 1) Update activeMandate
+            // 1) Update activeMandate: reset retryCount, increment mandateSeqNo, and update additional fields
             prisma.activeMandate.update({
               where: { id: mandate.id },
               data: {
@@ -173,7 +180,7 @@ export async function POST() {
                 payerMobile: decryptedResponse?.PayerMobile || mandate.payerMobile
               }
             }),
-            // 2) Bump org endDate (with clamp)
+            // 2) Bump organisation endDate (with clamp)
             prisma.organisation.update({
               where: { id: mandate.organisationId },
               data: { endDate: nextExecutionDate }
@@ -220,7 +227,7 @@ export async function POST() {
         } catch (error: any) {
           console.error('Execution error:', error);
 
-          // unexpected error => same approach
+          // On unexpected error, follow similar retry approach.
           if (mandate.retryCount >= 9) {
             await prisma.activeMandate.update({
               where: { id: mandate.id },
@@ -253,7 +260,7 @@ export async function POST() {
     console.log('Execution results:', {
       total: results.length,
       successful: results.filter(r => r.status === 'success').length,
-      failed: results.filter(r => r.status === 'failed').length,
+      failed: results.filter(r => r.status !== 'success').length,
       retryResets: results.filter(r => r.retryCount === 0).length
     });
 

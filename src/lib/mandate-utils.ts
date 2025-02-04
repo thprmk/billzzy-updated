@@ -110,11 +110,16 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
             }
         }
 
-        const success = (response.ok && decryptedResponse?.success === "true");
+        // Modified success condition:
+        // Only if response is OK, success flag is true (string or boolean), AND the message is "Transaction Initiated"
+        const success = response.ok &&
+                        ((decryptedResponse?.success === "true" || decryptedResponse?.success === true) &&
+                         decryptedResponse?.message === "Transaction Initiated");
         console.log('[Execute] success?', success);
 
         // ======= SUCCESS CASE =======
         if (success) {
+            // If successful, reset retryCount to 0 for this active mandate.
             if (retryJobs.has(currentMandate.id)) {
                 retryJobs.get(currentMandate.id)?.stop();
                 retryJobs.delete(currentMandate.id);
@@ -124,17 +129,17 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
 
             try {
                 await prisma.$transaction([
-                    // (A) Update activeMandate 
+                    // (A) Update activeMandate: reset retryCount, update status, and increment mandateSeqNo
                     prisma.activeMandate.update({
                         where: { organisationId: currentMandate.organisationId },
                         data: {
                             status: 'PENDING',
-                            retryCount: 0,
+                            retryCount: 0,  // Reset retry count here
                             mandateSeqNo: { increment: 1 },
                             lastAttemptAt: new Date()
                         }
                     }),
-                    // (B) Upsert in mandates 
+                    // (B) Upsert into mandates
                     prisma.mandate.upsert({
                         where: { merchantTranId: executePayload.merchantTranId },
                         create: {
@@ -153,7 +158,6 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
                             respCodeDescription: decryptedResponse?.RespCodeDescription || 'Execution successful'
                         },
                         update: {
-                            // If a row already existed with the same merchantTranId, update it
                             bankRRN: decryptedResponse?.BankRRN || null,
                             UMN,
                             amount: currentMandate.amount,
@@ -174,14 +178,14 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
                     })
                 ]);
 
-                console.log('[Execute] Success - Updated records');
+                console.log('[Execute] Success - Updated records and reset retryCount');
                 return true;
             } catch (dbError) {
                 console.error('[Execute] Database update failed:', dbError);
                 return false;
             }
 
-            // ======= FAILURE CASE =======
+        // ======= FAILURE CASE =======
         } else {
             console.log('[Execute] Failure case');
             const newRetryCount = currentMandate.retryCount + 1;
@@ -232,11 +236,6 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
                     })
                 ]);
 
-                // if (retryJobs.has(currentMandate.id)) {
-                //     retryJobs.get(currentMandate.id)?.stop();
-                //     retryJobs.delete(currentMandate.id);
-                // }
-
             } else {
                 console.log('[Execute] Scheduling retry:', newRetryCount);
 
@@ -283,7 +282,7 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
 
                 // Schedule a retry job if not already scheduled
                 if (!retryJobs.has(currentMandate.id)) {
-                    const job = cron.schedule('*/1 * * * *', async () => {
+                    const job = cron.schedule('*/5 * * * *', async () => {
                         const updatedMandate = await prisma.activeMandate.findUnique({
                             where: { organisationId: currentMandate.organisationId },
                             include: { organisation: true }

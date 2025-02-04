@@ -294,17 +294,15 @@ export default function Sidebar({
 
       {/* Mobile overlay */}
       <div
-        className={`fixed inset-0 z-40 bg-gray-600 bg-opacity-75 transition-opacity duration-300 md:hidden ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`fixed inset-0 z-40 bg-gray-600 bg-opacity-75 transition-opacity duration-300 md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={() => setIsOpen(false)}
       />
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-all duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0 flex flex-col justify-between`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-all duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          } md:translate-x-0 flex flex-col justify-between`}
       >
         <div className="relative h-full overflow-y-auto">
           <div className="flex items-center justify-between h-16 px-4 bg-indigo-600">
@@ -352,26 +350,23 @@ export default function Sidebar({
                   <div key={item.name} className="space-y-1">
                     <button
                       onClick={() => toggleItem(item.name)}
-                      className={`w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${
-                        isActive
+                      className={`w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${isActive
                           ? 'bg-indigo-100 text-indigo-900'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center">
                         <item.icon
-                          className={`mr-3 h-6 w-6 ${
-                            isActive
+                          className={`mr-3 h-6 w-6 ${isActive
                               ? 'text-indigo-600'
                               : 'text-gray-400 group-hover:text-gray-500'
-                          }`}
+                            }`}
                         />
                         {item.name}
                       </div>
                       <ChevronDownIcon
-                        className={`h-5 w-5 transform transition-transform ${
-                          isItemOpen ? 'rotate-180' : ''
-                        }`}
+                        className={`h-5 w-5 transform transition-transform ${isItemOpen ? 'rotate-180' : ''
+                          }`}
                       />
                     </button>
                     {isItemOpen && (
@@ -380,11 +375,10 @@ export default function Sidebar({
                           <Link
                             key={child.name}
                             href={child.href}
-                            className={`block px-2 py-2 text-sm rounded-md ${
-                              pathname === child.href
+                            className={`block px-2 py-2 text-sm rounded-md ${pathname === child.href
                                 ? 'text-indigo-600'
                                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                            }`}
+                              }`}
                             onClick={() => setIsOpen(false)}
                           >
                             {child.name}
@@ -400,19 +394,17 @@ export default function Sidebar({
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
-                    isActive
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive
                       ? 'bg-indigo-100 text-indigo-900'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                    }`}
                   onClick={() => setIsOpen(false)}
                 >
                   <item.icon
-                    className={`mr-3 h-6 w-6 ${
-                      isActive
+                    className={`mr-3 h-6 w-6 ${isActive
                         ? 'text-indigo-600'
                         : 'text-gray-400 group-hover:text-gray-500'
-                    }`}
+                      }`}
                   />
                   {item.name}
                 </Link>
@@ -426,7 +418,7 @@ export default function Sidebar({
         <div className="px-4 py-6 border-t border-gray-200">
           {organisation ? (
             <div className="space-y-8">
-             
+
               {/* Show usage if subscription not 'pro' */}
               {organisation.subscriptionType !== 'pro' && (
                 <div className="space-y-2">
@@ -435,25 +427,19 @@ export default function Sidebar({
                   </p>
 
                   {usageExceeded ? (
-                    <div className="bg-red-50 border border-red-200 p-3 rounded text-red-700">
-                      <p className="font-semibold mb-2">Limit Reached</p>
-                      <p className="mb-2">
-                        You have reached {usageLimit} orders this month.
-                        Please wait until{' '}
-                        <strong>{new Date(organisation.endDate).toLocaleDateString()}</strong>{' '}
-                        or upgrade to Pro.
+                    <div className="bg-yellow-50 border border-yellow-200 p-2 rounded text-yellow-700 text-sm">
+                      <p>Monthly limit reached. {' '}
+                        <button
+                          onClick={() => setShowUpgradeModal(true)}
+                          className="text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Upgrade Now
+                        </button>
                       </p>
-                      <button
-                        onClick={() => setShowUpgradeModal(true)}
-                        className="px-4 py-2 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                      >
-                        Upgrade to Pro
-                      </button>
                     </div>
                   ) : (
                     <p className="text-xs text-gray-500">
-                      You can create up to {usageLimit} orders this month. Resets on{' '}
-                      {new Date(organisation.endDate).toLocaleDateString()}.
+                      {usageLimit - monthlyUsage} orders remaining this month
                     </p>
                   )}
                 </div>
