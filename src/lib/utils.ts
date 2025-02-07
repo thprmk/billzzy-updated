@@ -17,6 +17,15 @@ export function formatDate(date: string | Date, type: 'date' | 'time' = 'date'):
   }
 
 
+  export  function generateRandomSixDigitNumber() {
+    // Generate a random number between 100000 and 999999
+    const randomNumber = Math.floor(100000 + Math.random() * 900000);
+    console.log(randomNumber);
+    
+    return randomNumber.toString();
+  }
+
+
   export function getFormattedTime() {
     const now = new Date();
     let hours = now.getHours();

@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { IciciCrypto } from '@/lib/iciciCrypto';
+import { generateRandomSixDigitNumber } from '@/lib/utils';
 
 /**
  * Safely parse an ICICI date string like "20250130123545" into a JS Date.
@@ -64,8 +65,8 @@ export async function POST() {
         try {
           // Build payload
           const executePayload = {
-            merchantId: "8893896",
-            subMerchantId: "8893896",
+               merchantId: process.env.ICICI_MERCHANT_ID || "",
+               subMerchantId: generateRandomSixDigitNumber(), 
             terminalId: "5411",
             merchantName: 'Tech Vaseegrah',
             subMerchantName: mandate.organisation.name,

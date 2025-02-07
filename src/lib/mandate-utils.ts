@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { IciciCrypto } from '@/lib/iciciCrypto';
 import cron from 'node-cron';
+import { generateRandomSixDigitNumber } from './utils';
 
 interface DecryptedResponse {
     success: string;
@@ -55,8 +56,8 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
 
         // 2. Build the request payload
         const executePayload = {
-            merchantId: "8893896",
-            subMerchantId: "8893896",
+                merchantId: process.env.ICICI_MERCHANT_ID || "",
+                subMerchantId: generateRandomSixDigitNumber(), 
             terminalId: "5411",
             merchantName: 'Tech Vaseegrah',
             subMerchantName: currentMandate.organisation.name,

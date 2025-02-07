@@ -4,6 +4,7 @@ import { IciciCrypto } from '@/lib/iciciCrypto';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
+import { generateRandomSixDigitNumber } from '@/lib/utils';
 
 interface MandateRequestBody {
  payerVa: string;
@@ -78,11 +79,11 @@ export async function POST(request: Request) {
    const merchantTranId = `MANDATE_${Date.now()}`;
    const billNumber = `BILL_${Date.now()}`;
 
-   
+
 
    const mandateRequest: MandateRequest = {
-     merchantId: '8893896',
-     subMerchantId: "8893896", 
+     merchantId: process.env.ICICI_MERCHANT_ID || "",
+     subMerchantId: generateRandomSixDigitNumber(), 
      terminalId: "5411",
      merchantName:'Tech Vaseegrah',
      subMerchantName:merchantName,

@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { IciciCrypto } from '@/lib/iciciCrypto';
+import { generateRandomSixDigitNumber } from '@/lib/utils';
 
 export async function POST() {
   try {
@@ -52,8 +53,8 @@ export async function POST() {
       pendingNotifications.map(async (mandate) => {
         try {
           const notificationPayload = {
-            merchantId: "8893896",
-            subMerchantId: "8893896",
+            merchantId: process.env.ICICI_MERCHANT_ID || "",
+            subMerchantId: generateRandomSixDigitNumber(), 
             terminalId: "5411",
             merchantName: mandate.organisation.name,
             merchantTranId: `NOTIF_${Date.now()}_${mandate.id}`,
