@@ -84,7 +84,7 @@ export async function POST() {
 
           // Hit ICICI ExecuteMandate
           const response = await fetch(
-            'https://apibankingonesandbox.icicibank.com/api/MerchantAPI/UPI2/v1/ExecuteMandate',
+           `${process.env.ICICI_API_URL}/ExecuteMandate`,
             {
               method: 'POST',
               headers: {

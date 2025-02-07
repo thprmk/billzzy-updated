@@ -68,7 +68,7 @@ export async function POST() {
           const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(notificationPayload);
 
           const response = await fetch(
-            'https://apibankingonesandbox.icicibank.com/api/MerchantAPI/UPI2/v1/MandateNotification',
+            `${process.env.ICICI_API_URL}/MandateNotification`,
             {
               method: 'POST',
               headers: {

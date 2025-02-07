@@ -77,7 +77,7 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
 
         // 4. Make the API call
         const response = await fetch(
-            'https://apibankingonesandbox.icicibank.com/api/MerchantAPI/UPI2/v1/ExecuteMandate',
+            `${process.env.ICICI_API_URL}/ExecuteMandate`,
             {
                 method: 'POST',
                 headers: {

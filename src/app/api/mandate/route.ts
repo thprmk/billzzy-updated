@@ -124,7 +124,7 @@ export async function POST(request: Request) {
    };
 
    const response = await fetch(
-     "https://apibankingonesandbox.icicibank.com/api/MerchantAPI/UPI2/v1/CreateMandate",
+    `${process.env.ICICI_API_URL}/CreateMandate`,
      {
        method: "POST",
        headers: {
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
          apiResponse.iv
        );
 
-       console.log("payload of the response",decryptedResponse);
+       console.log("response from create mandate",decryptedResponse);
        
 
        if (!decryptedResponse.success) {
