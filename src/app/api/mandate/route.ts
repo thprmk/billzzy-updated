@@ -138,6 +138,8 @@ export async function POST(request: Request) {
    );
 
    if (!response.ok) {
+    console.log("response",response);
+    
      return NextResponse.json(
        { 
          success: false,
