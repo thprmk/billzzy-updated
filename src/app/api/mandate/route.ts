@@ -81,8 +81,8 @@ export async function POST(request: Request) {
    
 
    const mandateRequest: MandateRequest = {
-     merchantId: "611392",
-     subMerchantId: "611392", 
+     merchantId: '8893896',
+     subMerchantId: "8893896", 
      terminalId: "5411",
      merchantName,
      subMerchantName: "Test",

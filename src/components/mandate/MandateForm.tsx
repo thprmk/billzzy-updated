@@ -93,7 +93,7 @@ export function MandateForm() {
             <br />
             <span className="font-semibold">Validity:</span> 1 year
             <br />
-            <span className="font-semibold">Debit Date:</span> 5th of every month
+            {/* <span className="font-semibold">Debit Date:</span> 5th of every month */}
           </p>
         </div>
 

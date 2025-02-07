@@ -242,7 +242,7 @@ export async function POST(request: Request) {
     }
 
     // 3) If monthlyUsage >= 50, block
-    if (organisation.monthlyUsage >= 1) {
+    if (organisation.monthlyUsage >= process.env.MONTHLY_FREE_LIMIT) {
       return NextResponse.json(
         {
           success: false,
