@@ -64,8 +64,8 @@ export async function POST() {
         try {
           // Build payload
           const executePayload = {
-            merchantId: "611392",
-            subMerchantId: "611392",
+            merchantId: "8893896",
+            subMerchantId: "8893896",
             terminalId: "5411",
             merchantName: 'Tech Vaseegrah',
             subMerchantName: mandate.organisation.name,
@@ -84,7 +84,7 @@ export async function POST() {
 
           // Hit ICICI ExecuteMandate
           const response = await fetch(
-           `${process.env.ICICI_API_URL}/ExecuteMandate`,
+           `${process.env.ICICI_API_BASE_URL}/ExecuteMandate`,
             {
               method: 'POST',
               headers: {

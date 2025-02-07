@@ -84,8 +84,8 @@ export async function POST(request: Request) {
      merchantId: '8893896',
      subMerchantId: "8893896", 
      terminalId: "5411",
-     merchantName,
-     subMerchantName: "Test",
+     merchantName:'Tech Vaseegrah',
+     subMerchantName:merchantName,
      payerVa,
      amount: "100.00",
      note: "mandaterequest",
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
    };
 
    const response = await fetch(
-    `${process.env.ICICI_API_URL}/CreateMandate`,
+    `${process.env.ICICI_API_BASE_URL}/CreateMandate`,
      {
        method: "POST",
        headers: {
@@ -227,7 +227,10 @@ export async function POST(request: Request) {
    }, { status: 500 });
 
  } catch (error) {
+  console.log("error",error);
+
    return NextResponse.json(
+    
      {
        success: false,
        error: "Internal server error while creating mandate",

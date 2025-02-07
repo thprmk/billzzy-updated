@@ -52,8 +52,8 @@ export async function POST() {
       pendingNotifications.map(async (mandate) => {
         try {
           const notificationPayload = {
-            merchantId: "611392",
-            subMerchantId: "611392",
+            merchantId: "8893896",
+            subMerchantId: "8893896",
             terminalId: "5411",
             merchantName: mandate.organisation.name,
             merchantTranId: `NOTIF_${Date.now()}_${mandate.id}`,
@@ -68,7 +68,7 @@ export async function POST() {
           const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(notificationPayload);
 
           const response = await fetch(
-            `${process.env.ICICI_API_URL}/MandateNotification`,
+            `${process.env.ICICI_API_BASE_URL}/MandateNotification`,
             {
               method: 'POST',
               headers: {

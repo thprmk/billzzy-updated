@@ -55,8 +55,8 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
 
         // 2. Build the request payload
         const executePayload = {
-            merchantId: "611392",
-            subMerchantId: "611392",
+            merchantId: "8893896",
+            subMerchantId: "8893896",
             terminalId: "5411",
             merchantName: 'Tech Vaseegrah',
             subMerchantName: currentMandate.organisation.name,
@@ -77,7 +77,7 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
 
         // 4. Make the API call
         const response = await fetch(
-            `${process.env.ICICI_API_URL}/ExecuteMandate`,
+            `${process.env.ICICI_API_BASE_URL}/ExecuteMandate`,
             {
                 method: 'POST',
                 headers: {
