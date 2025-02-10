@@ -131,7 +131,7 @@ export async function POST(request: Request) {
         headers: {
           "Content-Type": "application/json",
           apikey: process.env.ICICI_API_KEY || "",
-          Accept: "application/json"
+          Accept: "*/*"
         },
         body: JSON.stringify(encryptedPayload)
       }
