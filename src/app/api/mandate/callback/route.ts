@@ -41,9 +41,22 @@ function parseIciciDate(dateString: string) {
   return new Date(isoString);
 }
 
+
+
 export async function POST(request: Request) {
   try {
-    const encryptedCallback = await request.json();
+    // Determine the content type
+    const contentType = request.headers.get('Content-Type') || '';
+    const rawBody = await request.text();
+    console.log('Raw callback payload:', rawBody);
+
+    let encryptedCallback: any;
+    try {
+      encryptedCallback = JSON.parse(rawBody);
+    } catch (e) {
+      throw new Error(`Failed to parse JSON. Raw body: ${rawBody}`);
+    }
+
     let callbackData: MandateCallback;
 
     // 1. Decrypt if needed
@@ -72,7 +85,7 @@ export async function POST(request: Request) {
       const isSuccess =
         callbackData.TxnStatus === 'SUCCESS' &&
         callbackData.RespCodeDescription === 'APPROVED OR COMPLETED SUCCESSFULLY';
-      const finalStatus = "ACTIVATED"
+      const finalStatus = "ACTIVATED";
 
       // Parse organisation ID from merchantTranId (assumed format: EXEC_<timestamp>_<orgId>)
       const orgIdStr = callbackData.merchantTranId.split('_')[2];
@@ -264,7 +277,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error("Callback Error:", error);
+    console.error("Callback Error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
