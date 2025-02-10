@@ -97,7 +97,7 @@ const billNumber = `BILL_${timestamp}`;
       merchantName: 'Tech Vaseegrah',
       subMerchantName: merchantName,
       payerVa,
-      amount: "100.00",
+      amount: "1.00",
       note: "mandaterequest",
       collectByDate: format(collectByDate, 'dd/MM/yyyy hh:mm a'),
       merchantTranId,
