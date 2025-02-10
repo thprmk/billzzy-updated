@@ -289,10 +289,13 @@ model ActiveMandate {
   payerName               String?
   payerMobile             String?
   notified                Boolean   @default(false)
-  lastAttemptAt           DateTime?
-  lastNotificationAttempt DateTime?
+
+  // Change these lines:
+  lastAttemptAt           DateTime? @db.Timestamp
+  lastNotificationAttempt DateTime? @db.Timestamp
 
   organisation Organisation @relation(fields: [organisationId], references: [id])
 
   @@map("active_mandates")
 }
+
