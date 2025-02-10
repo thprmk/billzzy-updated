@@ -6,6 +6,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { generateRandomSixDigitNumber } from '@/lib/utils';
 
+
+import { toZonedTime } from 'date-fns-tz';
+
+
 interface MandateRequestBody {
   payerVa: string;
 }
@@ -39,6 +43,9 @@ interface MandateRequest {
 
 export async function POST(request: Request) {
   try {
+    const timeZone = 'Asia/Kolkata';
+    const today = toZonedTime(new Date(), timeZone);
+
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -69,15 +76,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const today = new Date();
     const collectByDate = addMinutes(today, 180);
-    const validityEndDate = addYears(today, 12);
-    const debitDay = today.getDate().toString();
-    const nextMandateDate = addMonths(today, 1);
-    console.log('Next Mandate Date:', nextMandateDate);
+const validityEndDate = addYears(today, 12);
+const nextMandateDate = addMonths(today, 1);
 
-    const merchantTranId = `MANDATE_${Date.now()}`;
-    const billNumber = `BILL_${Date.now()}`;
+// Format dates for better readability (optional)
+console.log('Next Mandate Date:', format(nextMandateDate, 'yyyy-MM-dd HH:mm:ss zzz', { timeZone }));
+
+// Generate unique IDs with formatted timestamps
+const timestamp = format(today, 'yyyyMMddHHmmss');
+const merchantTranId = `MANDATE_${timestamp}`;
+const billNumber = `BILL_${timestamp}`;
 
 
 
@@ -131,7 +140,7 @@ export async function POST(request: Request) {
         headers: {
           "Content-Type": "application/json",
           apikey: process.env.ICICI_API_KEY || "",
-          Accept: "application/json"
+          Accept: "*/*"
         },
         body: JSON.stringify(encryptedPayload)
       }
