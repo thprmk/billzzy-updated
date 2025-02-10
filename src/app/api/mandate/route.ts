@@ -165,6 +165,9 @@ const billNumber = `BILL_${timestamp}`;
 
     const apiResponse = await response.json();
 
+    console.log("apiResponse", apiResponse);
+    
+
     let decryptedResponse;
     if (apiResponse?.encryptedData && apiResponse?.encryptedKey) {
       try {
