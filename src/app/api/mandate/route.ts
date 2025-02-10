@@ -106,7 +106,7 @@ const billNumber = `BILL_${timestamp}`;
       validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
       amountLimit: "M",
       remark: "Mandate Request",
-      autoExecute: "N",
+      autoExecute: "Y",
       requestType: "C",
       frequency: "AS",
       //  debitDay,
