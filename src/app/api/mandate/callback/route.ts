@@ -18,7 +18,7 @@ interface MandateCallback {
   UMN: string;
   TxnInitDate: string;
   TxnStatus: string;
-  merchantTranId: string; // e.g. "MANDATE_1738155932830" or "EXEC_..."
+  merchantTranId: string;     // e.g. "MANDATE_1738155932830" or "EXEC_..."
   RespCodeDescription: string;
   PayeeVPA: string;
 }
@@ -33,6 +33,7 @@ function isExecuteCallback(mTranId: string) {
  */
 function parseIciciDate(dateString: string) {
   if (!dateString) return null;
+  // dateString e.g. "20250126154336" => "2025-01-26T15:43:36"
   const isoString = dateString.replace(
     /(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/,
     '$1-$2-$3T$4:$5:$6'
@@ -42,43 +43,21 @@ function parseIciciDate(dateString: string) {
 
 export async function POST(request: Request) {
   try {
-    // Read the raw body text instead of calling request.json() directly.
-    const rawBody = await request.text();
-    console.log('Raw callback payload:', rawBody);
-
-    let encryptedCallback: any;
+    const encryptedCallback = await request.json();
     let callbackData: MandateCallback;
 
-    // Check if the raw body appears to be JSON (starts with "{")
-    if (rawBody.trim().startsWith('{')) {
-      try {
-        encryptedCallback = JSON.parse(rawBody);
-      } catch (e) {
-        throw new Error(`Failed to parse JSON. Raw body: ${rawBody}`);
+    // 1. Decrypt if needed
+    if (encryptedCallback?.encryptedData) {
+      if (!encryptedCallback.encryptedKey) {
+        throw new Error('Missing encrypted key');
       }
-      // If the JSON has an "encryptedData" field, then decrypt it.
-      if (encryptedCallback?.encryptedData) {
-        if (!encryptedCallback.encryptedKey) {
-          throw new Error('Missing encrypted key in JSON payload');
-        }
-        callbackData = IciciCrypto.decrypt(
-          encryptedCallback.encryptedData,
-          encryptedCallback.encryptedKey,
-          encryptedCallback.iv || ''
-        );
-      } else {
-        // Otherwise assume the parsed object is already the callback data.
-        callbackData = encryptedCallback;
-      }
+      callbackData = IciciCrypto.decrypt(
+        encryptedCallback.encryptedData,
+        encryptedCallback.encryptedKey,
+        encryptedCallback.iv || ''
+      );
     } else {
-      // If the raw body does not start with '{', assume it is an encrypted string.
-      // (In this scenario, you need to obtain the key and iv from headers or another source.)
-      const encryptedKey = request.headers.get('x-encrypted-key');
-      const iv = request.headers.get('x-iv') || '';
-      if (!encryptedKey) {
-        throw new Error('Missing encrypted key in headers');
-      }
-      callbackData = IciciCrypto.decrypt(rawBody, encryptedKey, iv);
+      callbackData = encryptedCallback;
     }
 
     console.log('Decrypted callback:', callbackData);
@@ -87,15 +66,15 @@ export async function POST(request: Request) {
     if (isExecuteCallback(callbackData.merchantTranId)) {
       console.log('Execute callback received:', callbackData);
 
-      // For execute mandate, success only if:
-      //   TxnStatus === 'SUCCESS'
+      // For execute mandate, consider it success only when:
+      //    TxnStatus === 'SUCCESS'
       // AND RespCodeDescription === 'APPROVED OR COMPLETED SUCCESSFULLY'
       const isSuccess =
         callbackData.TxnStatus === 'SUCCESS' &&
         callbackData.RespCodeDescription === 'APPROVED OR COMPLETED SUCCESSFULLY';
-      const finalStatus = "ACTIVATED";
+      const finalStatus = "ACTIVATED"
 
-      // Parse organisation ID from merchantTranId (format: EXEC_<timestamp>_<orgId>)
+      // Parse organisation ID from merchantTranId (assumed format: EXEC_<timestamp>_<orgId>)
       const orgIdStr = callbackData.merchantTranId.split('_')[2];
       const organisationId = parseInt(orgIdStr, 10);
 
@@ -155,6 +134,7 @@ export async function POST(request: Request) {
               payerName: callbackData.PayerName,
               payerMobile: callbackData.PayerMobile,
               amount: parseFloat(callbackData.PayerAmount),
+              // Optionally reset retryCount on success
               retryCount: 0,
             },
           }),
@@ -162,7 +142,9 @@ export async function POST(request: Request) {
           // 3) Update the organisation's subscriptionType to 'pro'
           prisma.organisation.update({
             where: { id: organisationId },
-            data: { subscriptionType: 'pro' },
+            data: {
+              subscriptionType: 'pro',
+            },
           }),
         ]);
 
@@ -173,12 +155,15 @@ export async function POST(request: Request) {
         });
       } else {
         // FAILED execute callback: Increase retry count for execute mandate.
+        // First, fetch the active mandate record.
         const activeMandate = await prisma.activeMandate.findUnique({
           where: { organisationId },
         });
 
         if (activeMandate) {
+          // Use threshold of 9 retries as in the execute mandate API.
           if (activeMandate.retryCount >= 9) {
+            // If threshold reached, increment mandateSeqNo and reset retry count.
             await prisma.activeMandate.update({
               where: { organisationId },
               data: {
@@ -189,6 +174,7 @@ export async function POST(request: Request) {
               },
             });
           } else {
+            // Otherwise, simply increment the retry count.
             await prisma.activeMandate.update({
               where: { organisationId },
               data: {
@@ -208,8 +194,12 @@ export async function POST(request: Request) {
     // ----- End Execute Mandate Callback Handling -----
 
     // ----- Mandate Creation Callback Handling -----
+    // If the callback indicates mandate creation failure, for example:
     if (callbackData.TxnStatus === 'CREATE-FAIL') {
-      return NextResponse.json({ error: 'Mandate creation failed' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Mandate creation failed' },
+        { status: 400 }
+      );
     }
 
     // 4. Find the existing "INITIATED" Mandate by merchantTranId
@@ -234,7 +224,7 @@ export async function POST(request: Request) {
         respCodeDescription: callbackData.RespCodeDescription,
         txnInitDate: parseIciciDate(callbackData.TxnInitDate),
         txnCompletionDate: parseIciciDate(callbackData.TxnCompletionDate),
-        status: 'APPROVED',
+        status: 'APPROVED',  // or "CREATED" if you prefer
       }
     });
 
@@ -261,7 +251,10 @@ export async function POST(request: Request) {
     // 7. If this is the first callback for the new mandate, attempt immediate execution
     if (activeMandate.mandateSeqNo === 1) {
       const success = await executeMandate(mandate, callbackData.UMN);
-      console.log('Initial execution:', success ? 'successful' : 'scheduled for retry');
+      console.log(
+        'Initial execution:',
+        success ? 'successful' : 'scheduled for retry'
+      );
     }
 
     return NextResponse.json({
