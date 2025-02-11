@@ -24,8 +24,9 @@ interface MandateCallback {
 }
 
 function isExecuteCallback(mTranId: string) {
-  return mTranId.startsWith('EXEC_');
+  return mTranId.startsWith('EXEC_') || mTranId.startsWith('ICI');
 }
+
 
 /** 
  * Helper to parse ICICI date strings in YYYYMMDDhhmmss into a JS Date.
@@ -212,6 +213,8 @@ export async function POST(request: Request) {
     });
 
     if (!mandate) {
+      console.log('Mandate not found:', callbackData.merchantTranId);
+      
       return NextResponse.json({ error: "Mandate not found" }, { status: 404 });
     }
 

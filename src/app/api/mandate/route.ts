@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { format, addYears, addMinutes, addMonths } from 'date-fns';
+import { format, addYears, addMinutes, addMonths, addDays } from 'date-fns';
 import { IciciCrypto } from '@/lib/iciciCrypto';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
@@ -78,7 +78,9 @@ export async function POST(request: Request) {
 
     const collectByDate = addMinutes(today, 180);
 const validityEndDate = addYears(today, 12);
-const nextMandateDate = addMonths(today, 1);
+// const nextMandateDate = addMonths(today, 1);
+const nextMandateDate = addDays(today, 1);
+
 
 // Format dates for better readability (optional)
 console.log('Next Mandate Date:', format(nextMandateDate, 'yyyy-MM-dd HH:mm:ss zzz', { timeZone }));
