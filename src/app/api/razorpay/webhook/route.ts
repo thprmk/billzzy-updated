@@ -66,7 +66,6 @@ async function sendPaymentNotification(phone: string, variables: Record<string, 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.text();
-    console.log('Received webhook payload:', body);
 
     const signature = request.headers.get('x-razorpay-signature');
     if (!signature) {
@@ -83,7 +82,6 @@ export async function POST(request: NextRequest) {
     }
 
     const webhookData = JSON.parse(body) as WebhookPayload;
-    console.log('Processing webhook event:', webhookData.event);
 
     switch (webhookData.event) {
       case 'payment_link.paid': {

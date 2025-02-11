@@ -10,7 +10,6 @@ const BASE_URL = process.env.NODE_ENV === 'production'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  console.log("trigg the callback");
 
   if (!session) {
     return NextResponse.redirect(`${BASE_URL}/login`);
@@ -19,7 +18,6 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const state = searchParams.get('state');
   const code = searchParams.get('code');
-  console.log("code", code);
 
   const organisation = await prisma.organisation.findUnique({
     where: { id: parseInt(session.user.id) },
