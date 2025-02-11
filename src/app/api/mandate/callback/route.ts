@@ -202,6 +202,9 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log(callbackData,'callbackData');
+    
+
     // 4. Find the existing "INITIATED" Mandate by merchantTranId
     const mandate = await prisma.mandate.findUnique({
       where: { merchantTranId: callbackData.merchantTranId },

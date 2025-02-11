@@ -109,8 +109,6 @@ const billNumber = `BILL_${timestamp}`;
       autoExecute: "Y",
       requestType: "C",
       frequency: "AS",
-      //  debitDay,
-      debitRule: "ON",
       revokable: "Y",
       blockfund: "N",
       purpose: "RECURRING",
