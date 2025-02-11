@@ -67,7 +67,7 @@ export async function POST() {
           const executePayload = {
                merchantId: process.env.ICICI_MERCHANT_ID || "",
                subMerchantId: generateRandomSixDigitNumber(), 
-            terminalId: "5411",
+            terminalId: "4816",
             merchantName: 'Tech Vaseegrah',
             subMerchantName: mandate.organisation.name,
             amount: mandate.amount.toString(),

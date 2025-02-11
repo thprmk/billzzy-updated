@@ -55,7 +55,7 @@ export async function POST() {
           const notificationPayload = {
             merchantId: process.env.ICICI_MERCHANT_ID || "",
             subMerchantId: generateRandomSixDigitNumber(), 
-            terminalId: "5411",
+            terminalId: "4816",
             merchantName: mandate.organisation.name,
             merchantTranId: `NOTIF_${Date.now()}_${mandate.id}`,
             mandateSeqNo: mandate.mandateSeqNo.toString(),
