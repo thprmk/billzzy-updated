@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { FaSpinner, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { FaSpinner, FaCheckCircle, FaExclamationCircle, FaMobile, FaMobileAlt } from 'react-icons/fa';
 import Swal from 'sweetalert2';
-import React from 'react';  // Add this import
+import React from 'react';
 
 interface MandateFormData {
   payerVa: string;
@@ -14,12 +14,27 @@ export function MandateForm() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showMobilePrompt, setShowMobilePrompt] = useState(false);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<MandateFormData>();
+
+  // Reset success and mobile prompt states after 2 minutes
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showMobilePrompt) {
+      timer = setTimeout(() => {
+        setShowMobilePrompt(false);
+        setSuccess(false);
+        reset();
+      }, 120000); // 2 minutes
+    }
+    return () => clearTimeout(timer);
+  }, [showMobilePrompt, reset]);
 
   const onSubmit = async (data: MandateFormData) => {
     try {
@@ -39,13 +54,34 @@ export function MandateForm() {
       }
 
       setSuccess(true);
+      setShowMobilePrompt(true);
+      
       Swal.fire({
         icon: 'success',
-        title: 'Success!',
-        text: 'Mandate created successfully! Please approve it in your UPI app.',
+        title: 'Mandate Created!',
+        html: `
+          <div class="space-y-4">
+            <p>Please follow these steps:</p>
+            <ol class="text-left pl-4">
+              <li>1. Check your UPI app notifications</li>
+              <li>2. Open the mandate approval request</li>
+              <li>3. Review the mandate details</li>
+              <li>4. Approve the mandate using your UPI PIN</li>
+            </ol>
+          </div>
+        `,
         showConfirmButton: true,
-        timer: 5000,
+        confirmButtonText: 'I understand',
+        showCancelButton: true,
+        cancelButtonText: 'Cancel mandate',
+        timer: 90000,
         timerProgressBar: true
+      }).then((result) => {
+        if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
+          setSuccess(false);
+          setShowMobilePrompt(false);
+          reset();
+        }
       });
     } catch (error: any) {
       setError(error.message || 'Failed to create mandate. Please try again.');
@@ -57,6 +93,18 @@ export function MandateForm() {
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-xl border border-gray-100">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Create UPI Mandate</h2>
+
+      {showMobilePrompt && (
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+          <div className="flex items-center mb-2">
+            <FaMobileAlt className="text-blue-500 mr-2" />
+            <h3 className="font-semibold text-blue-700">Pending Approval</h3>
+          </div>
+          <p className="text-sm text-blue-600">
+            Please check your UPI app to approve the mandate request. This will expire in 2 minutes if not approved.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
@@ -79,6 +127,7 @@ export function MandateForm() {
               errors.payerVa ? 'focus:ring-red-500' : 'focus:ring-indigo-500'
             } focus:border-transparent transition-all`}
             placeholder="example@upi"
+            disabled={showMobilePrompt}
           />
           {errors.payerVa && (
             <p className="mt-2 text-sm text-red-600 flex items-center">
@@ -88,20 +137,20 @@ export function MandateForm() {
         </div>
 
         <div className="bg-gray-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-600">
-            <span className="font-semibold">Amount:</span> ₹499/month
-            <br />
-            <span className="font-semibold">Validity:</span> 1 year
-            <br />
-            {/* <span className="font-semibold">Debit Date:</span> 5th of every month */}
-          </p>
+          <h4 className="font-semibold text-gray-700 mb-2">Mandate Details</h4>
+          <div className="space-y-2 text-sm text-gray-600">
+            <p><span className="font-medium">Amount:</span> ₹499/month</p>
+            <p><span className="font-medium">Validity:</span> 1 year</p>
+            <p><span className="font-medium">First Debit:</span> Immediate</p>
+            {/* <p><span className="font-medium">Subsequent Debits:</span> 5th of every month</p> */}
+          </div>
         </div>
 
         <button
           type="submit"
-          disabled={loading || success}
+          disabled={loading || showMobilePrompt}
           className={`w-full flex justify-center items-center py-3 px-4 rounded-lg text-white font-semibold ${
-            success
+            showMobilePrompt
               ? 'bg-green-500 cursor-not-allowed'
               : loading
               ? 'bg-indigo-400 cursor-not-allowed'
@@ -112,9 +161,9 @@ export function MandateForm() {
             <>
               <FaSpinner className="animate-spin mr-2" /> Creating...
             </>
-          ) : success ? (
+          ) : showMobilePrompt ? (
             <>
-              <FaCheckCircle className="mr-2" /> Mandate Created!
+              <FaCheckCircle className="mr-2" /> Waiting for Approval
             </>
           ) : (
             'Create Mandate'
