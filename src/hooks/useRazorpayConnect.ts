@@ -14,7 +14,6 @@ export function useRazorpayConnect() {
     authUrl.searchParams.append('redirect_uri', RAZORPAY_CONFIG.redirect_uri);
     authUrl.searchParams.append('response_type', 'code');
     authUrl.searchParams.append('state', state);
-    console.log(authUrl,"url");
     
     window.location.href = authUrl.toString();
   }, []);

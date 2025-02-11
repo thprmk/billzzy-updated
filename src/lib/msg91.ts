@@ -150,7 +150,6 @@ export async function sendBillingSMS({
       };
     }
 
-    console.log(variables,"template");
     
 
     // Update transaction record if payment link exists

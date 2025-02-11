@@ -112,7 +112,6 @@ export async function createRazorpayPaymentLink(accessToken: string, {
     reminder_enable: true
   };
 
-  console.log(payload,"link payload");
   
 
   const response = await fetch('https://api.razorpay.com/v1/payment_links', {

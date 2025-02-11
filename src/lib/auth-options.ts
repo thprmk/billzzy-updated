@@ -19,7 +19,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Please enter your email and password");
         }
 
-        console.log(credentials);
         
 
         // Admin check
