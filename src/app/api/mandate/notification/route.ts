@@ -69,15 +69,18 @@ export async function POST() {
             merchantId: process.env.ICICI_MERCHANT_ID || "",
             subMerchantId: generateRandomSixDigitNumber(), 
             terminalId: "4816",
-            merchantName: mandate.organisation.name,
-            merchantTranId: `NOTIF_${Date.now()}_${mandate.id}`,
-            mandateSeqNo: mandate.mandateSeqNo.toString(),
-            executionDate: mandate.organisation.endDate.toISOString(),
+            merchantName: 'Tech Vaseegrah',
+            subMerchantName: mandate.organisation.name,
+            payerVa: mandate.payerVA,
             amount: mandate.amount.toString(),
             note: "Mandate notification",
-            payerVa: mandate.payerVA,
+            executionDate: mandate.organisation.endDate.toISOString(),
+            merchantTranId: `NOTIF_${Date.now()}_${mandate.id}`,
+            mandateSeqNo: mandate.mandateSeqNo.toString(),
+            key:"UMN",
             value: mandate.UMN
           };
+
 
           console.log('[Notification] Sending payload for mandate id:', mandate.id, notificationPayload);
 
