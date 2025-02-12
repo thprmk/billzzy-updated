@@ -18,7 +18,7 @@ interface MandateCallback {
   UMN: string;
   TxnInitDate: string;
   TxnStatus: string;
-  merchantTranId: string;     // e.g. "MANDATE_1738155932830" or "EXEC_..."
+  merchantTranId: string;     // e.g. "MANDATE_1738155932830" or "EXEC_..." or "ICI..."
   RespCodeDescription: string;
   PayeeVPA: string;
 }
@@ -26,7 +26,6 @@ interface MandateCallback {
 function isExecuteCallback(mTranId: string) {
   return mTranId.startsWith('EXEC_') || mTranId.startsWith('ICI');
 }
-
 
 /** 
  * Helper to parse ICICI date strings in YYYYMMDDhhmmss into a JS Date.
@@ -45,6 +44,9 @@ function parseIciciDate(dateString: string) {
 export async function POST(request: Request) {
   try {
     const encryptedCallback = await request.json();
+
+    console.log('Encrypted callback from callback:', encryptedCallback);
+    
     let callbackData: MandateCallback;
 
     // 1. Decrypt if needed
@@ -61,10 +63,10 @@ export async function POST(request: Request) {
       callbackData = encryptedCallback;
     }
 
-    console.log('Decrypted callback:', callbackData);
 
     // ----- Execute Mandate Callback Handling -----
     if (isExecuteCallback(callbackData.merchantTranId)) {
+      
       console.log('Execute callback received:', callbackData);
 
       // For execute mandate, consider it success only when:
@@ -73,11 +75,35 @@ export async function POST(request: Request) {
       const isSuccess =
         callbackData.TxnStatus === 'SUCCESS' &&
         callbackData.RespCodeDescription === 'APPROVED OR COMPLETED SUCCESSFULLY';
-      const finalStatus = "ACTIVATED"
+      const finalStatus = "ACTIVATED";
 
-      // Parse organisation ID from merchantTranId (assumed format: EXEC_<timestamp>_<orgId>)
-      const orgIdStr = callbackData.merchantTranId.split('_')[2];
-      const organisationId = parseInt(orgIdStr, 10);
+      // Determine organisationId either by extracting it (for EXEC_ payloads)
+      // or by looking up via the UMN field (for ICI payloads).
+      let organisationId: number;
+
+      if (callbackData.merchantTranId.startsWith('EXEC_')) {
+        // Expected format: EXEC_<timestamp>_<orgId>
+        const parts = callbackData.merchantTranId.split('_');
+        if (parts.length < 3) {
+          throw new Error('Invalid merchantTranId format for EXEC callback');
+        }
+        organisationId = parseInt(parts[2], 10);
+      } else if (callbackData.merchantTranId.startsWith('ICI')) {
+        // For ICI callbacks, look up the mandate by the UMN field
+        const mandate = await prisma.mandate.findFirst({
+          where: { UMN: callbackData.UMN }
+        });
+        if (!mandate) {
+          throw new Error(`Mandate not found for UMN: ${callbackData.UMN}`);
+        }
+        organisationId = mandate.organisationId;
+      }
+       else {
+        throw new Error('Unknown merchantTranId prefix');
+      }
+
+      console.log('Organisation ID:', organisationId);
+      
 
       if (isSuccess) {
         // Successful execute callback: upsert mandate, update activeMandate & organisation.
@@ -192,6 +218,9 @@ export async function POST(request: Request) {
         });
       }
     }
+
+    console.log('Decrypted callback:', callbackData);
+
     // ----- End Execute Mandate Callback Handling -----
 
     // ----- Mandate Creation Callback Handling -----
@@ -203,9 +232,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log(callbackData,'callbackData');
     
-
     // 4. Find the existing "INITIATED" Mandate by merchantTranId
     const mandate = await prisma.mandate.findUnique({
       where: { merchantTranId: callbackData.merchantTranId },
@@ -214,7 +241,6 @@ export async function POST(request: Request) {
 
     if (!mandate) {
       console.log('Mandate not found:', callbackData.merchantTranId);
-      
       return NextResponse.json({ error: "Mandate not found" }, { status: 404 });
     }
 
@@ -253,15 +279,6 @@ export async function POST(request: Request) {
         status: 'APPROVED'
       }
     });
-
-    // 7. If this is the first callback for the new mandate, attempt immediate execution
-    // if (activeMandate.mandateSeqNo === 1) {
-    //   const success = await executeMandate(mandate, callbackData.UMN);
-    //   console.log(
-    //     'Initial execution:',
-    //     success ? 'successful' : 'scheduled for retry'
-    //   );
-    // }
 
     return NextResponse.json({
       success: true,
