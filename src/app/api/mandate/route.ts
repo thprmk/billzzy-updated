@@ -95,7 +95,7 @@ const billNumber = `BILL_${timestamp}`;
     const mandateRequest: MandateRequest = {
       merchantId: process.env.ICICI_MERCHANT_ID || "",
       subMerchantId: generateRandomSixDigitNumber(),
-      terminalId: "5411",
+      terminalId: "4816",
       merchantName: 'Tech Vaseegrah',
       subMerchantName: merchantName,
       payerVa,
