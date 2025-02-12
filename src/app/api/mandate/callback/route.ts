@@ -291,3 +291,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+
+// 0|nextjs  | Encrypted callback from callback: {
+//   0|nextjs  |   requestId: '',
+//   0|nextjs  |   service: 'UPI',
+//   0|nextjs  |   encryptedKey: 'q0NGyt6xad70zRlOTXqtpnwtxhGPAAe2fbN1q1v5PV4CeUMGMv342cawsZpd9bFTA3ifZT9919Vm6tzmiquv3IBpxlxUjiTMAWy/IkXar1cxkOdTEvgotLu9s7mtK+xe4a1/hzr+BgAYSnJrX+KEcvk32MHwjJD1AN+wuKvjQ2Kxe/qF+jui+tDdr3jv1jgGhhH1HJorRm21Bpiqxv0ABL6U/bOz1MdlsF/PSmM2qZfE+p3QphI4SdK0pqv2TJ1txOXRgRmUpddHHeqd3RN/GldsDVDqdPl2Wb8qnQI2Ub0LRPey8Tn5bp6PZNZlI6WqnL6IO/wt5f7Hj27/IUthxrtiU2/af/yCeCpdoGtHinCPZaitmd3HOHOPEhPDaQKcI9n8zo8dRqoc0fTgVhXuaz9b9M4UKRvt6K1SMtMJyMBH8Ca4BL6h4qhLae4TRgG/P/HGzrE636K/t3beJbYPNu+T1W4U8PBnNLP15rJE25Q8hTFmwnqbQ8ODQWbkHGQ37G88iG8EZin4Ia32yIb4WMFg9K1whSKYwjzsQS8MVr4DGKg/SPnUWLLL7/QvwKazee2r3TDSRTF+04iHRamB/Prt21CMGbGyljXTXLtTCwjwHhhnI/WL6/Hi1/9d+1GOW0TvaAApEwre9zdWMZ31WC1RcpyeFVW9sXbWLcuSSew=',
+//   0|nextjs  |   oaepHashingAlgorithm: 'NONE',
+//   0|nextjs  |   iv: '',
+//   0|nextjs  |   encryptedData: 'UKNANs/YqPbJ4hl4bLaVT/zuu2gwE2RSyu+S5w8KAubWI9WZspzmw6HOuDoL/IiiVwn1RqAUDEdbAtX5AYwbx060QfeM8yAeJsthdqZTQw3kRLsOiN2/1fJFymzKt58sXDnWPQYu89svs0zQ07zEMvmfDq3V4IIgJeEu0/B57d0D0pwi1i2iicKc+r+SFqK+oGW0MnQgFLxPr/8NE7E7L8o6maVUrrdTdZFXjb2vNwof787heIo+0n4/OTdzJOpJLz0HydWk9BU5yXxPUqemWpanSShvM23ZXsdhdT1jKCNc4KtXFyEiYtIbMNpJgMShCt3HuJoc8hgRX6MXiNWU44MpF7Qse05jP4ccfeosdmV03gpsKlvwG1Yy0KaRHS3MGn8u6BPBxy2Qh1U7Qbi4z5hFdH2auWWKEvEW8xciIafgXgODvR+lDeYNV98KqR58qaFdGvYanIRewLW0EoCUUQN7pywkf1NbngE74ZWDn+OUlDjl2JwetKs67C07swiz2GMNCTY+j2OStCp6dkA4MMkffQGeho7B/0JAt9qV0AQ4QAavQ3L6dPkRzi6qLW37bK1EJhA0Be+NRlySM2H5NdlVC0uyLxNX2uMm19BOTRQGhj4h5lNA1kcM9OFyMWQHBTbAMMCQxbcI+eNpqWOjrLX0NjkkXs1Z00WKO5EKNWEtUYxCZdVwLUh6cjhW43UnzBfv2F0fBjGoT0JjJgA2gWMRqHoSp6phbCbQ8zC2zUI=',
+//   0|nextjs  |   clientInfo: '',
+//   0|nextjs  |   optionalParam: ''
+//   0|nextjs  | }
+//   0|nextjs  | Execute callback received: {
+//   0|nextjs  |   subMerchantId: '343985',
+//   0|nextjs  |   RespCodeDescription: 'APPROVED OR COMPLETED SUCCESSFULLY',
+//   0|nextjs  |   PayerMobile: '0000000000',
+//   0|nextjs  |   TxnCompletionDate: '20250212165159',
+//   0|nextjs  |   terminalId: '4816',
+//   0|nextjs  |   PayerName: 'HARI PRASANTH  S',
+//   0|nextjs  |   PayeeVPA: 'billzzy@icici',
+//   0|nextjs  |   PayerAmount: '1.00',
+//   0|nextjs  |   PayerVA: '2def78565b0be2cae063b12fb00aede9@oksbi',
+//   0|nextjs  |   BankRRN: '504374651467',
+//   0|nextjs  |   merchantId: '8893896',
+//   0|nextjs  |   PayerAccountType: 'SAVINGS',
+//   0|nextjs  |   UMN: '2def78565b0be2cae063b12fb00aede9@oksbi',
+//   0|nextjs  |   TxnInitDate: '20250212165157',
+//   0|nextjs  |   TxnStatus: 'SUCCESS',
+//   0|nextjs  |   merchantTranId: 'ICI1f84ca666e0f498383b3bee510091d30'
+//   0|nextjs  | }
