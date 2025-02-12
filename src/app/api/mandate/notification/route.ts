@@ -24,7 +24,7 @@ export async function POST() {
         OR: [
           // Regular notification check
           {
-            mandateSeqNo: { gt: 1 },
+            mandateSeqNo: { gte: 1 },
             OR: [
               { notificationRetries: 0 },
               {
@@ -46,6 +46,8 @@ export async function POST() {
       },
       include: { organisation: true }
     });
+
+    
 
     console.log('[Notification] Found mandates:', pendingNotifications.length);
 
