@@ -11,6 +11,19 @@ export async function POST() {
 
     console.log('[Notification] Window:', { now, notificationWindow });
 
+    // DEBUG: Fetch and log all organisations
+    const organisations = await prisma.organisation.findMany({});
+    console.log('[Notification] All Organisations:', organisations);
+
+    // Optionally, you can filter organisations that have an endDate within the notification window
+    const orgsInWindow = organisations.filter(org => {
+      if (!org.endDate) return false;
+      const endDate = new Date(org.endDate);
+      return endDate > now && endDate <= notificationWindow;
+    });
+    console.log('[Notification] Organisations with endDate in window:', orgsInWindow);
+
+    // Fetch pending notifications based on activeMandate and organisation conditions
     const pendingNotifications = await prisma.activeMandate.findMany({
       where: {
         organisation: {
@@ -47,8 +60,6 @@ export async function POST() {
       include: { organisation: true }
     });
 
-    
-
     console.log('[Notification] Found mandates:', pendingNotifications.length);
 
     const results = await Promise.all(
@@ -67,6 +78,8 @@ export async function POST() {
             payerVa: mandate.payerVA,
             value: mandate.UMN
           };
+
+          console.log('[Notification] Sending payload for mandate id:', mandate.id, notificationPayload);
 
           const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(notificationPayload);
 
@@ -93,7 +106,7 @@ export async function POST() {
             ? IciciCrypto.decrypt(responseData.encryptedData, responseData.encryptedKey, responseData.iv)
             : null;
 
-          console.log('[Notification] Response:', decryptedResponse);
+          console.log('[Notification] Response for mandate id:', mandate.id, decryptedResponse);
 
           // Modified success condition: response must be OK, decryptedResponse.success must be "true" AND decryptedResponse.message must be "Transaction Initiated"
           if (
@@ -152,8 +165,8 @@ export async function POST() {
             };
           }
 
-        } catch (error) {
-          console.error('[Notification] Error:', error);
+        } catch (error: any) {
+          console.error('[Notification] Error for mandate id:', mandate.id, error);
           
           if (mandate.notificationRetries >= 3) {
             await prisma.activeMandate.update({
