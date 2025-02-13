@@ -92,6 +92,33 @@ const billNumber = `BILL_${timestamp}`;
 
 
 
+    // const mandateRequest: MandateRequest = {
+    //   merchantId: process.env.ICICI_MERCHANT_ID || "",
+    //   subMerchantId: generateRandomSixDigitNumber(),
+    //   terminalId: "4816",
+    //   merchantName: 'Tech Vaseegrah',
+    //   subMerchantName: merchantName,
+    //   payerVa,
+    //   amount: "1.00",
+    //   note: "mandaterequest",
+    //   collectByDate: format(collectByDate, 'dd/MM/yyyy hh:mm a'),
+    //   merchantTranId,
+    //   billNumber,
+    //   validityStartDate: format(today, 'dd/MM/yyyy'),
+    //   validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
+    //   amountLimit: "M",
+    //   remark: "Mandate Request",
+    //   autoExecute: "Y",
+    //   requestType: "C",
+    //   frequency: "AS",
+    //   //  debitDay,
+    //   debitRule: "ON",
+    //   revokable: "Y",
+    //   blockfund: "N",
+    //   purpose: "RECURRING",
+    //   validatePayerAccFlag: "N"
+    // };
+
     const mandateRequest: MandateRequest = {
       merchantId: process.env.ICICI_MERCHANT_ID || "",
       subMerchantId: generateRandomSixDigitNumber(),
@@ -101,18 +128,18 @@ const billNumber = `BILL_${timestamp}`;
       payerVa,
       amount: "1.00",
       note: "mandaterequest",
-      collectByDate: format(collectByDate, 'dd/MM/yyyy hh:mm a'),
-      merchantTranId,
+      collectByDate: format(collectByDate, 'dd/MM/yyyy hh:mm a'), // Format correct
+      merchantTranId, // Must be unique
       billNumber,
+      requestType: "C", // Correct for Create
       validityStartDate: format(today, 'dd/MM/yyyy'),
       validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
-      amountLimit: "M",
+      amountLimit: "M", // "F" for fixed, "M" for maximum
       remark: "Mandate Request",
-      autoExecute: "Y",
-      requestType: "C",
-      frequency: "AS",
-      //  debitDay,
-      debitRule: "ON",
+      autoExecute: "N", // Should be "N" per docs
+      frequency: "AS", // Correct value
+      debitDay: "NA", // Required for AS frequency
+      debitRule: "NA", // Should be "NA" for AS frequency
       revokable: "Y",
       blockfund: "N",
       purpose: "RECURRING",
@@ -126,7 +153,7 @@ const billNumber = `BILL_${timestamp}`;
 
     const encryptedPayload = {
       requestId: merchantTranId,
-      service: "AccountCreation",
+      service: "CreateMandate", 
       encryptedKey,
       oaepHashingAlgorithm: "NONE",
       iv,

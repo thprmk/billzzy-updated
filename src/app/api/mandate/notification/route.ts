@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { IciciCrypto } from '@/lib/iciciCrypto';
 import { generateRandomSixDigitNumber } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export async function POST() {
   try {
@@ -67,18 +68,18 @@ export async function POST() {
         try {
           const notificationPayload = {
             merchantId: process.env.ICICI_MERCHANT_ID || "",
-            subMerchantId: generateRandomSixDigitNumber(), 
+            subMerchantId: generateRandomSixDigitNumber(),
             terminalId: "4816",
             merchantName: 'Tech Vaseegrah',
             subMerchantName: mandate.organisation.name,
             payerVa: mandate.payerVA,
-            amount: mandate.amount.toString(),
+            amount: mandate.amount.toFixed(2), // Ensure 2 decimal places
             note: "Mandate notification",
-            executionDate: mandate.organisation.endDate.toISOString(),
+            executionDate: format(mandate.organisation.endDate, 'dd/MM/yyyy hh:mm a'), // Format should match docs
             merchantTranId: `NOTIF_${Date.now()}_${mandate.id}`,
-            mandateSeqNo: (mandate.mandateSeqNo+1).toString(),
-            key:"UMN",
-            value: mandate.UMN
+            mandateSeqNo: (mandate.mandateSeqNo + 1).toString(),
+            key: "UMN",
+            value: mandate.UMN // Should be in format "<32 character>@<PSP Handle>"
           };
 
 
@@ -91,8 +92,9 @@ export async function POST() {
             {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/json',
-                'apikey': process.env.ICICI_API_KEY || "",
+                "Content-Type": "application/json",
+                apikey: process.env.ICICI_API_KEY || "",
+                Accept: "*/*"
               },
               body: JSON.stringify({
                 requestId: notificationPayload.merchantTranId,
@@ -126,8 +128,8 @@ export async function POST() {
                 lastNotificationAttempt: now
               }
             });
-            return { 
-              id: mandate.id, 
+            return {
+              id: mandate.id,
               status: 'success',
               retryCount: 0
             };
@@ -170,7 +172,7 @@ export async function POST() {
 
         } catch (error: any) {
           console.error('[Notification] Error for mandate id:', mandate.id, error);
-          
+
           if (mandate.notificationRetries >= 3) {
             await prisma.activeMandate.update({
               where: { id: mandate.id },
@@ -226,9 +228,9 @@ export async function POST() {
 
   } catch (error: any) {
     console.error('[Notification] Critical error:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: false,
-      error: error.message 
+      error: error.message
     }, { status: 500 });
   }
 }

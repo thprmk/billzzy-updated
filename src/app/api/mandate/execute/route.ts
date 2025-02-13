@@ -65,18 +65,18 @@ export async function POST() {
         try {
           // Build payload
           const executePayload = {
-               merchantId: process.env.ICICI_MERCHANT_ID || "",
-               subMerchantId: generateRandomSixDigitNumber(), 
+            merchantId: process.env.ICICI_MERCHANT_ID || "",
+            subMerchantId: generateRandomSixDigitNumber(),
             terminalId: "4816",
             merchantName: 'Tech Vaseegrah',
             subMerchantName: mandate.organisation.name,
-            amount: mandate.amount.toString(),
+            amount: mandate.amount.toFixed(2), // Ensure 2 decimal places
             merchantTranId: `EXEC_${Date.now()}_${mandate.organisationId}`,
             billNumber: `BILL_${Date.now()}`,
             remark: "Mandate execution request",
-            retryCount: mandate.retryCount.toString(),
-            mandateSeqNo: mandate.mandateSeqNo.toString(),
-            UMN: mandate.UMN,
+            retryCount: mandate.retryCount.toString(), // Required for recurring mandates
+            mandateSeqNo: mandate.mandateSeqNo.toString(), // Required for recurring mandates
+            UMN: mandate.UMN, // Should be in format "<32 character>@<PSP Handle>"
             purpose: "RECURRING"
           };
 
@@ -89,8 +89,9 @@ export async function POST() {
             {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/json',
-                'apikey': process.env.ICICI_API_KEY || "",
+                "Content-Type": "application/json",
+                apikey: process.env.ICICI_API_KEY || "",
+                Accept: "*/*"
               },
               body: JSON.stringify({
                 requestId: executePayload.merchantTranId,
