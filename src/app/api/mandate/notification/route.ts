@@ -35,28 +35,28 @@ export async function POST() {
         },
         status: 'ACTIVATED',
         notified: false, // Only get unnotified mandates
-        OR: [
-          // Regular notification check
-          {
-            mandateSeqNo: { gte: 1 },
-            OR: [
-              { notificationRetries: 0 },
-              {
-                notificationRetries: { lt: 3 },
-                lastNotificationAttempt: {
-                  lt: new Date(now.getTime() - 3600000)
-                }
-              }
-            ]
-          },
-          // Reset condition when retries reach 3
-          {
-            notificationRetries: 3,
-            lastNotificationAttempt: {
-              lt: new Date(now.getTime() - 3600000)
-            }
-          }
-        ]
+        // OR: [
+        //   // Regular notification check
+        //   {
+        //     mandateSeqNo: { gte: 1 },
+        //     OR: [
+        //       { notificationRetries: 0 },
+        //       {
+        //         notificationRetries: { lt: 3 },
+        //         lastNotificationAttempt: {
+        //           lt: new Date(now.getTime() - 3600000)
+        //         }
+        //       }
+        //     ]
+        //   },
+        //   // Reset condition when retries reach 3
+        //   {
+        //     notificationRetries: 3,
+        //     lastNotificationAttempt: {
+        //       lt: new Date(now.getTime() - 3600000)
+        //     }
+        //   }
+        // ]
       },
       include: { organisation: true }
     });
@@ -73,10 +73,10 @@ export async function POST() {
             merchantName: 'Tech Vaseegrah',
             subMerchantName: mandate.organisation.name,
             payerVa: mandate.payerVA,
-            amount: mandate.amount.toFixed(2), // Ensure 2 decimal places
+            amount: Number(mandate.amount).toFixed(2), // Ensure 2 decimal places
             note: "Mandate notification",
-            executionDate: format(mandate.organisation.endDate, 'dd/MM/yyyy hh:mm a'), // Format should match docs
-            merchantTranId: `NOTIF_${Date.now()}_${mandate.id}`,
+            executionDate: format(mandate.organisation.endDate, 'dd/MM/yyyy HH:mm a'), // Format should match docs
+            merchantTranId: `NOTIF_${Date.now()}_${mandate.organisationId}`,
             mandateSeqNo: (mandate.mandateSeqNo + 1).toString(),
             key: "UMN",
             value: mandate.UMN // Should be in format "<32 character>@<PSP Handle>"
@@ -94,6 +94,7 @@ export async function POST() {
               headers: {
                 "Content-Type": "application/json",
                 apikey: process.env.ICICI_API_KEY || "",
+                Accept: "*/*"
               },
               body: JSON.stringify({
                 requestId: notificationPayload.merchantTranId,

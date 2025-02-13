@@ -47,14 +47,14 @@ export async function POST() {
       where: {
         organisation: { endDate: { gte: now } },
         status: 'ACTIVATED',
-        notified: true,
-        OR: [
-          { retryCount: 0 },
-          {
-            retryCount: { lte: 9 }, // up to 9 retries
-            lastAttemptAt: { lt: new Date(now.getTime() - 12 * 60 * 60 * 1000) }
-          }
-        ]
+        // notified: true,
+        // OR: [
+        //   { retryCount: 0 },
+        //   {
+        //     retryCount: { lte: 9 }, // up to 9 retries
+        //     lastAttemptAt: { lt: new Date(now.getTime() - 12 * 60 * 60 * 1000) }
+        //   }
+        // ]
       },
       include: { organisation: true }
     });
@@ -75,7 +75,7 @@ export async function POST() {
             billNumber: `BILL_${Date.now()}`,
             remark: "Mandate execution request",
             retryCount: mandate.retryCount.toString(), // Required for recurring mandates
-            mandateSeqNo: mandate.mandateSeqNo.toString(), // Required for recurring mandates
+            mandateSeqNo: mandate.mandateSeqNo.toString()+1, // Required for recurring mandates
             UMN: mandate.UMN, // Should be in format "<32 character>@<PSP Handle>"
             purpose: "RECURRING"
           };
