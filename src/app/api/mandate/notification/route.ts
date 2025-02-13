@@ -76,7 +76,7 @@ export async function POST() {
             note: "Mandate notification",
             executionDate: mandate.organisation.endDate.toISOString(),
             merchantTranId: `NOTIF_${Date.now()}_${mandate.id}`,
-            mandateSeqNo: mandate.mandateSeqNo.toString(),
+            mandateSeqNo: (mandate.mandateSeqNo+1).toString(),
             key:"UMN",
             value: mandate.UMN
           };
