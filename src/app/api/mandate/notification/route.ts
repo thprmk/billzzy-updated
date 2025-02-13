@@ -94,7 +94,6 @@ export async function POST() {
               headers: {
                 "Content-Type": "application/json",
                 apikey: process.env.ICICI_API_KEY || "",
-                Accept: "*/*"
               },
               body: JSON.stringify({
                 requestId: notificationPayload.merchantTranId,
