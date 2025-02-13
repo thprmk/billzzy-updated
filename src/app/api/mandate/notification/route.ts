@@ -73,10 +73,10 @@ export async function POST() {
             merchantName: 'Tech Vaseegrah',
             subMerchantName: mandate.organisation.name,
             payerVa: mandate.payerVA,
-            amount: mandate.amount.toFixed(2), // Ensure 2 decimal places
+            amount: Number(mandate.amount).toFixed(2), // Ensure 2 decimal places
             note: "Mandate notification",
-            executionDate: format(mandate.organisation.endDate, 'dd/MM/yyyy hh:mm a'), // Format should match docs
-            merchantTranId: `NOTIF_${Date.now()}_${mandate.id}`,
+            executionDate: format(mandate.organisation.endDate, 'dd/MM/yyyy HH:mm a'), // Format should match docs
+            merchantTranId: `NOTIF_${Date.now()}_${mandate.organisationId}`,
             mandateSeqNo: (mandate.mandateSeqNo + 1).toString(),
             key: "UMN",
             value: mandate.UMN // Should be in format "<32 character>@<PSP Handle>"
