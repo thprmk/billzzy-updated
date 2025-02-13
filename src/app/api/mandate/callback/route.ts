@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const encryptedCallback = await request.json();
 
     console.log('Encrypted callback from callback:', encryptedCallback);
-    
+
     let callbackData: MandateCallback;
 
     // 1. Decrypt if needed
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
 
     // ----- Execute Mandate Callback Handling -----
     if (isExecuteCallback(callbackData.merchantTranId)) {
-      
+
       console.log('Execute callback received:', callbackData);
 
       // For execute mandate, consider it success only when:
@@ -141,12 +141,12 @@ export async function POST(request: Request) {
         }
         organisationId = mandate.organisationId;
       }
-       else {
+      else {
         throw new Error('Unknown merchantTranId prefix');
       }
 
       console.log('Organisation ID:', organisationId);
-      
+
 
       if (isSuccess) {
         // Successful execute callback: upsert mandate, update activeMandate & organisation.
@@ -268,16 +268,16 @@ export async function POST(request: Request) {
 
     // ----- Mandate Creation Callback Handling -----
     // If the callback indicates mandate creation failure, for example:
-    if (callbackData.TxnStatus === 'CREATE-FAIL') {
+    if (callbackData.TxnStatus === 'CREATE-FAIL' || callbackData.TxnStatus === 'CREATE-FAILURE') {
       return NextResponse.json(
         { error: 'Mandate creation failed' },
         { status: 400 }
       );
     }
 
-  
 
-    
+
+
     // 4. Find the existing "INITIATED" Mandate by merchantTranId
     const mandate = await prisma.mandate.findUnique({
       where: { merchantTranId: callbackData.merchantTranId },
