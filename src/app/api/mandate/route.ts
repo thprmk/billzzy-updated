@@ -94,32 +94,7 @@ const billNumber = `BILL_${timestamp}`;
 
 
 
-    // const mandateRequest: MandateRequest = {
-    //   merchantId: process.env.ICICI_MERCHANT_ID || "",
-    //   subMerchantId: generateRandomSixDigitNumber(),
-    //   terminalId: "4816",
-    //   merchantName: 'Tech Vaseegrah',
-    //   subMerchantName: merchantName,
-    //   payerVa,
-    //   amount: "1.00",
-    //   note: "mandaterequest",
-    //   collectByDate: format(collectByDate, 'dd/MM/yyyy hh:mm a'),
-    //   merchantTranId,
-    //   billNumber,
-    //   validityStartDate: format(today, 'dd/MM/yyyy'),
-    //   validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
-    //   amountLimit: "M",
-    //   remark: "Mandate Request",
-    //   autoExecute: "Y",
-    //   requestType: "C",
-    //   frequency: "AS",
-    //   //  debitDay,
-    //   debitRule: "ON",
-    //   revokable: "Y",
-    //   blockfund: "N",
-    //   purpose: "RECURRING",
-    //   validatePayerAccFlag: "N"
-    // };
+
 
     const mandateRequest: MandateRequest = {
       merchantId: process.env.ICICI_MERCHANT_ID || "",
