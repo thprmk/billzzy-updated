@@ -35,28 +35,28 @@ export async function POST() {
         },
         status: 'ACTIVATED',
         notified: false, // Only get unnotified mandates
-        OR: [
-          // Regular notification check
-          {
-            mandateSeqNo: { gte: 1 },
-            OR: [
-              { notificationRetries: 0 },
-              {
-                notificationRetries: { lt: 3 },
-                lastNotificationAttempt: {
-                  lt: new Date(now.getTime() - 3600000)
-                }
-              }
-            ]
-          },
-          // Reset condition when retries reach 3
-          {
-            notificationRetries: 3,
-            lastNotificationAttempt: {
-              lt: new Date(now.getTime() - 3600000)
-            }
-          }
-        ]
+        // OR: [
+        //   // Regular notification check
+        //   {
+        //     mandateSeqNo: { gte: 1 },
+        //     OR: [
+        //       { notificationRetries: 0 },
+        //       {
+        //         notificationRetries: { lt: 3 },
+        //         lastNotificationAttempt: {
+        //           lt: new Date(now.getTime() - 3600000)
+        //         }
+        //       }
+        //     ]
+        //   },
+        //   // Reset condition when retries reach 3
+        //   {
+        //     notificationRetries: 3,
+        //     lastNotificationAttempt: {
+        //       lt: new Date(now.getTime() - 3600000)
+        //     }
+        //   }
+        // ]
       },
       include: { organisation: true }
     });
@@ -94,6 +94,7 @@ export async function POST() {
               headers: {
                 "Content-Type": "application/json",
                 apikey: process.env.ICICI_API_KEY || "",
+                Accept: "*/*"
               },
               body: JSON.stringify({
                 requestId: notificationPayload.merchantTranId,
