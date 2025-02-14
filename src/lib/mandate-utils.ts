@@ -114,7 +114,7 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
         // Modified success condition:
         // Only if response is OK, success flag is true (string or boolean), AND the message is "Transaction Initiated"
         const success = response.ok &&
-                        ((decryptedResponse?.success === "true" || decryptedResponse?.success === true) &&
+                        ((decryptedResponse?.success === "true" ) &&
                          decryptedResponse?.message === "Transaction Initiated");
         console.log('[Execute] success?', success);
 
