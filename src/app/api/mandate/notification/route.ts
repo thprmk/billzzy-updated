@@ -107,6 +107,8 @@ export async function POST() {
           );
 
           const responseData = await response.json();
+          console.log('[Notification] raw Response :', responseData);
+          
           const decryptedResponse = responseData?.encryptedData
             ? IciciCrypto.decrypt(responseData.encryptedData, responseData.encryptedKey, responseData.iv)
             : null;
@@ -115,7 +117,6 @@ export async function POST() {
 
           // Modified success condition: response must be OK, decryptedResponse.success must be "true" AND decryptedResponse.message must be "Transaction Initiated"
           if (
-            response.ok &&
             decryptedResponse?.success === "true" &&
             decryptedResponse?.message === "Transaction Successful"
           ) {
