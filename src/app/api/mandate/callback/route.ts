@@ -325,6 +325,14 @@ export async function POST(request: Request) {
       }
     });
 
+    if (activeMandate.mandateSeqNo === 1) {
+      const success = await executeMandate(mandate, callbackData.UMN);
+      console.log(
+        'Initial execution:',
+        success ? 'successful' : 'scheduled for retry'
+      );
+    }
+
     return NextResponse.json({
       success: true,
       status: 'INITIATED',

@@ -82,11 +82,10 @@ const validityEndDate = addYears(today, 12);
 const nextMandateDate = addDays(today, 1);
 
 
-// Format dates for better readability (optional)
-console.log(
-  'Next Mandate Date:',
-  format(nextMandateDate, 'yyyy-MM-dd HH:mm:ss zzz', { timeZone })
-);
+
+
+console.log(nextMandateDate,"nextMandateDate");
+
 // Generate unique IDs with formatted timestamps
 const timestamp = format(today, 'yyyyMMddHHmmss');
 const merchantTranId = `MANDATE_${timestamp}`;
@@ -113,7 +112,7 @@ const billNumber = `BILL_${timestamp}`;
       validityEndDate: format(validityEndDate, 'dd/MM/yyyy'),
       amountLimit: "M", // "F" for fixed, "M" for maximum
       remark: "Mandate Request",
-      autoExecute: "Y", // Should be "N" per docs
+      autoExecute: "N", // Should be "N" per docs
       frequency: "AS", // Correct value
       debitDay: "NA", // Required for AS frequency
       debitRule: "NA", // Should be "NA" for AS frequency

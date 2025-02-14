@@ -3,14 +3,14 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { IciciCrypto } from '@/lib/iciciCrypto';
 import { generateRandomSixDigitNumber } from '@/lib/utils';
-import { format } from 'date-fns';
+import { addHours, format } from 'date-fns';
 
 export async function POST() {
   try {
     const now = new Date();
-    const notificationWindow = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    const in48Hours = addHours(now, 48);
 
-    console.log('[Notification] Window:', { now, notificationWindow });
+    console.log('[Notification] Window:', { now, in48Hours });
 
     // DEBUG: Fetch and log all organisations
     const organisations = await prisma.organisation.findMany({});
@@ -20,7 +20,7 @@ export async function POST() {
     const orgsInWindow = organisations.filter(org => {
       if (!org.endDate) return false;
       const endDate = new Date(org.endDate);
-      return endDate > now && endDate <= notificationWindow;
+      return endDate > now && endDate <= in48Hours;
     });
     console.log('[Notification] Organisations with endDate in window:', orgsInWindow);
 
@@ -30,7 +30,7 @@ export async function POST() {
         organisation: {
           endDate: {
             gt: now,
-            lte: notificationWindow
+            lte: in48Hours
           }
         },
         status: 'ACTIVATED',
