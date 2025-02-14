@@ -63,6 +63,9 @@ export async function POST(request: Request) {
       callbackData = encryptedCallback;
     }
 
+    console.log('Decrypted callback:', callbackData);
+    
+
 
     if (callbackData.TxnStatus === 'REVOKE-SUCCESS') {
       // Find the associated mandate to get organisationId

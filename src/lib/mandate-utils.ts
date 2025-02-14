@@ -97,6 +97,8 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
 
         // 5. Decrypt response
         const responseData = await response.json();
+        console.log('[Execute] Raw Response:', responseData);
+        
         let decryptedResponse: DecryptedResponse | null = null;
         if (responseData?.encryptedData) {
             try {
@@ -115,7 +117,7 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
         // Only if response is OK, success flag is true (string or boolean), AND the message is "Transaction Initiated"
         const success = response.ok &&
                         ((decryptedResponse?.success === "true" ) &&
-                         decryptedResponse?.message === "Transaction Initiated");
+                         decryptedResponse?.message === "Transaction initiated");
         console.log('[Execute] success?', success);
 
         // ======= SUCCESS CASE =======
