@@ -117,7 +117,7 @@ export async function POST() {
           if (
             response.ok &&
             decryptedResponse?.success === "true" &&
-            decryptedResponse?.message === "Transaction Initiated"
+            decryptedResponse?.message === "Transaction Successful"
           ) {
             // Reset on success
             await prisma.activeMandate.update({
