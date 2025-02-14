@@ -122,7 +122,7 @@ export async function POST() {
           const isSuccess = response.ok &&
             decryptedResponse &&
             decryptedResponse.success === "true" &&
-            decryptedResponse.message === "Transaction Initiated";
+            decryptedResponse.message === "Transaction initiated";
 
           if (!isSuccess) {
             console.log('[Execute] Failure or non-success:', decryptedResponse);
