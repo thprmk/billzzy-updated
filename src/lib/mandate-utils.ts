@@ -138,7 +138,6 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
                         data: {
                             status: 'PENDING',
                             retryCount: 0,  // Reset retry count here
-                            mandateSeqNo: { increment: 1 },
                             lastAttemptAt: new Date()
                         }
                     }),
