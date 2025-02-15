@@ -176,7 +176,6 @@ export async function POST() {
             prisma.activeMandate.update({
               where: { id: mandate.id },
               data: {
-                mandateSeqNo: { increment: 1 },
                 notified: false,
                 retryCount: 0,
                 lastAttemptAt: now,

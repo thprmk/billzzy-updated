@@ -38,7 +38,7 @@ export async function POST() {
         // OR: [
         //   // Regular notification check
         //   {
-        //     mandateSeqNo: { gte: 1 },
+        //     mandateSeqNo: { gt: 1 },
         //     OR: [
         //       { notificationRetries: 0 },
         //       {
