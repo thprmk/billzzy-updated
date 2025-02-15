@@ -25,7 +25,7 @@ export async function POST() {
           }
         },
         status: 'ACTIVATED',
-        notified: true, // Only get unnotified mandates
+        notified: false, // Only get unnotified mandates
         OR: [
           // Regular notification check
           {
