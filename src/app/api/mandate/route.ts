@@ -151,8 +151,7 @@ export async function POST(request: Request) {
       }
     );
 
-    console.log(`${process.env.ICICI_API_BASE_URL}/CreateMandate`, "------", process.env.ICICI_API_KEY, "------", encryptedPayload
-    );
+   
 
 
     if (!response.ok) {

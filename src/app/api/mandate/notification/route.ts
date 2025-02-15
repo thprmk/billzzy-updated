@@ -13,17 +13,7 @@ export async function POST() {
 
     console.log('[Notification] Window:', { now, in48Hours });
 
-    // DEBUG: Fetch and log all organisations
-    const organisations = await prisma.organisation.findMany({});
-    console.log('[Notification] All Organisations:', organisations);
 
-    // Optionally, you can filter organisations that have an endDate within the notification window
-    const orgsInWindow = organisations.filter(org => {
-      if (!org.endDate) return false;
-      const endDate = new Date(org.endDate);
-      return endDate > now && endDate <= in48Hours;
-    });
-    console.log('[Notification] Organisations with endDate in window:', orgsInWindow);
 
     // Fetch pending notifications based on activeMandate and organisation conditions
     const pendingNotifications = await prisma.activeMandate.findMany({
@@ -82,7 +72,6 @@ export async function POST() {
             key: "UMN",
             value: mandate.UMN // Should be in format "<32 character>@<PSP Handle>"
           };
-          console.log('[Notification] Sending payload for mandate id:', mandate.id, notificationPayload);
 
 
           // await createNotification(
@@ -92,7 +81,6 @@ export async function POST() {
           // );
 
 
-          console.log('[Notification] Sending payload for mandate id:', mandate.organisationId, notificationPayload);
 
           const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(notificationPayload);
 
