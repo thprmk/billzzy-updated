@@ -75,7 +75,7 @@ export async function POST() {
             billNumber: `BILL_${Date.now()}`,
             remark: "Mandate execution request",
             retryCount: mandate.retryCount.toString(), // Required for recurring mandates
-            mandateSeqNo: (mandate.mandateSeqNo + 1).toString(), // Required for recurring mandates
+            mandateSeqNo: (mandate.mandateSeqNo).toString(), // Required for recurring mandates
             UMN: mandate.UMN, // Should be in format "<32 character>@<PSP Handle>"
             purpose: "RECURRING"
           };

@@ -77,7 +77,7 @@ export async function POST() {
             note: "Mandate notification",
             executionDate: format(mandate.organisation.endDate, 'dd/MM/yyyy HH:mm a'), // Format should match docs
             merchantTranId: `NOTIF_${Date.now()}_${mandate.organisationId}`,
-            mandateSeqNo: (mandate.mandateSeqNo + 1).toString(),
+            mandateSeqNo: (mandate.mandateSeqNo).toString(),
             key: "UMN",
             value: mandate.UMN // Should be in format "<32 character>@<PSP Handle>"
           };

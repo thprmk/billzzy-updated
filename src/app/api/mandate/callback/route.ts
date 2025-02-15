@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     }
 
     console.log('Decrypted callback:', callbackData);
-    
+
 
 
     if (callbackData.TxnStatus === 'REVOKE-SUCCESS') {
@@ -198,7 +198,7 @@ export async function POST(request: Request) {
               payerVA: callbackData.PayerVA,
               payerName: callbackData.PayerName,
               payerMobile: callbackData.PayerMobile,
-              mandateSeqNo: 1, // For new mandates
+              mandateSeqNo: 1, 
               retryCount: 0,
             },
             update: {
@@ -207,6 +207,9 @@ export async function POST(request: Request) {
               payerName: callbackData.PayerName,
               payerMobile: callbackData.PayerMobile,
               amount: parseFloat(callbackData.PayerAmount),
+              mandateSeqNo: {
+                increment: 1
+              },
               // Optionally reset retryCount on success
               retryCount: 0,
             },
