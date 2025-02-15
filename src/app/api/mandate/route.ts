@@ -77,19 +77,19 @@ export async function POST(request: Request) {
     }
 
     const collectByDate = addMinutes(today, 180);
-const validityEndDate = addYears(today, 12);
-// const nextMandateDate = addMonths(today, 1);
-const nextMandateDate = addDays(today, 1);
+    const validityEndDate = addYears(today, 12);
+    // const nextMandateDate = addMonths(today, 1);
+    const nextMandateDate = addDays(today, 1);
 
 
 
 
-console.log(nextMandateDate,"nextMandateDate");
+    console.log(nextMandateDate, "nextMandateDate");
 
-// Generate unique IDs with formatted timestamps
-const timestamp = format(today, 'yyyyMMddHHmmss');
-const merchantTranId = `MANDATE_${timestamp}`;
-const billNumber = `BILL_${timestamp}`;
+    // Generate unique IDs with formatted timestamps
+    const timestamp = format(today, 'yyyyMMddHHmmss');
+    const merchantTranId = `MANDATE_${timestamp}`;
+    const billNumber = `BILL_${timestamp}`;
 
 
 
@@ -129,7 +129,7 @@ const billNumber = `BILL_${timestamp}`;
 
     const encryptedPayload = {
       requestId: merchantTranId,
-      service: "CreateMandate", 
+      service: "CreateMandate",
       encryptedKey,
       oaepHashingAlgorithm: "NONE",
       iv,
@@ -151,7 +151,7 @@ const billNumber = `BILL_${timestamp}`;
       }
     );
 
-    console.log(`${process.env.ICICI_API_BASE_URL}/CreateMandate`,"------",process.env.ICICI_API_KEY,"------",encryptedPayload
+    console.log(`${process.env.ICICI_API_BASE_URL}/CreateMandate`, "------", process.env.ICICI_API_KEY, "------", encryptedPayload
     );
 
 
@@ -171,7 +171,7 @@ const billNumber = `BILL_${timestamp}`;
     const apiResponse = await response.json();
 
     console.log("apiResponse", apiResponse);
-    
+
 
     let decryptedResponse;
     if (apiResponse?.encryptedData && apiResponse?.encryptedKey) {
