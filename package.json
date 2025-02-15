@@ -37,7 +37,7 @@
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "dayjs": "^1.11.13",
-    "framer-motion": "^11.11.17",
+    "framer-motion": "^11.18.2",
     "jsbarcode": "^3.11.6",
     "jspdf": "^2.5.2",
     "lodash": "^4.17.21",
@@ -60,9 +60,10 @@
     "react-toastify": "^10.0.6",
     "recharts": "^2.13.3",
     "sweetalert2": "^11.15.10",
-    "swr": "^2.2.5",
+    "swr": "^2.3.2",
     "tailwind-merge": "^2.5.4",
     "uuid": "^11.0.4",
+    "winston": "^3.17.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {

@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { IciciCrypto } from '@/lib/iciciCrypto';
 import { generateRandomSixDigitNumber } from '@/lib/utils';
 import { addHours, format } from 'date-fns';
+import { createNotification } from '@/lib/utils/createNotification';
 
 export async function POST() {
   try {
@@ -34,29 +35,29 @@ export async function POST() {
           }
         },
         status: 'ACTIVATED',
-        notified: false, // Only get unnotified mandates
-        // OR: [
-        //   // Regular notification check
-        //   {
-        //     mandateSeqNo: { gt: 1 },
-        //     OR: [
-        //       { notificationRetries: 0 },
-        //       {
-        //         notificationRetries: { lt: 3 },
-        //         lastNotificationAttempt: {
-        //           lt: new Date(now.getTime() - 3600000)
-        //         }
-        //       }
-        //     ]
-        //   },
-        //   // Reset condition when retries reach 3
-        //   {
-        //     notificationRetries: 3,
-        //     lastNotificationAttempt: {
-        //       lt: new Date(now.getTime() - 3600000)
-        //     }
-        //   }
-        // ]
+        notified: true, // Only get unnotified mandates
+        OR: [
+          // Regular notification check
+          {
+            mandateSeqNo: { gt: 1 },
+            OR: [
+              { notificationRetries: 0 },
+              {
+                notificationRetries: { lt: 3 },
+                lastNotificationAttempt: {
+                  lt: new Date(now.getTime() - 3600000)
+                }
+              }
+            ]
+          },
+          // Reset condition when retries reach 3
+          {
+            notificationRetries: 3,
+            lastNotificationAttempt: {
+              lt: new Date(now.getTime() - 3600000)
+            }
+          }
+        ]
       },
       include: { organisation: true }
     });
@@ -81,9 +82,17 @@ export async function POST() {
             key: "UMN",
             value: mandate.UMN // Should be in format "<32 character>@<PSP Handle>"
           };
-
-
           console.log('[Notification] Sending payload for mandate id:', mandate.id, notificationPayload);
+
+
+          // await createNotification(
+          //   mandate.organisationId,
+          //   'MANDATE_EXECUTION_REMINDER',
+          //   `Your UPI mandate payment of ₹${mandate.amount} is scheduled for ${mandate.organisation.endDate.toLocaleDateString()}. Please ensure sufficient balance.`
+          // );
+
+
+          console.log('[Notification] Sending payload for mandate id:', mandate.organisationId, notificationPayload);
 
           const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(notificationPayload);
 
@@ -108,7 +117,7 @@ export async function POST() {
 
           const responseData = await response.json();
           console.log('[Notification] raw Response :', responseData);
-          
+
           const decryptedResponse = responseData?.encryptedData
             ? IciciCrypto.decrypt(responseData.encryptedData, responseData.encryptedKey, responseData.iv)
             : null;
@@ -129,6 +138,11 @@ export async function POST() {
                 lastNotificationAttempt: now
               }
             });
+            // await createNotification(
+            //   mandate.id,
+            //   'MANDATE_EXECUTION_REMINDER',
+            //   `Your UPI mandate payment of ₹${mandate.amount} is scheduled for ${mandate.organisation.endDate.toLocaleDateString()}. Please ensure sufficient balance.`
+            // );
             return {
               id: mandate.id,
               status: 'success',
@@ -228,7 +242,7 @@ export async function POST() {
     });
 
   } catch (error: any) {
-    console.error('[Notification] Critical error:', error);
+    console.error('[Notification] Critical error:', error.message);
     return NextResponse.json({
       success: false,
       error: error.message

@@ -7,6 +7,7 @@ import React from 'react';  // Add this import
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from "@vercel/analytics/react"
 import Footer from '@/components/policies/Footer';
+import { Notifications } from '@/components/Notifications';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -28,6 +29,8 @@ export default function RootLayout({
         <SessionProvider>
           <ToastContainer position="top-right" autoClose={5000} hideProgressBar />
           <SpeedInsights />
+          <Notifications />
+
           <Analytics/>
           <main className="flex-grow">
             {children}

@@ -44,16 +44,17 @@ model Organisation {
   monthlyUsage           Int       @default(0) // how many orders used in the current cycle
 
   // Relations
-  productCategories  ProductCategory[]
-  products           Product[]
-  sellers            Seller[]
-  transactions       TransactionRecord[]
-  customers          Customer[]
-  inventory          Inventory[]
-  CustomerSubmission CustomerSubmission[]
-  ShippingMethod     ShippingMethod[]
-  Mandate            Mandate[]
-  activeMandates     ActiveMandate?
+  productCategories   ProductCategory[]
+  products            Product[]
+  sellers             Seller[]
+  transactions        TransactionRecord[]
+  customers           Customer[]
+  inventory           Inventory[]
+  CustomerSubmission  CustomerSubmission[]
+  ShippingMethod      ShippingMethod[]
+  Mandate             Mandate[]
+  activeMandates      ActiveMandate?
+  MandateNotification MandateNotification[]
 
   @@index([resetToken])
   @@map("organisation")
@@ -296,4 +297,17 @@ model ActiveMandate {
   organisation Organisation @relation(fields: [organisationId], references: [id])
 
   @@map("active_mandates")
+}
+
+model MandateNotification {
+  id             Int      @id @default(autoincrement())
+  organisationId Int
+  type           String
+  message        String
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  @@index([organisationId])
+  @@map("mandate_notifications")
 }

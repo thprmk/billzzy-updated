@@ -284,7 +284,7 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
 
                 // Schedule a retry job if not already scheduled
                 if (!retryJobs.has(currentMandate.id)) {
-                    const job = cron.schedule('*/5 * * * *', async () => {
+                    const job = cron.schedule('0 * * * *', async () => {
                         const updatedMandate = await prisma.activeMandate.findUnique({
                             where: { organisationId: currentMandate.organisationId },
                             include: { organisation: true }

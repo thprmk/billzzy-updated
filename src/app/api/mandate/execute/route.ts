@@ -45,16 +45,16 @@ export async function POST() {
     // 1. Find mandates that need execution
     const pendingExecutions = await prisma.activeMandate.findMany({
       where: {
-        organisation: { endDate: { gte: now } },
+        organisation: { endDate: { lte: now } },
         status: 'ACTIVATED',
-        // notified: true,
-        // OR: [
-        //   { retryCount: 0 },
-        //   {
-        //     retryCount: { lte: 9 }, // up to 9 retries
-        //     lastAttemptAt: { lt: new Date(now.getTime() - 12 * 60 * 60 * 1000) }
-        //   }
-        // ]
+        notified: true,
+        lastAttemptAt: { lt: new Date(now.getTime() - 1 * 60 * 60 * 1000) },
+        OR: [
+          { retryCount: 0 },
+          {
+            retryCount: { lte: 9 }, // up to 9 retries
+          }
+        ]
       },
       include: { organisation: true }
     });
@@ -79,6 +79,9 @@ export async function POST() {
             UMN: mandate.UMN, // Should be in format "<32 character>@<PSP Handle>"
             purpose: "RECURRING"
           };
+
+          console.log('[Execute] Processing mandate:', mandate);
+          
 
           console.log('[Execute] Sending payload ', executePayload);
           
@@ -127,7 +130,7 @@ export async function POST() {
           if (!isSuccess) {
             console.log('[Execute] Failure or non-success:', decryptedResponse);
             // If 9th retry (or greater) => reset retry count and increment mandateSeqNo, else just increment retryCount.
-            if (mandate.retryCount >= 1) {
+            if (mandate.retryCount >= 9) {
               await prisma.activeMandate.update({
                 where: { id: mandate.id },
                 data: {
