@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     const collectByDate = addMinutes(today, 180);
     const validityEndDate = addYears(today, 12);
     // const nextMandateDate = addMonths(today, 1);
-    const nextMandateDate = addDays(today, 1);
+    const nextMandateDate = addDays(today, 2);
 
 
 
@@ -151,8 +151,7 @@ export async function POST(request: Request) {
       }
     );
 
-    console.log(`${process.env.ICICI_API_BASE_URL}/CreateMandate`, "------", process.env.ICICI_API_KEY, "------", encryptedPayload
-    );
+   
 
 
     if (!response.ok) {

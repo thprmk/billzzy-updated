@@ -449,7 +449,6 @@ export async function POST(request: Request) {
           } : null
         });
 
-        console.log("SMS message:", message);
       }
     } catch (smsError) {
       console.error('SMS sending failed:', smsError);

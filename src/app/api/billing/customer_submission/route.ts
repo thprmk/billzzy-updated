@@ -23,7 +23,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const parsedData = submissionSchema.safeParse(body);
-    console.log(body);
 
     if (!parsedData.success) {
       return NextResponse.json(
@@ -50,7 +49,6 @@ export async function POST(request: Request) {
       where: { token },
     });
 
-    console.log(submission);
 
     if (!submission) {
       return NextResponse.json({ error: 'Invalid or expired link' }, { status: 400 });

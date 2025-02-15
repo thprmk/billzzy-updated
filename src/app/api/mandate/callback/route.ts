@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { IciciCrypto } from '@/lib/iciciCrypto';
 import { executeMandate } from '@/lib/mandate-utils';
+import { createNotification } from '@/lib/utils/createNotification';
 
 interface MandateCallback {
   subMerchantId: string;
@@ -69,16 +70,21 @@ export async function POST(request: Request) {
 
     if (callbackData.TxnStatus === 'REVOKE-SUCCESS') {
       // Find the associated mandate to get organisationId
-      const revokedMandate = await prisma.mandate.findUnique({
-        where: { merchantTranId: callbackData.merchantTranId },
+      const revokedMandate = await prisma.mandate.findFirst({
+        where: { UMN: callbackData.UMN }
       });
-
+    
       if (!revokedMandate) {
         return NextResponse.json(
           { error: 'Mandate not found for revoke-success.' },
           { status: 404 }
         );
       }
+      await createNotification(
+        revokedMandate.organisationId,
+        'MANDATE_REVOKED',
+        'Your mandate has been successfully revoked. Subscription reverted to trial.'
+      );
 
       const organisationId = revokedMandate.organisationId;
       console.log('Revoke-Success for Org:', organisationId);
@@ -149,7 +155,11 @@ export async function POST(request: Request) {
       }
 
       console.log('Organisation ID:', organisationId);
-
+      await createNotification(
+        organisationId,
+        'MANDATE_EXECUTION',
+        'Monthly mandate payment of ₹499 was successfully executed.'
+      );
 
       if (isSuccess) {
         // Successful execute callback: upsert mandate, update activeMandate & organisation.
@@ -214,6 +224,8 @@ export async function POST(request: Request) {
               retryCount: 0,
             },
           }),
+
+          
 
           // 3) Update the organisation's subscriptionType to 'pro'
           prisma.organisation.update({
@@ -281,7 +293,7 @@ export async function POST(request: Request) {
       );
     }
 
-
+  
 
 
     // 4. Find the existing "INITIATED" Mandate by merchantTranId
@@ -294,6 +306,12 @@ export async function POST(request: Request) {
       console.log('Mandate not found:', callbackData.merchantTranId);
       return NextResponse.json({ error: "Mandate not found" }, { status: 404 });
     }
+
+    await createNotification(
+      mandate.organisationId,
+      'MANDATE_APPROVED',
+      'Your mandate has been successfully approved!'
+    );
 
     // 5. Update that existing Mandate with callback data (UMN, PayerName, etc.)
     await prisma.mandate.update({

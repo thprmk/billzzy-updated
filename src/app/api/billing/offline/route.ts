@@ -66,7 +66,6 @@ function getCurrentIndianDateTime() {
     
     // Format time as HH:mm:ss
     const indianTime = indianDateTime.format('HH:mm:ss');
-    console.log(indianDate,indianTime,"time and date");
   return {
     date:indianDate,
     time: indianTime
@@ -102,7 +101,6 @@ export async function POST(request: Request) {
 
     // Get current Indian date and time
     const { date, time } = getCurrentIndianDateTime();
-console.log(date,time,"time and date");
 
     // Add date and time to the transaction data
     const transactionData = {
@@ -168,7 +166,6 @@ console.log(date,time,"time and date");
       })),
     };
 
-    console.log('Serialized Response:', JSON.stringify(response));
 
     const serializableResponse = JSON.parse(JSON.stringify(response));
 

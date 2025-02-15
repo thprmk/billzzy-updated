@@ -60,7 +60,6 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { billId, trackingNumber, weight } = body;
-    console.log("data",body);
 
 
     if (!billId || !trackingNumber) {
@@ -86,7 +85,6 @@ export async function POST(request: Request) {
         organisation: true
       }
     });
-console.log(existingBill);
 
     if (!existingBill) {
       return NextResponse.json(
