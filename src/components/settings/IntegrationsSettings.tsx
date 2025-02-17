@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '@/components/ui/Button';
 import React from 'react';  
+import logo from "../../../public/images/razorpay.png";
+import Image from 'next/image';
 
 export function IntegrationsSettings({
   razorpayConnected,
@@ -50,7 +52,13 @@ export function IntegrationsSettings({
           <div className="flex items-center gap-4">
             <div className="bg-gray-100 p-3 rounded-lg">
               {/* Replace with actual Razorpay logo */}
-              <div className="w-8 h-8 bg-blue-600 rounded"></div>
+              <Image
+        src={logo}
+        alt="Razorpay Logo"
+        width={70}
+        height={0}
+        className="object-cover  h-9"
+      />
             </div>
             <div>
               <h3 className="font-medium">Razorpay Payments</h3>

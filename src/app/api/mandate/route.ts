@@ -78,13 +78,12 @@ export async function POST(request: Request) {
 
     const collectByDate = addMinutes(today, 180);
     const validityEndDate = addYears(today, 12);
-    // const nextMandateDate = addMonths(today, 1);
-    const nextMandateDate = addDays(today, 2);
+    const nextMandateDate = addMonths(today, 1);
+    // const nextMandateDate = addDays(today, 2);
 
 
 
 
-    console.log(nextMandateDate, "nextMandateDate");
 
     // Generate unique IDs with formatted timestamps
     const timestamp = format(today, 'yyyyMMddHHmmss');

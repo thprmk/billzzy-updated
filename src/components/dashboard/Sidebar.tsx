@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+// Icons
 import {
   HomeIcon,
   ShoppingBagIcon,
@@ -12,14 +13,15 @@ import {
   ChartBarIcon,
   ChevronDownIcon,
   ShareIcon,
-  ClipboardIcon,
   BellIcon,
 } from '@heroicons/react/24/outline';
-import useSWR from 'swr';
-import { differenceInCalendarDays, parseISO, isAfter } from 'date-fns';
-import { toast } from 'react-toastify';
-import EnhancedLogoutButton from '../ui/LogoutBtn';
 import { PackageIcon, PrinterIcon, Truck } from 'lucide-react';
+// Helpers
+import useSWR from 'swr';
+import { parseISO, differenceInCalendarDays, isAfter } from 'date-fns';
+import { toast } from 'react-toastify';
+// UI
+import EnhancedLogoutButton from '../ui/LogoutBtn';
 import RazorpayConnect from '../ui/RazorpayConnect';
 import { MandateModal } from '../mandate/MandateModal';
 
@@ -31,16 +33,11 @@ interface Organisation {
   endDate: string;
   subscriptionType: 'trial' | 'active' | 'pro';
   smsCount: number;
-  monthlyUsage?: number; // Add this field
+  monthlyUsage?: number;
 }
 
 interface GetOrganisationResponse {
   organisation: Organisation;
-}
-
-interface SharePopupProps {
-  isOpen: boolean;
-  onClose: () => void;
 }
 
 interface CustomerSubmission {
@@ -55,54 +52,64 @@ interface CustomerSubmission {
   };
 }
 
-// Hamburger Button Component
-const HamburgerButton = ({ onClick, isOpen }: { onClick: () => void; isOpen: boolean }) => (
-  <button
-    className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none"
-    onClick={onClick}
-  >
-    {isOpen ? (
-      <svg
-        className="h-10 w-10"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M6 18L18 6M6 6l12 12"
-        />
-      </svg>
-    ) : (
-      <svg
-        className="h-8 w-10"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M4 6h16M4 12h16M4 18h16"
-        />
-      </svg>
-    )}
-  </button>
-);
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error('Failed to fetch');
+    return res.json();
+  });
 
-const SharePopup = ({ isOpen, onClose }: SharePopupProps) => {
+// Navigation data
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+  {
+    name: 'Billing',
+    icon: DocumentTextIcon,
+    children: [
+      { name: 'Online Bills', href: '/billing/online' },
+      { name: 'Offline Bills', href: '/billing/offline' },
+    ],
+  },
+  {
+    name: 'Transactions',
+    icon: ChartBarIcon,
+    children: [
+      { name: 'Online', href: '/transactions/online' },
+      { name: 'Offline', href: '/transactions/offline' },
+    ],
+  },
+  { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
+  { name: 'Printing', href: '/printing', icon: PrinterIcon },
+  { name: 'Packing', href: '/packing', icon: PackageIcon },
+  { name: 'Tracking Number', href: '/tracking', icon: Truck },
+  {
+    name: 'Products',
+    icon: ShoppingBagIcon,
+    children: [
+      { name: 'Add Product', href: '/products/add' },
+      { name: 'Add Category', href: '/products/categories' },
+      { name: 'View Products', href: '/products/view' },
+    ],
+  },
+  { name: 'Customers', href: '/customers', icon: UsersIcon },
+  { name: 'Settings', href: '/settings', icon: CogIcon },
+  // { name: 'Mandate', href: '/mandate', icon: CogIcon },
+];
+
+// Simple share link popup
+function SharePopup({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [link, setLink] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      generateAndShareLink();
+    }
+  }, [isOpen]);
 
   const generateAndShareLink = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/billing/generateLink', {
-        method: 'POST',
-      });
+      const response = await fetch('/api/billing/generateLink', { method: 'POST' });
       const data = await response.json();
       setLink(data.link);
     } catch (error) {
@@ -123,12 +130,6 @@ const SharePopup = ({ isOpen, onClose }: SharePopupProps) => {
     window.open(whatsappUrl, '_blank');
     onClose();
   };
-
-  React.useEffect(() => {
-    if (isOpen) {
-      generateAndShareLink();
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -171,53 +172,7 @@ const SharePopup = ({ isOpen, onClose }: SharePopupProps) => {
       </div>
     </div>
   );
-};
-
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  {
-    name: 'Billing',
-    icon: DocumentTextIcon,
-    children: [
-      { name: 'Online Bills', href: '/billing/online' },
-      { name: 'Offline Bills', href: '/billing/offline' },
-    ],
-  },
-  {
-    name: 'Transactions',
-    icon: ChartBarIcon,
-    children: [
-      { name: 'Online', href: '/transactions/online' },
-      { name: 'Offline', href: '/transactions/offline' },
-    ],
-  },
-  { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
-  { name: 'Printing', href: '/printing', icon: PrinterIcon },
-  { name: 'Packing', href: '/packing', icon: PackageIcon },
-  { name: 'Tracking Number', href: '/tracking', icon: Truck },
-  {
-    name: 'Products',
-    icon: ShoppingBagIcon,
-    children: [
-      { name: 'Add Product', href: '/products/add' },
-      { name: 'Add Category', href: '/products/categories' },
-      { name: 'View Products', href: '/products/view' },
-    ],
-  },
-  { name: 'Customers', href: '/customers', icon: UsersIcon },
-  { name: 'Settings', href: '/settings', icon: CogIcon },
-  { name: 'Mandate', href: '/mandate', icon: CogIcon },
-];
-
-const fetcher = (url: string) =>
-  fetch(url)
-    .then((res) => {
-      if (!res.ok) throw new Error('Failed to fetch');
-      return res.json();
-    })
-    .catch((error) => {
-      throw error;
-    });
+}
 
 export default function Sidebar({
   isOpen,
@@ -228,31 +183,33 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+
   const [openItems, setOpenItems] = useState<{ [key: string]: boolean }>({});
   const [isSharePopupOpen, setIsSharePopupOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // For upgrade modal
+  // For "upgrade" or "mandate" modal
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  const toggleItem = (name: string) => {
-    setOpenItems((prev) => ({ ...prev, [name]: !prev[name] }));
-  };
-
-  // fetch org data
-  const { data, error, isLoading } = useSWR<GetOrganisationResponse>(
-    '/api/organisation',
-    fetcher
-  );
-
-  // fetch pending submissions
+  // Fetch organisation and submissions
+  const { data, error, isLoading } = useSWR<GetOrganisationResponse>('/api/organisation', fetcher);
   const { data: submissionsData } = useSWR<{ submissions: CustomerSubmission[] }>(
     '/api/billing/customer_submission?status=pending',
     fetcher,
     { refreshInterval: 30000 }
   );
-
   const pendingCount = submissionsData?.submissions?.length || 0;
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Toggle open/close for nested links
+  const toggleItem = (name: string) => {
+    setOpenItems((prev) => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  // Remaining days
   const remainingDays = useMemo(() => {
     if (data?.organisation?.endDate) {
       const endDate = parseISO(data.organisation.endDate);
@@ -263,48 +220,116 @@ export default function Sidebar({
     return 0;
   }, [data]);
 
-  if (isLoading) {
+  // If not mounted, don't render on SSR
+  if (!isMounted) return null;
+
+  // Optionally show a loading state if the user has opened the sidebar
+  if (isOpen && isLoading) {
     return (
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg flex flex-col justify-between">
-        <div className="flex items-center justify-center h-full">
+      <>
+        {/* Close button on right if sidebar is open */}
+        <button
+          className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none transition-transform duration-300 transform"
+          onClick={() => setIsOpen(false)}
+        >
+          <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div
+          className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out 
+            ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+            md:translate-x-0 flex flex-col justify-center items-center`}
+        >
           <p className="text-gray-500">Loading...</p>
         </div>
-      </div>
+      </>
     );
   }
 
-  if (error) {
+  // If there's an error and sidebar is open, show an error state
+  if (isOpen && error) {
     return (
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg flex flex-col justify-between">
-        <div className="flex items-center justify-center h-full">
-          <p className="text-red-500">Failed to load data.</p>
+      <>
+        {/* Close button on right if sidebar is open */}
+        <button
+          className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none transition-transform duration-300 transform"
+          onClick={() => setIsOpen(false)}
+        >
+          <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <div
+          className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out 
+            ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+            md:translate-x-0 flex flex-col justify-center items-center`}
+        >
+          <p className="text-red-500 mt-10">Failed to load data.</p>
         </div>
-      </div>
+      </>
     );
   }
 
-  const organisation = data?.organisation;
-  const usageLimit = 1;
-  const monthlyUsage = organisation?.monthlyUsage ?? 0;
-  const usageExceeded = monthlyUsage >= usageLimit;
-
+  // -----------------------------
+  //  HAMBURGER + CLOSE BUTTONS
+  // -----------------------------
   return (
     <>
-      <HamburgerButton onClick={() => setIsOpen(!isOpen)} isOpen={isOpen} />
+      {/* Hamburger (show only if sidebar is NOT open) */}
+      {!isOpen && (
+        <button
+          className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none transition-transform duration-300 transform"
+          onClick={() => setIsOpen(true)}
+        >
+          {/* Hamburger icon */}
+          <svg className="h-8 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
 
-      {/* Mobile overlay */}
-      <div
-        className={`fixed inset-0 z-40 bg-gray-600 bg-opacity-75 transition-opacity duration-300 md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        onClick={() => setIsOpen(false)}
-      />
+      {/* Close (show only if sidebar IS open, on the right) */}
+      {isOpen && (
+        <button
+          className="md:hidden fixed top-4 right-4 z-[99999] p-2 rounded-md text-gray-700   focus:outline-none transition-transform duration-300 transform"
+          onClick={() => setIsOpen(false)}
+        >
+          {/* Close icon */}
+          <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      )}
 
-      {/* Sidebar */}
+      {/* The semi-transparent overlay for mobile (click to close) */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-40 transition-opacity duration-300 md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* -------------------------------------- */}
+      {/* Actual Sidebar Panel with Slide-In/Out */}
+      {/* -------------------------------------- */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-all duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          } md:translate-x-0 flex flex-col justify-between`}
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg
+          transform transition-transform duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0 flex flex-col justify-between
+        `}
       >
         <div className="relative h-full overflow-y-auto">
+          {/* Header */}
           <div className="flex items-center justify-between h-16 px-4 bg-indigo-600">
             <h1 className="text-white text-2xl font-bold">Billzzy</h1>
             <div className="flex items-center space-x-4">
@@ -325,9 +350,11 @@ export default function Sidebar({
             </div>
           </div>
 
+          {/* Navigation */}
           <nav className="mt-5 px-2">
             {navigation.map((item) => {
               if (item.isShareButton) {
+                // "Share" special button
                 return (
                   <button
                     key={item.name}
@@ -340,45 +367,52 @@ export default function Sidebar({
                 );
               }
 
+              // Check if active
               const isActive =
                 pathname === item.href ||
                 item.children?.some((child) => pathname === child.href);
-              const isItemOpen = openItems[item.name];
 
+              // If has children (collapsible)
               if (item.children) {
+                const isItemOpen = openItems[item.name] || false;
                 return (
                   <div key={item.name} className="space-y-1">
                     <button
                       onClick={() => toggleItem(item.name)}
-                      className={`w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${isActive
+                      className={`w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${
+                        isActive
                           ? 'bg-indigo-100 text-indigo-900'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
+                      }`}
                     >
                       <div className="flex items-center">
                         <item.icon
-                          className={`mr-3 h-6 w-6 ${isActive
+                          className={`mr-3 h-6 w-6 ${
+                            isActive
                               ? 'text-indigo-600'
                               : 'text-gray-400 group-hover:text-gray-500'
-                            }`}
+                          }`}
                         />
                         {item.name}
                       </div>
                       <ChevronDownIcon
-                        className={`h-5 w-5 transform transition-transform ${isItemOpen ? 'rotate-180' : ''
-                          }`}
+                        className={`h-5 w-5 transform transition-transform ${
+                          isItemOpen ? 'rotate-180' : ''
+                        }`}
                       />
                     </button>
+
                     {isItemOpen && (
                       <div className="ml-8 space-y-1">
                         {item.children.map((child) => (
                           <Link
                             key={child.name}
                             href={child.href}
-                            className={`block px-2 py-2 text-sm rounded-md ${pathname === child.href
+                            className={`block px-2 py-2 text-sm rounded-md ${
+                              pathname === child.href
                                 ? 'text-indigo-600'
                                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                              }`}
+                            }`}
                             onClick={() => setIsOpen(false)}
                           >
                             {child.name}
@@ -390,21 +424,24 @@ export default function Sidebar({
                 );
               }
 
+              // Regular nav link
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${isActive
+                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                    isActive
                       ? 'bg-indigo-100 text-indigo-900'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }`}
+                  }`}
                   onClick={() => setIsOpen(false)}
                 >
                   <item.icon
-                    className={`mr-3 h-6 w-6 ${isActive
+                    className={`mr-3 h-6 w-6 ${
+                      isActive
                         ? 'text-indigo-600'
                         : 'text-gray-400 group-hover:text-gray-500'
-                      }`}
+                    }`}
                   />
                   {item.name}
                 </Link>
@@ -415,51 +452,66 @@ export default function Sidebar({
           <RazorpayConnect />
         </div>
 
+        {/* Footer (Logout + usage info, etc.) */}
         <div className="px-4 py-6 border-t border-gray-200">
-          {organisation ? (
-            <div className="space-y-8">
-
-              {/* Show usage if subscription not 'pro' */}
-              {organisation.subscriptionType !== 'pro' && (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-700">
-                    Monthly Usage: {monthlyUsage}/{usageLimit}
-                  </p>
-
-                  {usageExceeded ? (
-                    <div className="bg-yellow-50 border border-yellow-200 p-2 rounded text-yellow-700 text-sm">
-                      <p>Monthly limit reached. {' '}
-                        <button
-                          onClick={() => setShowUpgradeModal(true)}
-                          className="text-blue-600 hover:text-blue-800 underline"
-                        >
-                          Upgrade Now
-                        </button>
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-500">
-                      {usageLimit - monthlyUsage} orders remaining this month
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <EnhancedLogoutButton />
-            </div>
+          {data?.organisation ? (
+            <FooterSection
+              org={data.organisation}
+              setShowUpgradeModal={setShowUpgradeModal}
+            />
           ) : (
             <p className="text-gray-500">Not signed in</p>
           )}
         </div>
       </div>
 
+      {/* Share Modal */}
       <SharePopup isOpen={isSharePopupOpen} onClose={() => setIsSharePopupOpen(false)} />
-
-      {/* The Mandate (Upgrade) Modal */}
-      <MandateModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-      />
+      {/* Mandate Modal */}
+      <MandateModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
     </>
+  );
+}
+
+// A small sub-component for the footer usage
+function FooterSection({
+  org,
+  setShowUpgradeModal,
+}: {
+  org: Organisation;
+  setShowUpgradeModal: (val: boolean) => void;
+}) {
+  const usageLimit = 1;
+  const monthlyUsage = org.monthlyUsage ?? 0;
+  const usageExceeded = monthlyUsage >= usageLimit;
+
+  return (
+    <div className="space-y-8">
+      {org.subscriptionType !== 'pro' && (
+        <div className="space-y-2">
+          <p className="text-sm text-gray-700">
+            Monthly Usage: {monthlyUsage}/{usageLimit}
+          </p>
+          {usageExceeded ? (
+            <div className="bg-yellow-50 border border-yellow-200 p-2 rounded text-yellow-700 text-sm">
+              <p>
+                Monthly limit reached.{' '}
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="text-blue-600 hover:text-blue-800 underline"
+                >
+                  Upgrade Now
+                </button>
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500">
+              {usageLimit - monthlyUsage} orders remaining this month
+            </p>
+          )}
+        </div>
+      )}
+      <EnhancedLogoutButton />
+    </div>
   );
 }

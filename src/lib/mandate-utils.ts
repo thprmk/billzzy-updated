@@ -17,16 +17,26 @@ const retryJobs = new Map<number, cron.ScheduledTask>();
 
 /** Adds 1 month to the given date, clamping to the last valid day of the next month. */
 function addOneMonthClamped(date: Date): Date {
+    // Create a new Date object with the same date/time
     const newDate = new Date(date.getTime());
+  
+    // Remember the original day-of-month
     const currentDay = newDate.getDate();
+  
+    // Add one month
     newDate.setMonth(newDate.getMonth() + 1);
-    // If we overflowed (e.g. Jan 31 -> Mar 3), clamp to last day of next month
+  
+    // If we "overflow" (e.g. Jan 31 -> Mar 3),
+    // clamp to the last day of the *new* month.
     if (newDate.getDate() < currentDay) {
-        newDate.setDate(0);
+      // Setting .setDate(0) moves the date to the
+      // *last day of the previous month*, which is
+      // effectively the correct "clamped" date.
+      newDate.setDate(0);
     }
+  
     return newDate;
-}
-
+  }
 export async function executeMandate(mandate: any, UMN: string, retryCount: number = 0) {
     try {
         // 1. Fetch fresh activeMandate data
