@@ -4,12 +4,24 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
 function addOneMonthClamped(date: Date): Date {
+  // Create a new Date object with the same date/time
   const newDate = new Date(date.getTime());
+
+  // Remember the original day-of-month
   const currentDay = newDate.getDate();
+
+  // Add one month
   newDate.setMonth(newDate.getMonth() + 1);
+
+  // If we "overflow" (e.g. Jan 31 -> Mar 3),
+  // clamp to the last day of the *new* month.
   if (newDate.getDate() < currentDay) {
+    // Setting .setDate(0) moves the date to the
+    // *last day of the previous month*, which is
+    // effectively the correct "clamped" date.
     newDate.setDate(0);
   }
+
   return newDate;
 }
 

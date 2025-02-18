@@ -24,7 +24,7 @@ export default function DashboardLayout({
           user={session?.user}
         /> */}
         
-        <main className="flex-1 md:ml-[15rem] relative z-0 md:overflow-y-auto  pb-6 px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 md:ml-[15rem] relative z-0 md:overflow-y-auto  pb-6 px-2 sm:px-6 lg:px-8">
           {children}
         </main>
       </div>

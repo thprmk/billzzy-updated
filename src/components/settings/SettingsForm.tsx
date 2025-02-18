@@ -30,14 +30,14 @@ export default function SettingsForm({ initialData }: { initialData: ExtendedOrg
   >('shop');
 
   return (
-    <div className="min-h-screen bg-gray-50 place-content-center md:p-4">
+    <div className="min-h-screen bg-gray-50  md:p-4">
       <div className="max-w-[1280px] min-h-[90vh] mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="flex flex-col md:flex-row">
+        <div className="flex flex-col min-h-[100vh] md:flex-row">
           {/* Left side: Tabs */}
           <SettingsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Right side: Content Area */}
-          <div className="flex-1 p-6 md:p-4">
+          <div className="flex-1 min-h-[90vh] p-4 md:p-4">
             {activeTab === 'shop' && (
               <ShopSettings initialData={initialData} onSuccess={() => router.refresh()} />
             )}

@@ -15,7 +15,7 @@ interface ShippingMethod {
   minAmount?: number;
   useWeight: boolean;
   ratePerKg?: number;
-  fixedRate?: number; // Added for fixed rate
+  fixedRate?: number;
   isActive: boolean;
 }
 
@@ -98,16 +98,18 @@ export function ShippingSettings() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="bg-white p-6 rounded-lg border">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-medium">Current Shipping Methods</h3>
-          <Button onClick={addNewMethod}>Add New Method</Button>
+    <div className="space-y-8 md:p-6">
+      <div className="bg-white rounded-lg border">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 md:p-6 border-b">
+          <h3 className="text-lg font-medium mb-4 md:mb-0">Current Shipping Methods</h3>
+          <Button onClick={addNewMethod} className="w-full md:w-auto">
+            Add New Method
+          </Button>
         </div>
 
         <div className="divide-y">
           {methods.map((method, index) => (
-            <div key={index} className="py-4">
+            <div key={index} className="p-4 md:p-6">
               {isEditing === index ? (
                 <div className="space-y-4">
                   <Input
@@ -127,16 +129,14 @@ export function ShippingSettings() {
                       const updated = [...methods];
                       updated[index] = { 
                         ...method, 
-                        type: e.target.value as ShippingMethod['type']
+                        type: e.target.value as ShippingMethod['type'],
+                        useWeight: false,
+                        ratePerKg: undefined,
+                        fixedRate: undefined
                       };
-                      // Reset fields if type changes
-                      if (e.target.value === 'FREE_SHIPPING') {
-                        updated[index].useWeight = false;
-                        updated[index].ratePerKg = undefined;
-                        updated[index].fixedRate = undefined;
-                      }
                       setMethods(updated);
                     }}
+                    className="w-full"
                   >
                     <option value="FREE_SHIPPING">Free Shipping</option>
                     <option value="COURIER_PARTNER">Courier Partner</option>
@@ -160,22 +160,22 @@ export function ShippingSettings() {
 
                   {method.type === 'COURIER_PARTNER' && (
                     <>
-                      <Switch
-                        label="Use Weight-based Pricing"
-                        checked={method.useWeight}
-                        onChange={(checked) => {
-                          const updated = [...methods];
-                          updated[index] = { 
-                            ...method, 
-                            useWeight: checked,
-                            // If switching to weight-based, clear fixedRate
-                            // If switching off weight-based, clear ratePerKg
-                            ratePerKg: checked ? method.ratePerKg : undefined,
-                            fixedRate: checked ? undefined : method.fixedRate
-                          };
-                          setMethods(updated);
-                        }}
-                      />
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={method.useWeight}
+                          onChange={(checked) => {
+                            const updated = [...methods];
+                            updated[index] = { 
+                              ...method, 
+                              useWeight: checked,
+                              ratePerKg: checked ? method.ratePerKg : undefined,
+                              fixedRate: checked ? undefined : method.fixedRate
+                            };
+                            setMethods(updated);
+                          }}
+                        />
+                        <span>Use Weight-based Pricing</span>
+                      </div>
 
                       {method.useWeight ? (
                         <Input
@@ -209,36 +209,40 @@ export function ShippingSettings() {
                     </>
                   )}
 
-                  <Switch
-                    label="Active"
-                    checked={method.isActive}
-                    onChange={(checked) => {
-                      const updated = [...methods];
-                      updated[index] = { ...method, isActive: checked };
-                      setMethods(updated);
-                    }}
-                  />
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={method.isActive}
+                      onChange={(checked) => {
+                        const updated = [...methods];
+                        updated[index] = { ...method, isActive: checked };
+                        setMethods(updated);
+                      }}
+                    />
+                    <span>Active</span>
+                  </div>
 
-                  <div className="flex justify-end space-x-4">
+                  <div className="flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-4 pt-4">
                     <Button
                       variant="secondary"
                       onClick={() => setIsEditing(null)}
+                      className="w-full md:w-auto"
                     >
                       Cancel
                     </Button>
                     <Button
                       onClick={() => handleMethodSave(method, index)}
                       isLoading={isLoading}
+                      className="w-full md:w-auto"
                     >
                       Save Method
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex justify-between items-center">
-                  <div>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
+                  <div className="w-full md:w-auto">
                     <h4 className="font-medium">{method.name}</h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 mt-1">
                       {method.type === 'FREE_SHIPPING' ? (
                         method.minAmount
                           ? `Free shipping for orders above ₹${method.minAmount}`
@@ -249,29 +253,35 @@ export function ShippingSettings() {
                       }
                     </p>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <Switch
-                      checked={method.isActive}
-                      onChange={(checked) => {
-                        const updated = [...methods];
-                        updated[index] = { ...method, isActive: checked };
-                        setMethods(updated);
-                        handleMethodSave(updated[index], index);
-                      }}
-                      label="Active"
-                    />
-                    <Button
-                      variant="secondary"
-                      onClick={() => setIsEditing(index)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={() => method.id && handleMethodDelete(method.id)}
-                    >
-                      Delete
-                    </Button>
+                  <div className="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4 w-full md:w-auto">
+                    <div className="flex items-center space-x-2 w-full md:w-auto">
+                      <Switch
+                        checked={method.isActive}
+                        onChange={(checked) => {
+                          const updated = [...methods];
+                          updated[index] = { ...method, isActive: checked };
+                          setMethods(updated);
+                          handleMethodSave(updated[index], index);
+                        }}
+                      />
+                      <span>Active</span>
+                    </div>
+                    <div className="flex space-x-2 w-full md:w-auto">
+                      <Button
+                        variant="secondary"
+                        onClick={() => setIsEditing(index)}
+                        className="flex-1 md:flex-none"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => method.id && handleMethodDelete(method.id)}
+                        className="flex-1 md:flex-none"
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}

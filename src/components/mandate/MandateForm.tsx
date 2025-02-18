@@ -91,7 +91,7 @@ export function MandateForm() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-xl border border-gray-100">
+    <div className="max-w-md mx-auto mt-8 p-4 bg-white rounded-lg shadow-xl border border-gray-100">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Create UPI Mandate</h2>
 
       {showMobilePrompt && (
