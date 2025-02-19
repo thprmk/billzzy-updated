@@ -1,8 +1,12 @@
+// app/settings/page.tsx
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import SettingsForm from '@/components/settings/SettingsForm';
+
+
+export const revalidate = 0; 
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -45,7 +49,6 @@ export default async function SettingsPage() {
     ]);
   }
 
-  // Pass everything into the client component
   return (
     <SettingsForm
       initialData={{

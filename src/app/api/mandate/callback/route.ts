@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { IciciCrypto } from '@/lib/iciciCrypto';
 import { executeMandate } from '@/lib/mandate-utils';
 import { createNotification } from '@/lib/utils/createNotification';
+import { revalidatePath } from 'next/cache';  // <-- import from next/cache
 
 interface MandateCallback {
   subMerchantId: string;
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
         callbackData.TxnStatus === 'SUCCESS' &&
         callbackData.RespCodeDescription === 'APPROVED OR COMPLETED SUCCESSFULLY';
       const finalStatus = "ACTIVATED";
-
+      revalidatePath('/settings');
       // Determine organisationId either by extracting it (for EXEC_ payloads)
       // or by looking up via the UMN field (for ICI payloads).
       let organisationId: number;
