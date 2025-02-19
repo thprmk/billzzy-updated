@@ -57,9 +57,9 @@ export default function LoginForm() {
       }
     } catch (error) {
       setError('An error occurred during login');
+      
     } finally {
       setIsLoading(false);
-      toast.success('Login Successful');
     }
   }
 
