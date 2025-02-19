@@ -116,9 +116,9 @@ export default function ViewProductsPage() {
   if (isLoading||!products) return <div className='h-[100vh] w-[100%]  flex items-center justify-center'><LoadingSpinner/></div>;
 
   return (
-    <div className="space-y-6 mt-8">
+    <div className="space-y-6 md:mt-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Products</h1>
+        <h1 className="text-2xl hidden md:block font-bold">Products</h1>
         <div className="flex space-x-4">
           <Link href="/products/add">
             <Button>Add Product</Button>

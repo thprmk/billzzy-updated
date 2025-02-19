@@ -1,9 +1,10 @@
+// components/dashboard/Sidebar.tsx
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-// Icons
+
 import {
   HomeIcon,
   ShoppingBagIcon,
@@ -16,15 +17,18 @@ import {
   BellIcon,
 } from '@heroicons/react/24/outline';
 import { PackageIcon, PrinterIcon, Truck } from 'lucide-react';
-// Helpers
+
 import useSWR from 'swr';
 import { parseISO, differenceInCalendarDays, isAfter } from 'date-fns';
 import { toast } from 'react-toastify';
-// UI
+
 import EnhancedLogoutButton from '../ui/LogoutBtn';
 import RazorpayConnect from '../ui/RazorpayConnect';
 import { MandateModal } from '../mandate/MandateModal';
 
+// ---------------------------------
+// Types
+// ---------------------------------
 interface Organisation {
   id: number;
   email: string;
@@ -52,13 +56,18 @@ interface CustomerSubmission {
   };
 }
 
+// ---------------------------------
+// Fetcher
+// ---------------------------------
 const fetcher = (url: string) =>
   fetch(url).then((res) => {
     if (!res.ok) throw new Error('Failed to fetch');
     return res.json();
   });
 
-// Navigation data
+// ---------------------------------
+// Navigation
+// ---------------------------------
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   {
@@ -78,7 +87,7 @@ const navigation = [
     ],
   },
   { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
-  { name: 'Printing', href: '/printing', icon: PrinterIcon },
+  { name: 'printing', href: '/printing', icon: PrinterIcon },
   { name: 'Packing', href: '/packing', icon: PackageIcon },
   { name: 'Tracking Number', href: '/tracking', icon: Truck },
   {
@@ -92,13 +101,20 @@ const navigation = [
   },
   { name: 'Customers', href: '/customers', icon: UsersIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
-  // { name: 'Mandate', href: '/mandate', icon: CogIcon },
 ];
 
-// Simple share link popup
-function SharePopup({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [link, setLink] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
+// ---------------------------------
+// Share Popup
+// ---------------------------------
+function SharePopup({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const [link, setLink] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -174,6 +190,9 @@ function SharePopup({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
   );
 }
 
+// ---------------------------------
+// Sidebar Component
+// ---------------------------------
 export default function Sidebar({
   isOpen,
   setIsOpen,
@@ -188,11 +207,15 @@ export default function Sidebar({
   const [isSharePopupOpen, setIsSharePopupOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
-  // For "upgrade" or "mandate" modal
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  // Fetch organisation and submissions
-  const { data, error, isLoading } = useSWR<GetOrganisationResponse>('/api/organisation', fetcher);
+  // Fetch org and submissions
+  const { data, error, isLoading } = useSWR<GetOrganisationResponse>(
+    '/api/organisation',
+    fetcher,
+    { refreshInterval: 30000 }
+
+  );
   const { data: submissionsData } = useSWR<{ submissions: CustomerSubmission[] }>(
     '/api/billing/customer_submission?status=pending',
     fetcher,
@@ -204,12 +227,12 @@ export default function Sidebar({
     setIsMounted(true);
   }, []);
 
-  // Toggle open/close for nested links
+  // Toggle a parent nav item
   const toggleItem = (name: string) => {
     setOpenItems((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
-  // Remaining days
+  // Calculate remaining days (optional usage)
   const remainingDays = useMemo(() => {
     if (data?.organisation?.endDate) {
       const endDate = parseISO(data.organisation.endDate);
@@ -220,27 +243,36 @@ export default function Sidebar({
     return 0;
   }, [data]);
 
-  // If not mounted, don't render on SSR
+  // 1) If not mounted (SSR), return null
   if (!isMounted) return null;
 
-  // Optionally show a loading state if the user has opened the sidebar
+  // 2) Show a loading screen if sidebar is open & data is still loading
   if (isOpen && isLoading) {
     return (
       <>
-        {/* Close button on right if sidebar is open */}
+        {/* Close button in top-right (mobile only) */}
         <button
-          className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none transition-transform duration-300 transform"
+          className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-500 
+                     hover:text-gray-600 hover:bg-gray-100 focus:outline-none 
+                     transition-transform duration-300 transform"
           onClick={() => setIsOpen(false)}
         >
+          {/* X icon */}
           <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M6 18L18 6M6 6l12 12" 
+            />
           </svg>
         </button>
 
         <div
-          className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out 
-            ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-            md:translate-x-0 flex flex-col justify-center items-center`}
+          className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg
+                      transform transition-transform duration-300 ease-in-out
+                      ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+                      md:translate-x-0 flex flex-col justify-center items-center`}
         >
           <p className="text-gray-500">Loading...</p>
         </div>
@@ -248,24 +280,31 @@ export default function Sidebar({
     );
   }
 
-  // If there's an error and sidebar is open, show an error state
+  // 3) Show an error if sidebar is open & data fetch fails
   if (isOpen && error) {
     return (
       <>
-        {/* Close button on right if sidebar is open */}
         <button
-          className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none transition-transform duration-300 transform"
+          className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-500 
+                     hover:text-gray-600 hover:bg-gray-100 focus:outline-none 
+                     transition-transform duration-300 transform"
           onClick={() => setIsOpen(false)}
         >
           <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M6 18L18 6M6 6l12 12" 
+            />
           </svg>
         </button>
 
         <div
-          className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out 
-            ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-            md:translate-x-0 flex flex-col justify-center items-center`}
+          className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg
+                      transform transition-transform duration-300 ease-in-out
+                      ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+                      md:translate-x-0 flex flex-col justify-center items-center`}
         >
           <p className="text-red-500 mt-10">Failed to load data.</p>
         </div>
@@ -273,53 +312,22 @@ export default function Sidebar({
     );
   }
 
-  // -----------------------------
-  //  HAMBURGER + CLOSE BUTTONS
-  // -----------------------------
+  // 4) Otherwise, normal sidebar rendering
   return (
     <>
-      {/* Hamburger (show only if sidebar is NOT open) */}
-      {!isOpen && (
-        <button
-          className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none transition-transform duration-300 transform"
-          onClick={() => setIsOpen(true)}
-        >
-          {/* Hamburger icon */}
-          <svg className="h-8 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      )}
-
-      {/* Close (show only if sidebar IS open, on the right) */}
-      {isOpen && (
-        <button
-          className="md:hidden fixed top-4 right-4 z-[99999] p-2 rounded-md text-gray-700   focus:outline-none transition-transform duration-300 transform"
-          onClick={() => setIsOpen(false)}
-        >
-          {/* Close icon */}
-          <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      )}
-
-      {/* The semi-transparent overlay for mobile (click to close) */}
+      {/* 
+        You can optionally place an overlay behind the sidebar 
+        for mobile, to close when clicked:
+      */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-40 transition-opacity duration-300 md:hidden"
+          className="fixed inset-0 z-40 bg-black bg-opacity-40 
+                     transition-opacity duration-300 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* -------------------------------------- */}
-      {/* Actual Sidebar Panel with Slide-In/Out */}
-      {/* -------------------------------------- */}
+      {/* The actual sidebar panel */}
       <div
         className={`
           fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg
@@ -329,20 +337,25 @@ export default function Sidebar({
         `}
       >
         <div className="relative h-full overflow-y-auto">
-          {/* Header */}
+          {/* Sidebar header area */}
           <div className="flex items-center justify-between h-16 px-4 bg-indigo-600">
             <h1 className="text-white text-2xl font-bold">Billzzy</h1>
             <div className="flex items-center space-x-4">
               <button
                 className="relative text-white focus:outline-none"
                 onClick={() => {
+                  // close sidebar & navigate to pendingBills
                   setIsOpen(false);
                   router.push('/billing/pendingBills');
                 }}
               >
                 <BellIcon className="h-6 w-6" />
                 {pendingCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
+                  <span className="absolute top-0 right-0 inline-flex items-center 
+                                   justify-center px-1 py-0.5 text-xs font-bold 
+                                   leading-none text-white transform 
+                                   translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full"
+                  >
                     {pendingCount}
                   </span>
                 )}
@@ -350,7 +363,7 @@ export default function Sidebar({
             </div>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation menu */}
           <nav className="mt-5 px-2">
             {navigation.map((item) => {
               if (item.isShareButton) {
@@ -359,27 +372,31 @@ export default function Sidebar({
                   <button
                     key={item.name}
                     onClick={() => setIsSharePopupOpen(true)}
-                    className="w-full group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    className="w-full group flex items-center px-2 py-2 text-sm 
+                               font-medium rounded-md text-gray-600 
+                               hover:bg-gray-50 hover:text-gray-900"
                   >
-                    <item.icon className="mr-3 h-6 w-6 text-gray-400 group-hover:text-gray-500" />
+                    <item.icon 
+                      className="mr-3 h-6 w-6 text-gray-400 group-hover:text-gray-500" 
+                    />
                     {item.name}
                   </button>
                 );
               }
 
-              // Check if active
               const isActive =
                 pathname === item.href ||
                 item.children?.some((child) => pathname === child.href);
 
-              // If has children (collapsible)
+              // If has nested children
               if (item.children) {
                 const isItemOpen = openItems[item.name] || false;
                 return (
                   <div key={item.name} className="space-y-1">
                     <button
                       onClick={() => toggleItem(item.name)}
-                      className={`w-full group flex items-center justify-between px-2 py-2 text-sm font-medium rounded-md ${
+                      className={`w-full group flex items-center justify-between 
+                                  px-2 py-2 text-sm font-medium rounded-md ${
                         isActive
                           ? 'bg-indigo-100 text-indigo-900'
                           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -402,6 +419,7 @@ export default function Sidebar({
                       />
                     </button>
 
+                    {/* Child links */}
                     {isItemOpen && (
                       <div className="ml-8 space-y-1">
                         {item.children.map((child) => (
@@ -424,16 +442,18 @@ export default function Sidebar({
                 );
               }
 
-              // Regular nav link
+              // Simple item
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                  className={`group flex items-center px-2 py-2 text-sm font-medium 
+                              rounded-md ${
                     isActive
                       ? 'bg-indigo-100 text-indigo-900'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
+                  // Close sidebar on mobile link click
                   onClick={() => setIsOpen(false)}
                 >
                   <item.icon
@@ -449,10 +469,11 @@ export default function Sidebar({
             })}
           </nav>
 
+          {/* Example extra UI (RazorpayConnect) */}
           <RazorpayConnect />
         </div>
 
-        {/* Footer (Logout + usage info, etc.) */}
+        {/* Footer area (org usage, etc.) */}
         <div className="px-4 py-6 border-t border-gray-200">
           {data?.organisation ? (
             <FooterSection
@@ -466,14 +487,23 @@ export default function Sidebar({
       </div>
 
       {/* Share Modal */}
-      <SharePopup isOpen={isSharePopupOpen} onClose={() => setIsSharePopupOpen(false)} />
-      {/* Mandate Modal */}
-      <MandateModal isOpen={showUpgradeModal} onClose={() => setShowUpgradeModal(false)} />
+      <SharePopup 
+        isOpen={isSharePopupOpen} 
+        onClose={() => setIsSharePopupOpen(false)} 
+      />
+
+      {/* Mandate / Upgrade Modal */}
+      <MandateModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </>
   );
 }
 
-// A small sub-component for the footer usage
+// ---------------------------------
+// Footer sub-component
+// ---------------------------------
 function FooterSection({
   org,
   setShowUpgradeModal,
@@ -481,36 +511,48 @@ function FooterSection({
   org: Organisation;
   setShowUpgradeModal: (val: boolean) => void;
 }) {
-  const usageLimit = 1;
+  const usageLimit = 50;
   const monthlyUsage = org.monthlyUsage ?? 0;
   const usageExceeded = monthlyUsage >= usageLimit;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {org.subscriptionType !== 'pro' && (
-        <div className="space-y-2">
-          <p className="text-sm text-gray-700">
-            Monthly Usage: {monthlyUsage}/{usageLimit}
-          </p>
-          {usageExceeded ? (
-            <div className="bg-yellow-50 border border-yellow-200 p-2 rounded text-yellow-700 text-sm">
-              <p>
-                Monthly limit reached.{' '}
-                <button
-                  onClick={() => setShowUpgradeModal(true)}
-                  className="text-blue-600 hover:text-blue-800 underline"
-                >
-                  Upgrade Now
-                </button>
+        <div className="space-y-4">
+          <div className="flex flex-col justify-between ">
+            <div>
+              <p className="text-sm text-gray-700">
+                Monthly Usage: {monthlyUsage}/{usageLimit}
               </p>
+              {usageExceeded ? (
+                <div className="mt-2 bg-yellow-50 border border-yellow-200 p-2 rounded text-yellow-700 text-sm">
+                  <p>Monthly limit reached</p>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  {usageLimit - monthlyUsage} orders remaining this month
+                </p>
+              )}
             </div>
-          ) : (
-            <p className="text-xs text-gray-500">
-              {usageLimit - monthlyUsage} orders remaining this month
-            </p>
-          )}
+            <button
+  onClick={() => setShowUpgradeModal(true)}
+  className={`
+    px-2 py-1 rounded-lg mt-4 text-sm font-medium
+    transition-all duration-200 ease-in-out
+    flex items-center gap-1 text-[11.8px] justify-center
+    ${usageExceeded 
+      ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border border-yellow-300'
+      : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'}
+  `}
+>
+  {usageExceeded 
+    ? 'Upgrade for unlimited bills →'
+    : 'Switch to unlimited bills'}
+</button>
+          </div>
         </div>
       )}
+
       <EnhancedLogoutButton />
     </div>
   );
