@@ -3,27 +3,26 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import Swal from 'sweetalert2';
-import { FaSpinner, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { FaSpinner, FaCheckCircle, FaExclamationCircle, FaInfoCircle } from 'react-icons/fa';
 import React from 'react';
 
-interface MandateFormData {
+interface AutoPayFormData {
   payerVa: string;
 }
 
-interface MandateModalProps {
+interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-/** A reusable popup for entering the UPI ID and creating the mandate. */
-export function MandateModal({ isOpen, onClose }: MandateModalProps) {
+export function MandateModal({ isOpen, onClose }: UpgradeModalProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<MandateFormData>();
+  const { register, handleSubmit, formState: { errors } } = useForm<AutoPayFormData>();
 
-  const onSubmit = async (data: MandateFormData) => {
+  const onSubmit = async (data: AutoPayFormData) => {
     try {
       setLoading(true);
       setError(null);
@@ -36,31 +35,40 @@ export function MandateModal({ isOpen, onClose }: MandateModalProps) {
 
       const result = await response.json();
       if (!result.success) {
-        throw new Error(result.error || 'Failed to create mandate');
+        throw new Error(result.error || 'Failed to set up subscription');
       }
 
       setSuccess(true);
       Swal.fire({
         icon: 'success',
-        title: 'Success!',
-        text: 'Mandate created successfully! Please approve it in your UPI app.',
+        title: 'Almost there!',
+        html: `
+          <div class="space-y-4">
+            <p>Follow these quick steps:</p>
+            <ol class="text-left pl-4">
+              <li>1. Check your UPI app notifications</li>
+              <li>2. Tap on the payment request</li>
+              <li>3. Confirm using your UPI PIN</li>
+            </ol>
+            <p class="text-sm text-gray-600 mt-2">Your Pro features will be activated instantly!</p>
+          </div>
+        `,
         showConfirmButton: true,
-        timer: 5000,
+        timer: 90000,
         timerProgressBar: true,
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to create mandate. Please try again.');
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Don't render if isOpen is false
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white p-6 rounded-md shadow-md relative max-w-md w-full">
+      <div className="bg-white p-6 rounded-lg shadow-xl relative max-w-md w-full">
         <button
           className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
           onClick={onClose}
@@ -68,21 +76,46 @@ export function MandateModal({ isOpen, onClose }: MandateModalProps) {
           ✕
         </button>
         
-        <h2 className="text-2xl font-bold mb-4">Upgrade to Pro</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Enter your UPI ID to create a subscription mandate.
-        </p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Unlock Pro Features</h2>
+            <p className="text-sm text-gray-600 mt-1">Just ₹499/month - Cancel anytime</p>
+          </div>
+          <button
+            onClick={() => {
+              Swal.fire({
+                title: 'About Pro Subscription',
+                html: `
+                  <div class="text-left">
+                    <p class="font-medium mb-2">What you'll get:</p>
+                    <ul class="list-disc pl-4 space-y-2">
+                      <li>Unlimited bills & invoices</li>
+                      <li>Priority customer support</li>
+                      <li>Advanced analytics</li>
+                      <li>Custom branding options</li>
+                    </ul>
+                    <p class="mt-4 text-sm text-gray-600">Secure payments powered by UPI</p>
+                  </div>
+                `,
+                icon: 'info'
+              });
+            }}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <FaInfoCircle size={20} />
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <label htmlFor="payerVa" className="block text-sm font-medium text-gray-700 mb-2">
-              UPI ID (VPA)
+              Your UPI ID
             </label>
             <input
               type="text"
               id="payerVa"
               {...register('payerVa', {
-                required: 'UPI ID is required',
+                required: 'Please enter your UPI ID',
                 pattern: {
                   value: /^[\w.\-]+@[a-zA-Z]+/,
                   message: 'Please enter a valid UPI ID (e.g., example@upi)',
@@ -103,6 +136,15 @@ export function MandateModal({ isOpen, onClose }: MandateModalProps) {
             )}
           </div>
 
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium text-gray-700 mb-2">Subscription Details</h4>
+            <div className="space-y-2 text-sm text-gray-600">
+              <p>• Monthly payment: ₹499</p>
+              <p>• Auto-renews monthly</p>
+              <p>• Cancel anytime</p>
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={loading || success}
@@ -116,14 +158,14 @@ export function MandateModal({ isOpen, onClose }: MandateModalProps) {
           >
             {loading ? (
               <>
-                <FaSpinner className="animate-spin mr-2" /> Creating...
+                <FaSpinner className="animate-spin mr-2" /> Processing...
               </>
             ) : success ? (
               <>
-                <FaCheckCircle className="mr-2" /> Mandate Created!
+                <FaCheckCircle className="mr-2" /> Check UPI App
               </>
             ) : (
-              'Create Mandate'
+              'Start Pro Subscription'
             )}
           </button>
 

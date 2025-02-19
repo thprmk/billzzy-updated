@@ -1,3 +1,4 @@
+// components/admin/AdminTable.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -14,21 +15,22 @@ interface AdminDashboardProps {
   organisations: OrganisationWithRemainingDays[];
 }
 
-const AdminDashboard = ({ organisations }: AdminDashboardProps) => {
+export default function AdminDashboard({ organisations }: AdminDashboardProps) {
   const [orgs, setOrgs] = useState(organisations);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
-  const [isExtending, setIsExtending] = useState<number | null>(null);
   const router = useRouter();
 
+  // Helper to format a date
   const formatDate = (date: Date | string | null) => {
     if (!date) return 'N/A';
     try {
       return format(new Date(date), 'dd/MM/yyyy');
-    } catch (error) {
+    } catch {
       return 'Invalid Date';
     }
   };
 
+  // Delete an org (and related data)
   const deleteOrganisation = async (id: number) => {
     try {
       const result = await Swal.fire({
@@ -45,82 +47,23 @@ const AdminDashboard = ({ organisations }: AdminDashboardProps) => {
         setIsDeleting(id);
         const response = await fetch('/api/admin/deleteOrganisation', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id }),
         });
 
         if (response.ok) {
-          setOrgs(orgs.filter((org) => org.id !== id));
-          Swal.fire(
-            'Deleted!',
-            'Organisation has been deleted.',
-            'success'
-          );
+          // remove from local state
+          setOrgs((prev) => prev.filter((org) => org.id !== id));
+          Swal.fire('Deleted!', 'Organisation has been deleted.', 'success');
           router.refresh();
         } else {
           throw new Error('Failed to delete organisation');
         }
       }
     } catch (error) {
-      Swal.fire(
-        'Error!',
-        'Failed to delete organisation.',
-        'error'
-      );
+      Swal.fire('Error!', 'Failed to delete organisation.', 'error');
     } finally {
       setIsDeleting(null);
-    }
-  };
-
-  const extendSubscription = async (id: number) => {
-    try {
-      const result = await Swal.fire({
-        title: 'Extend Subscription',
-        text: 'Do you want to extend the subscription by 30 days?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Yes, extend it!'
-      });
-
-      if (result.isConfirmed) {
-        setIsExtending(id);
-        const response = await fetch('/api/admin/extendSubscription', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ id, days: 30 }),
-        });
-
-        if (response.ok) {
-          const updatedOrg = await response.json();
-          setOrgs(orgs.map(org => 
-            org.id === id 
-              ? { ...org, endDate: updatedOrg.endDate, remainingDays: updatedOrg.remainingDays }
-              : org
-          ));
-          Swal.fire(
-            'Extended!',
-            'Subscription has been extended.',
-            'success'
-          );
-          router.refresh();
-        } else {
-          throw new Error('Failed to extend subscription');
-        }
-      }
-    } catch (error) {
-      Swal.fire(
-        'Error!',
-        'Failed to extend subscription.',
-        'error'
-      );
-    } finally {
-      setIsExtending(null);
     }
   };
 
@@ -131,10 +74,16 @@ const AdminDashboard = ({ organisations }: AdminDashboardProps) => {
       <table className="min-w-full bg-white border border-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="py-3 px-4 border-b text-left">Organisation Name</th>
-            <th className="py-3 px-4 border-b text-left">Email</th>
-            <th className="py-3 px-4 border-b text-left">Mobile No</th>
-            <th className="py-3 px-4 border-b text-left">SMS Amt</th>
+            <th className="py-3 px-4 border-b text-left">ID</th>
+            <th className="py-3 px-4 border-b text-left">Phone</th>
+            <th className="py-3 px-4 border-b text-left">Name</th>
+            <th className="py-3 px-4 border-b text-left">Company Size</th>
+            <th className="py-3 px-4 border-b text-left">Shop Name</th>
+            <th className="py-3 px-4 border-b text-left">District</th>
+            <th className="py-3 px-4 border-b text-left">State</th>
+            <th className="py-3 px-4 border-b text-left">SMS Count</th>
+            <th className="py-3 px-4 border-b text-left">Subscription</th>
+            <th className="py-3 px-4 border-b text-left">Monthly Usage</th>
             <th className="py-3 px-4 border-b text-left">End Date</th>
             <th className="py-3 px-4 border-b text-left">Remaining Days</th>
             <th className="py-3 px-4 border-b text-left">Actions</th>
@@ -143,28 +92,35 @@ const AdminDashboard = ({ organisations }: AdminDashboardProps) => {
         <tbody>
           {orgs.map((org) => (
             <tr key={org.id} className="hover:bg-gray-50">
+              <td className="py-3 px-4 border-b">{org.id}</td>
+              <td className="py-3 px-4 border-b">{org.phone}</td>
               <td className="py-3 px-4 border-b">{org.name}</td>
-              <td className="py-3 px-4 border-b">{org.email}</td>
-              <td className="py-3 px-4 border-b">{org.mobileNumber}</td>
-              <td className="py-3 px-4 border-b">Rs.{(org.smsCount * 0.30).toFixed(2)}</td>
+              <td className="py-3 px-4 border-b">{org.companySize}</td>
+              <td className="py-3 px-4 border-b">{org.shopName}</td>
+              <td className="py-3 px-4 border-b">{org.district}</td>
+              <td className="py-3 px-4 border-b">{org.state}</td>
+              <td className="py-3 px-4 border-b">{org.smsCount}</td>
+              <td className="py-3 px-4 border-b">{org.subscriptionType}</td>
+              <td className="py-3 px-4 border-b">{org.monthlyUsage}</td>
               <td className="py-3 px-4 border-b">{formatDate(org.endDate)}</td>
               <td className="py-3 px-4 border-b">{org.remainingDays}</td>
               <td className="py-3 px-4 border-b">
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
+                  {/* View Mandate Button */}
                   <button
-                    onClick={() => extendSubscription(org.id)}
-                    disabled={isExtending === org.id}
-                    className={`bg-blue-500 text-white px-3 py-1 rounded-md ${
-                      isExtending === org.id ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'
-                    }`}
+                    onClick={() => router.push(`/admin/${org.id}`)}
+                    className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
                   >
-                    {isExtending === org.id ? 'Extending...' : 'Extend for 30'}
+                    View Mandate
                   </button>
+                  {/* Delete Button */}
                   <button
                     onClick={() => deleteOrganisation(org.id)}
                     disabled={isDeleting === org.id}
-                    className={`bg-red-500 text-white px-3 py-1 rounded-md ${
-                      isDeleting === org.id ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'
+                    className={`bg-red-500 text-white px-3 py-1 rounded ${
+                      isDeleting === org.id
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-red-600'
                     }`}
                   >
                     {isDeleting === org.id ? 'Deleting...' : 'Delete'}
@@ -177,6 +133,4 @@ const AdminDashboard = ({ organisations }: AdminDashboardProps) => {
       </table>
     </div>
   );
-};
-
-export default AdminDashboard;
+}
