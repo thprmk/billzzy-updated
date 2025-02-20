@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import Swal from 'sweetalert2';
 import { FaSpinner, FaCheckCircle, FaExclamationCircle, FaInfoCircle } from 'react-icons/fa';
-import React from 'react';
+import useSWR from 'swr';
 
 interface AutoPayFormData {
   payerVa: string;
@@ -15,12 +15,29 @@ interface UpgradeModalProps {
   onClose: () => void;
 }
 
+// A simple fetcher function for SWR
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export function MandateModal({ isOpen, onClose }: UpgradeModalProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<AutoPayFormData>();
+
+  const { data } = useSWR('/api/organisation', fetcher, {
+    revalidateOnFocus: true,
+    refreshInterval: 10000, 
+  });
+  const subscriptionType = data?.organisation.subscriptionType
+  
+
+
+  useEffect(() => {
+    if (subscriptionType && subscriptionType === 'pro') {
+      onClose();
+    }
+  }, [data, onClose]);
 
   const onSubmit = async (data: AutoPayFormData) => {
     try {
@@ -50,7 +67,7 @@ export function MandateModal({ isOpen, onClose }: UpgradeModalProps) {
               <li>2. Tap on the payment request</li>
               <li>3. Confirm using your UPI PIN</li>
             </ol>
-            <p class="text-sm text-gray-600 mt-2">Your Pro features will be activated instantly!</p>
+            <p class="text-sm text-gray-600 mt-2">Your Pro features will be activated instantly once we receive confirmation.</p>
           </div>
         `,
         showConfirmButton: true,

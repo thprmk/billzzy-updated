@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { IciciCrypto } from '@/lib/iciciCrypto';
 import cron from 'node-cron';
 import { generateRandomSixDigitNumber } from './utils';
+import { revalidatePath } from 'next/cache';
 
 interface DecryptedResponse {
     success: string;
@@ -191,6 +192,7 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
                 ]);
 
                 console.log('[Execute] Success - Updated records and reset retryCount');
+
                 return true;
             } catch (dbError) {
                 console.error('[Execute] Database update failed:', dbError);
@@ -312,5 +314,7 @@ export async function executeMandate(mandate: any, UMN: string, retryCount: numb
     } catch (error) {
         console.error('[Execute] Critical error:', error);
         return false;
+    }finally{
+        revalidatePath('/settings');
     }
 }
