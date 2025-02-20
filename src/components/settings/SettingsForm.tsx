@@ -10,6 +10,7 @@ import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings
 import React from 'react';
 import type { OrganisationDetails } from '@/types/settings';
 import BillingTab from '../mandate/BillingTab';
+import { WhatsAppSettings } from './WhatsappSettings';
 
 
 interface ExtendedOrganisationDetails extends OrganisationDetails {
