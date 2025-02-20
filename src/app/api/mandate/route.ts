@@ -40,8 +40,6 @@ interface MandateRequest {
   purpose: string;
   validatePayerAccFlag?: string;
 }
-const session = await getServerSession(authOptions);
-const organisationId = session?.user?.id;
 
 export async function POST(request: Request) {
   try {
@@ -251,7 +249,7 @@ export async function POST(request: Request) {
     }, { status: 500 });
 
   } catch (error) {
-    console.log("error ", error.message);
+    console.log("error", error);
 
     return NextResponse.json(
 
