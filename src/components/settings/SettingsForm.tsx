@@ -7,11 +7,10 @@ import { ShopSettings } from '@/components/settings/ShopSettings';
 import { PasswordSettings } from '@/components/settings/PasswordSettings';
 import { ShippingSettings } from '@/components/settings/ShippingSettings';
 import { IntegrationsSettings } from '@/components/settings/IntegrationsSettings';
-import React from 'react';  
+import React from 'react';
 import type { OrganisationDetails } from '@/types/settings';
-import { WhatsAppSettings } from './WhatsappSettings';
-import { MandateForm } from '@/components/mandate/MandateForm';
-import { MandateHistory } from '@/components/mandate/MandateHistory';
+import BillingTab from '../mandate/BillingTab';
+
 
 interface ExtendedOrganisationDetails extends OrganisationDetails {
   subscriptionType?: string;
@@ -23,14 +22,13 @@ export default function SettingsForm({ initialData }: { initialData: ExtendedOrg
   const router = useRouter();
 
   console.log(initialData.endDate);
-  
 
   const [activeTab, setActiveTab] = useState<
     'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'billing'
   >('shop');
 
   return (
-    <div className="min-h-screen bg-gray-50  md:p-4">
+    <div className="min-h-screen bg-gray-50 md:p-4">
       <div className="max-w-[1280px] min-h-[90vh] mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="flex flex-col min-h-[100vh] md:flex-row">
           {/* Left side: Tabs */}
@@ -41,30 +39,25 @@ export default function SettingsForm({ initialData }: { initialData: ExtendedOrg
             {activeTab === 'shop' && (
               <ShopSettings initialData={initialData} onSuccess={() => router.refresh()} />
             )}
-
             {activeTab === 'password' && (
               <PasswordSettings onSuccess={() => router.refresh()} />
             )}
-
             {activeTab === 'shipping' && <ShippingSettings />}
-
             {activeTab === 'whatsapp' && (
               <WhatsAppSettings
                 initialNumber={initialData.whatsappNumber || ''}
                 onSuccess={() => router.refresh()}
               />
             )}
-
             {activeTab === 'integrations' && (
               <IntegrationsSettings
                 razorpayConnected={!!initialData.razorpayAccessToken}
                 onRazorpayUpdate={() => router.refresh()}
               />
             )}
-
             {activeTab === 'billing' && (
               <BillingTab
-                subscriptionType={initialData.subscriptionType}
+                initialSubscriptionType={initialData.subscriptionType}
                 mandates={initialData.mandates}
                 endDate={initialData.endDate}
                 activeMandate={initialData.activeMandate}
@@ -75,22 +68,4 @@ export default function SettingsForm({ initialData }: { initialData: ExtendedOrg
       </div>
     </div>
   );
-}
-
-/** A small helper sub-component for Billing tab */
-function BillingTab({
-  subscriptionType,
-  mandates,
-  endDate,
-  activeMandate
-}: {
-  subscriptionType?: string;
-  mandates?: any[];
-  activeMandate?: any;
-}) {
-  if (subscriptionType === 'trial') {
-    return <MandateForm />;
-  }
-  // subscriptionType = 'pro' or something else
-  return <MandateHistory mandates={mandates} activeMandate={activeMandate} endDate={endDate} />;
 }

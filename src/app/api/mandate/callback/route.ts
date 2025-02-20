@@ -70,8 +70,8 @@ export async function POST(request: Request) {
 
 
     if (callbackData.TxnStatus === 'REVOKE-SUCCESS') {
-      // Find the associated mandate to get organisationId
-      const revokedMandate = await prisma.mandate.findFirst({
+      // Find an associated mandate to get the organisationId (using UMN)
+      const revokedMandate = await prisma.activeMandate.findFirst({
         where: { UMN: callbackData.UMN }
       });
     
@@ -81,41 +81,50 @@ export async function POST(request: Request) {
           { status: 404 }
         );
       }
+    
+      const organisationId = revokedMandate.organisationId;
+    
+      // Send a notification about the revocation
       await createNotification(
-        revokedMandate.organisationId,
+        organisationId,
         'MANDATE_REVOKED',
         'Your mandate has been successfully revoked. Subscription reverted to trial.'
       );
-
-      const organisationId = revokedMandate.organisationId;
+    
       console.log('Revoke-Success for Org:', organisationId);
-
+    
       // Calculate next month's date for the trial endDate
       const nextMonthDate = new Date();
       nextMonthDate.setMonth(nextMonthDate.getMonth() + 1); // +1 month
-
-      // Run a transaction to update both ActiveMandate and Organisation
+    
+      // Run a transaction to delete all mandate records for this organisation,
+      // delete the active mandate, and update the organisation.
       await prisma.$transaction([
-        prisma.activeMandate.update({
-          where: { organisationId },
-          data: {
-            status: 'REVOKED',
-          },
+        // Delete all mandate records associated with the organisation
+        prisma.mandate.deleteMany({
+          where: { organisationId }
         }),
+        // Delete the active mandate record (organisationId is unique here)
+        prisma.activeMandate.delete({
+          where: { organisationId }
+        }),
+        // Update the organisation's subscription and endDate
         prisma.organisation.update({
           where: { id: organisationId },
           data: {
             subscriptionType: 'trial',
-            endDate: nextMonthDate, // The schema stores it in UTC
-          },
-        }),
+            endDate: nextMonthDate // The schema stores it in UTC
+          }
+        })
       ]);
 
+    
       return NextResponse.json({
         success: true,
-        message: 'Mandate revoked successfully; subscription reverted to trial.',
+        message: 'Mandate revoked successfully; all mandate records deleted and subscription reverted to trial.',
       });
     }
+    
 
     // ----- Execute Mandate Callback Handling -----
     if (isExecuteCallback(callbackData.merchantTranId)) {
@@ -130,6 +139,7 @@ export async function POST(request: Request) {
         callbackData.RespCodeDescription === 'APPROVED OR COMPLETED SUCCESSFULLY';
       const finalStatus = "ACTIVATED";
       revalidatePath('/settings');
+
       // Determine organisationId either by extracting it (for EXEC_ payloads)
       // or by looking up via the UMN field (for ICI payloads).
       let organisationId: number;
@@ -143,8 +153,8 @@ export async function POST(request: Request) {
         organisationId = parseInt(parts[2], 10);
       } else if (callbackData.merchantTranId.startsWith('ICI')) {
         // For ICI callbacks, look up the mandate by the UMN field
-        const mandate = await prisma.mandate.findFirst({
-          where: { UMN: callbackData.UMN }
+        const mandate = await prisma.activeMandate.findFirst({
+          where: { UMN: '' }
         });
         if (!mandate) {
           throw new Error(`Mandate not found for UMN: ${callbackData.UMN}`);
@@ -273,6 +283,7 @@ export async function POST(request: Request) {
             });
           }
         }
+
         console.log('Execute callback processed as failure (retry count increased):', callbackData);
         return NextResponse.json({
           success: true,
@@ -282,6 +293,7 @@ export async function POST(request: Request) {
     }
 
     console.log('Decrypted callback:', callbackData);
+
 
     // ----- End Execute Mandate Callback Handling -----
 
@@ -350,6 +362,8 @@ export async function POST(request: Request) {
       }
     });
 
+
+
     if (activeMandate.mandateSeqNo === 1) {
       const success = await executeMandate(mandate, callbackData.UMN);
       console.log(
@@ -365,7 +379,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error("Callback Error:", error);
+    console.error("Callback Error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
