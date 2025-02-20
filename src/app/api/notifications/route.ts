@@ -33,29 +33,30 @@ export async function GET(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
+
+
+export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { notificationId } = await request.json();
+    const { notificationId } = await request.json(); // parse body for notificationId
+    const organisationId = parseInt(session.user.id, 10);
 
-    await prisma.mandateNotification.update({
+    // Attempt to delete the notification
+    await prisma.mandateNotification.deleteMany({
       where: {
         id: notificationId,
-        organisationId: parseInt(session.user.id)
-      },
-      data: {
-        isRead: true
+        organisationId
       }
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
-      { error: 'Failed to update notification' },
+      { error: 'Failed to delete notification' },
       { status: 500 }
     );
   }

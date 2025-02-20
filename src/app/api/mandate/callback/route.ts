@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       await createNotification(
         organisationId,
         'MANDATE_REVOKED',
-        'Your mandate has been successfully revoked. Subscription reverted to trial.'
+        'Your auto-pay has been successfully revoked. Subscription reverted to trial.'
       );
     
       console.log('Revoke-Success for Org:', organisationId);
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
       await createNotification(
         organisationId,
         'MANDATE_EXECUTION',
-        'Monthly mandate payment of ₹499 was successfully executed.'
+        'Monthly payment of ₹499 was debited.'
       );
 
       if (isSuccess) {
@@ -323,7 +323,7 @@ export async function POST(request: Request) {
     await createNotification(
       mandate.organisationId,
       'MANDATE_APPROVED',
-      'Your mandate has been successfully approved!'
+      'Your auto-pay has been successfully approved!'
     );
 
     // 5. Update that existing Mandate with callback data (UMN, PayerName, etc.)

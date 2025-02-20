@@ -1,9 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import useSWR from 'swr';
-import { AnimatePresence, motion } from 'framer-motion';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import Swal from 'sweetalert2';
 
 interface MandateNotification {
   id: number;
@@ -12,69 +11,65 @@ interface MandateNotification {
   createdAt: string;
 }
 
-export function Notifications() {
-  const fetcher = (url: string) =>
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch');
-        return res.json();
-      })
-      .catch((error) => {
-        throw error;
-      });
+// A simple fetcher function for SWR
+const fetcher = (url: string) =>
+  fetch(url)
+    .then((res) => {
+      if (!res.ok) throw new Error('Failed to fetch');
+      return res.json();
+    })
+    .catch((error) => {
+      throw error;
+    });
 
+export function Notifications() {
+  // Fetch unread notifications
   const { data, mutate } = useSWR<{ notifications: MandateNotification[] }>(
     '/api/notifications?status=unread',
     fetcher,
     {
-      refreshInterval: 30000,
+      refreshInterval: 30000, // poll every 30s
     }
   );
 
-  if (!data || data.notifications.length === 0) return null;
+  useEffect(() => {
+    if (!data || !data.notifications || data.notifications.length === 0) {
+      return;
+    }
 
-  const markAsRead = async (notificationId: number) => {
-    await fetch('/api/notifications', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notificationId }),
+    // For this example, let's just show the first unread notification
+    const firstNotification = data.notifications[0];
+
+    Swal.fire({
+      icon: 'info',
+      title: 'New Notification',
+      html: `
+        <div class="text-left">
+          <p>${firstNotification.message}</p>
+          <p class="mt-2 text-sm text-gray-500">Received: 
+            ${new Date(firstNotification.createdAt).toLocaleString()}
+          </p>
+        </div>
+      `,
+      confirmButtonText: 'OK', 
+      // Single button
+      allowOutsideClick: false,
+      allowEscapeKey: false
+    }).then(async () => {
+      // When user clicks OK, delete this notification from the server
+      try {
+        await fetch('/api/notifications', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId: firstNotification.id }),
+        });
+        // Revalidate our unread notifications list
+        mutate();
+      } catch (err) {
+        console.error('Failed to delete notification:', err);
+      }
     });
-    mutate(); // Refresh the notifications
-  };
+  }, [data, mutate]);
 
-  return (
-    <div className="fixed top-4 right-4 z-50 w-80 max-w-full">
-      <AnimatePresence>
-        {data.notifications.map((notification) => (
-          <motion.div
-            key={notification.id}
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.4 }}
-            className="mb-3 rounded-md bg-white p-4 shadow-lg border border-blue-100"
-          >
-            <div className="flex items-start justify-between">
-              <div className="pr-2">
-                <p className="font-semibold text-gray-800 text-sm sm:text-base">
-                  {notification.message}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {new Date(notification.createdAt).toLocaleString()}
-                </p>
-              </div>
-
-              <button
-                onClick={() => markAsRead(notification.id)}
-                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-                aria-label="Mark as read"
-              >
-                <XMarkIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
-  );
+  return null; // No visible UI element; everything handled in the effect
 }
