@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Select } from '../ui/Select';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import React from 'react';  // Add this import
+import React from 'react';
 
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
@@ -107,11 +107,6 @@ export default function RegisterForm() {
       return false;
     }
 
-    // if (!formData.companySize) {
-    //   toast.error('Please select your company size');
-    //   return false;
-    // }
-
     if (!acceptedTerms) {
       toast.error('Please accept the terms and conditions');
       return false;
@@ -163,32 +158,34 @@ export default function RegisterForm() {
     visible: { opacity: 1, x: 0 }
   };
 
-  // Previous code remains same until return statement
-
   return (
-    <div className="max-h-screen w-[500px]">
-      <div className="relative w-full mx-auto  md:p-0">
-        <div className="bg-white/80  backdrop-blur-lg rounded-2xl shadow-xl  md:p-8">
+    <div className="w-full max-w-[500px] mx-auto px-4 sm:px-6 md:px-0">
+      <div className="relative w-full">
+        <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl p-4 sm:p-6 md:p-8">
           {/* Progress Bar */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">
                 {step === 1 ? 'Account Details' : 'Business Information'}
               </h2>
-              <span className="text-sm text-gray-500">Step {step} of 2</span>
+              <span className="text-xs sm:text-sm text-gray-500">Step {step} of 2</span>
             </div>
-
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: step === 1 ? '50%' : '100%' }}
+              ></div>
+            </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-            {/* Previous form content with grid adjustments */}
+          <form onSubmit={handleSubmit} className="space-y-4">
             <motion.div
               initial="hidden"
               animate="visible"
               variants={formVariants}
               transition={{ duration: 0.5 }}
-            // className="max-h-[calc(100vh-250px)] "
+              className="overflow-y-auto max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-220px)]"
             >
               {/* Error Message */}
               {error && (
@@ -198,9 +195,9 @@ export default function RegisterForm() {
               )}
 
               {step === 1 && (
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="space-y-1 sm:space-y-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Full Name
                     </label>
                     <Input
@@ -210,11 +207,11 @@ export default function RegisterForm() {
                       value={formData.name}
                       onChange={handleInputChange}
                       required
-                      className="w-full"
+                      className="w-full text-sm"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="space-y-1 sm:space-y-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Email
                     </label>
                     <Input
@@ -224,12 +221,12 @@ export default function RegisterForm() {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="w-full"
+                      className="w-full text-sm"
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="space-y-1 sm:space-y-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Password
                     </label>
                     <div className="relative">
@@ -240,7 +237,7 @@ export default function RegisterForm() {
                         value={formData.password}
                         onChange={handleInputChange}
                         required
-                        className="w-full pr-10"
+                        className="w-full pr-10 text-sm"
                         minLength={8}
                       />
                       <button
@@ -248,7 +245,7 @@ export default function RegisterForm() {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
-                        {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
+                        {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
                       </button>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
@@ -256,10 +253,8 @@ export default function RegisterForm() {
                     </p>
                   </div>
 
-
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="space-y-1 sm:space-y-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Phone Number
                     </label>
                     <Input
@@ -270,29 +265,9 @@ export default function RegisterForm() {
                       onChange={handleInputChange}
                       pattern="[0-9]{10}"
                       required
-                      className="w-full"
+                      className="w-full text-sm"
                     />
                   </div>
-
-                  {/* <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Company Size
-                </label>
-                <Select
-                  name="companySize"
-                  value={formData.companySize}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full"
-                >
-                  <option value="">Select company size</option>
-                  {COMPANY_SIZES.map(size => (
-                    <option key={size.value} value={size.value}>
-                      {size.label}
-                    </option>
-                  ))}
-                </Select>
-              </div> */}
 
                   <div className="flex items-center space-x-2">
                     <input
@@ -302,7 +277,7 @@ export default function RegisterForm() {
                       onChange={(e) => setAcceptedTerms(e.target.checked)}
                       className="rounded border-gray-300"
                     />
-                    <label htmlFor="terms" className="text-sm text-gray-600">
+                    <label htmlFor="terms" className="text-xs sm:text-sm text-gray-600">
                       I accept the{' '}
                       <button
                         type="button"
@@ -313,17 +288,15 @@ export default function RegisterForm() {
                       </button>
                     </label>
                   </div>
-
-
                 </div>
               )}
 
               {/* Step 2 Content */}
               {step === 2 && (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                   {/* Shop Details Section */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Shop Name
                     </label>
                     <Input
@@ -333,13 +306,13 @@ export default function RegisterForm() {
                       value={formData.shopName}
                       onChange={handleInputChange}
                       required
-                      className="w-full"
+                      className="w-full text-sm"
                     />
                   </div>
 
                   {/* Address Section */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Flat/Shop No
                     </label>
                     <Input
@@ -349,11 +322,12 @@ export default function RegisterForm() {
                       value={formData.flatNo}
                       onChange={handleInputChange}
                       required
+                      className="text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Street
                     </label>
                     <Input
@@ -363,12 +337,13 @@ export default function RegisterForm() {
                       value={formData.street}
                       onChange={handleInputChange}
                       required
+                      className="text-sm"
                     />
                   </div>
 
                   {/* Pincode Section */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Pincode
                     </label>
                     <Input
@@ -380,12 +355,13 @@ export default function RegisterForm() {
                       maxLength={6}
                       pattern="[0-9]{6}"
                       required
+                      className="text-sm"
                     />
                   </div>
 
                   {/* Auto-filled Fields */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       City
                     </label>
                     <Input
@@ -395,12 +371,12 @@ export default function RegisterForm() {
                       onChange={handleInputChange}
                       required
                       disabled
-                      className="bg-gray-50"
+                      className="bg-gray-50 text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       District
                     </label>
                     <Input
@@ -410,12 +386,12 @@ export default function RegisterForm() {
                       onChange={handleInputChange}
                       required
                       disabled
-                      className="bg-gray-50"
+                      className="bg-gray-50 text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       State
                     </label>
                     <Input
@@ -425,12 +401,12 @@ export default function RegisterForm() {
                       onChange={handleInputChange}
                       required
                       disabled
-                      className="bg-gray-50"
+                      className="bg-gray-50 text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Country
                     </label>
                     <Input
@@ -438,17 +414,13 @@ export default function RegisterForm() {
                       name="country"
                       value={formData.country}
                       disabled
-                      className="bg-gray-50"
+                      className="bg-gray-50 text-sm"
                     />
                   </div>
 
-                  {/* Contact Details */}
-
-
-
                   {/* Optional Fields */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       Website (Optional)
                     </label>
                     <Input
@@ -457,11 +429,12 @@ export default function RegisterForm() {
                       placeholder="https://your-website.com"
                       value={formData.websiteAddress}
                       onChange={handleInputChange}
+                      className="text-sm"
                     />
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700">
                       GST Number (Optional)
                     </label>
                     <Input
@@ -470,6 +443,7 @@ export default function RegisterForm() {
                       placeholder="GST number"
                       value={formData.gstNumber}
                       onChange={handleInputChange}
+                      className="text-sm"
                     />
                   </div>
                 </div>
@@ -477,13 +451,13 @@ export default function RegisterForm() {
             </motion.div>
 
             {/* Buttons */}
-            <div className="flex justify-between space-x-4 mt-6">
+            <div className="flex justify-between space-x-3 sm:space-x-4 mt-4 sm:mt-6">
               {step === 2 && (
                 <Button
                   type="button"
                   onClick={() => setStep(1)}
                   variant="outline"
-                  className="w-full"
+                  className="w-full text-sm"
                 >
                   Back
                 </Button>
@@ -492,7 +466,7 @@ export default function RegisterForm() {
                 type={step === 1 ? "button" : "submit"}
                 onClick={step === 1 ? handleNextStep : undefined}
                 isLoading={isLoading}
-                className="w-full"
+                className="w-full text-sm"
               >
                 {step === 1 ? 'Next Step' : 'Complete Registration'}
               </Button>
@@ -519,4 +493,4 @@ export default function RegisterForm() {
       />
     </div>
   );
-};
+}
