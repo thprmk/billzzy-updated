@@ -149,42 +149,57 @@ export default function OnlineBillPage() {
       toast.error('Please enter customer details.');
       return;
     }
-
+  
     if (items.length === 0) {
       setError('Please add at least one item.');
       toast.error('Please add at least one item.');
       return;
     }
-
-    // If there are no shipping methods at all, it's implicitly free
+  
     if (shippingMethods.length > 0 && !selectedShippingId) {
       setError('Please select a shipping method.');
       toast.error('Please select a shipping method.');
       return;
     }
-
+  
     setIsLoading(true);
     setError(null);
-
+  
     try {
       let customerId = customer.id;
-
-      if (!customer.id) {
+  
+      if (customer.id) {
+        // 1) Existing customer -> Update
+        const updateCustomerResponse = await fetch(`/api/customers/${customer.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(customer),
+        });
+        if (!updateCustomerResponse.ok) {
+          const errData = await updateCustomerResponse.json();
+          throw new Error(errData.message || 'Failed to update customer');
+        }
+  
+        // Keep the same ID after update
+        customerId = customer.id;
+      } else {
+        // 2) New customer -> Create
         const createCustomerResponse = await fetch('/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(customer),
         });
-
+  
         const createCustomerData = await createCustomerResponse.json();
-
+  
         if (!createCustomerResponse.ok) {
           throw new Error(createCustomerData.message || 'Failed to create customer');
         }
-
+  
         customerId = createCustomerData.id;
       }
-
+  
+      // 3) Create the online bill
       const response = await fetch('/api/billing/online', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -194,27 +209,26 @@ export default function OnlineBillPage() {
           billingMode: 'online',
           notes: notes.trim() || null,
           shippingMethodId: shippingMethods.length === 0 ? null : selectedShippingId,
-        })
+        }),
       });
-
+  
       const data = await response.json();
-
+  
       if (response.status === 403) {
-        // We assume the server returned JSON like { success: false, message, nextResetDate }
         setLimitReached(true);
-        setNextResetDate(data.nextResetDate); // might be an ISO date
+        setNextResetDate(data.nextResetDate);
         setIsLoading(false);
-        return; // don't proceed
+        return;
       }
-
+  
       if (!response.ok) {
         throw new Error(data.details || 'Failed to create bill');
       }
-
+  
       await resetForm();
       toast.success('Bill created successfully');
       router.refresh();
-
+  
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to create bill');
       toast.error(error instanceof Error ? error.message : 'Failed to create bill');
@@ -222,6 +236,8 @@ export default function OnlineBillPage() {
       setIsLoading(false);
     }
   };
+  
+  
 
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
   const totalAmount = subtotal + shippingCost;
