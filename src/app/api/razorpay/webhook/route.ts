@@ -33,35 +33,7 @@ interface WebhookPayload {
   };
 }
 
-async function sendPaymentNotification(phone: string, variables: Record<string, string>) {
-  console.log(phone,variables);
-  return;
-  try {
-    // return
-    const response = await fetch('https://control.msg91.com/api/v5/flow/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'authkey': process.env.MSG91_AUTH_KEY!
-      },
-      body: JSON.stringify({
-        template_id: '',
-        recipients: [{
-          mobiles: phone.startsWith('91') ? phone : `91${phone}`,
-          ...variables
-        }]
-      })
-    });
 
-    if (!response.ok) {
-      throw new Error(`SMS API returned status ${response.status}`);
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Payment notification failed:', error);
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -108,71 +80,69 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        await sendPaymentNotification(transaction.customer.phone, {
-          var1: "Payment Successful",
-          var2: amount.toFixed(2),
-          var3: transaction.organisation.shopName
-        });
+
 
         break;
       }
 
       case 'payment_link.failed':
-      case 'payment.failed': {
-        const notes = webhookData.event === 'payment.failed'
-          ? webhookData.payload.payment?.entity.notes
-          : webhookData.payload.payment_link?.entity.notes;
-
-        const billNo = parseInt(notes?.bill_no || '');
-        if (isNaN(billNo)) {
-          throw new Error('Invalid bill number in payment notes');
-        }
-
-        const transaction = await prisma.transactionRecord.update({
-          where: { billNo },
-          data: {
-            paymentStatus: 'FAILED'
-          },
-          include: {
-            customer: true,
-            organisation: true
+        case 'payment.failed': {
+          const notes = webhookData.event === 'payment.failed'
+            ? webhookData.payload.payment?.entity.notes
+            : webhookData.payload.payment_link?.entity.notes;
+        
+          const billNo = parseInt(notes?.bill_no || '');
+          if (isNaN(billNo)) {
+            throw new Error('Invalid bill number in payment notes');
           }
-        });
-
-        await sendPaymentNotification(transaction.customer.phone, {
-          var1: "Payment Failed",
-          var2: transaction.totalPrice.toFixed(2),
-          var3: transaction.organisation.shopName
-        });
-
-        break;
-      }
-
-      case 'payment_link.expired': {
-        const billNo = parseInt(webhookData.payload.payment_link?.entity.notes.bill_no || '');
-        if (isNaN(billNo)) {
-          throw new Error('Invalid bill number in payment link notes');
-        }
-
-        const transaction = await prisma.transactionRecord.update({
-          where: { billNo },
-          data: {
-            paymentStatus: 'EXPIRED'
-          },
-          include: {
-            customer: true,
-            organisation: true
+        
+          // First check if transaction exists and isn't already paid
+          const existingTransaction = await prisma.transactionRecord.findUnique({
+            where: { billNo }
+          });
+        
+          if (existingTransaction && existingTransaction.paymentStatus !== 'PAID') {
+            await prisma.transactionRecord.update({
+              where: { billNo },
+              data: {
+                paymentStatus: 'FAILED'
+              },
+              include: {
+                customer: true,
+                organisation: true
+              }
+            });
           }
-        });
-
-        await sendPaymentNotification(transaction.customer.phone, {
-          var1: "Payment Link Expired",
-          var2: transaction.totalPrice.toFixed(2),
-          var3: transaction.organisation.shopName
-        });
-
-        break;
-      }
+        
+          break;
+        }
+        
+        case 'payment_link.expired': {
+          const billNo = parseInt(webhookData.payload.payment_link?.entity.notes.bill_no || '');
+          if (isNaN(billNo)) {
+            throw new Error('Invalid bill number in payment link notes');
+          }
+        
+          // First check if transaction exists and isn't already paid
+          const existingTransaction = await prisma.transactionRecord.findUnique({
+            where: { billNo }
+          });
+        
+          if (existingTransaction && existingTransaction.paymentStatus !== 'PAID') {
+            await prisma.transactionRecord.update({
+              where: { billNo },
+              data: {
+                paymentStatus: 'EXPIRED'
+              },
+              include: {
+                customer: true,
+                organisation: true
+              }
+            });
+          }
+        
+          break;
+        }
     }
 
     revalidatePath('/transactions/online');
