@@ -6,7 +6,7 @@ import { FiArrowLeft } from 'react-icons/fi';
 
 export default function LoginPage() {
   return (
-    <div className="h-full place-content-center w-full bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">
+    <div className="h-full place-content-center w-full bg-[#235CDF]">
       <div className="absolute top-4 left-4">
         <Link
           href="/"

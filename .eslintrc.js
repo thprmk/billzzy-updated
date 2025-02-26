@@ -9,7 +9,9 @@ module.exports = {
       '@typescript-eslint/no-unused-vars': ['error', {
         'argsIgnorePattern': '^_',
         'varsIgnorePattern': '^_',
-        'ignoreRestSiblings': true
+        'ignoreRestSiblings': true,
+        "react/react-in-jsx-scope": "off"
+
       }],
       
       // Allow "any" type if needed
