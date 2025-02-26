@@ -7,7 +7,7 @@ import React from 'react';  // Add this import
 // app/register/page.tsx
 export default function RegisterPage() {
   return (
-    <div className=" w-full h-[100vh] flex flex-col bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500">
+    <div className=" w-full h-[100vh] flex flex-col bg-[#235CDF]">
       <div className="absolute top-4 left-4">
         <Link
           href="/"
