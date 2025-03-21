@@ -134,7 +134,6 @@ export default function OfflineBillingPage() {
       name: customer.name
     });
     setShowSuggestions(false);
-
     setTimeout(() => {
       productTableRef.current?.focusFirstProductInput();
     }, 100);
@@ -192,13 +191,11 @@ export default function OfflineBillingPage() {
       }
 
       toast.success('Bill created successfully');
-
       // Reset form
       setCustomerDetails(initialCustomerState);
       setPaymentDetails(initialPaymentState);
       setItems([]);
       setNotes('');
-
       if (result.data) {
         handlePrintBill(result.data);
       }
@@ -216,7 +213,6 @@ export default function OfflineBillingPage() {
 
   const generateBillContent = (billData: any) => {
     const { organisation, customer, items, billNo, date, totalPrice } = billData;
-
     if (!organisation) {
       throw new Error('Organisation details missing');
     }
@@ -366,12 +362,10 @@ export default function OfflineBillingPage() {
             <div>
               <strong>Total Quantity:</strong> ${totalQuantity}<br>
                <strong>Payment Method:</strong> ${paymentDetails.method}
-
             </div>
             <div>
               <strong>Amount Paid:</strong> ₹${amountPaid.toFixed(2)}<br>
               <strong>Balance:</strong> ₹${balance.toFixed(2)}
-
             </div>
           </div>
 

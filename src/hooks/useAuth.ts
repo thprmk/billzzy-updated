@@ -11,7 +11,6 @@ export function useAuth() {
   };
 
 
-
   return {
     session,
     status,
