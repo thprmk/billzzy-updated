@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     const { billId, paymentStatus, status } = await request.json();
 
     const updatedBill = await prisma.transactionRecord.update({
-      where: { id: billId, billingMode: 'online' },
+      where: { id: billId },
       data: {
         paymentStatus,
         status,

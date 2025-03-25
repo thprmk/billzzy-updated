@@ -7,7 +7,6 @@ import { authOptions } from '@/lib/auth-options';
 import { z } from 'zod';
 import moment from 'moment-timezone';
 import { sendBillingSMS } from '@/lib/msg91';
-import { generateBillNumber } from '@/lib/generateBillNumber';
 
 function addOneMonthClamped(date: Date): Date {
   const newDate = new Date(date.getTime());
@@ -164,7 +163,7 @@ async function createTransactionRecord(
     orderBy: { billNo: 'desc' },
   });
 
-  const newBillNo = await generateBillNumber(tx, organisationId, billingMode as 'online' | 'offline');
+  const newBillNo = (lastBill?.billNo || 0) + 1;
 
   // Get current Indian date and time
   const indianDateTime = moment().tz('Asia/Kolkata');

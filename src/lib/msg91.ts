@@ -155,7 +155,7 @@ export async function sendBillingSMS({
     // Update transaction record if payment link exists
     if (paymentLink) {
       await prisma.transactionRecord.update({
-        where: { billNo,billingMode: 'online' },
+        where: { billNo },
         data: { paymentMethod: 'razorpay_link' }
       });
     }

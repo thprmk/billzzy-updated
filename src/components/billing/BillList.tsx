@@ -119,10 +119,10 @@ export function BillList({ initialBills, mode }: BillListProps) {
     try {
       console.log('Updating bill:', billToEdit.id, items);
       
-      const response = await fetch(`/api/billing/${billToEdit.id}?mode=${mode}`, {
+      const response = await fetch(`/api/billing/${billToEdit.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, mode }),
+        body: JSON.stringify({ items }),
       });
   
       if (!response.ok) {
@@ -295,17 +295,18 @@ export function BillList({ initialBills, mode }: BillListProps) {
   };
 
 
+
   const handleDelete = async (billId: number) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/billing/${billId}?mode=${mode}`, {
+      const response = await fetch(`/api/billing/${billId}`, {
         method: 'DELETE',
       });
-  
+
       if (!response.ok) {
         throw new Error('Failed to delete bill');
       }
-  
+
       setBills(bills.filter((bill) => bill.id !== billId));
       toast.success('Bill deleted successfully');
       router.refresh();
@@ -356,27 +357,27 @@ export function BillList({ initialBills, mode }: BillListProps) {
       setIsLoading(false);
     }
   };
-const handleDeleteAll = async () => {
-  setIsLoading(true);
-  try {
-    const response = await fetch(`/api/billing/all/${mode}`, {
-      method: 'DELETE',
-    });
+  const handleDeleteAll = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/billing/all/${mode}`, {
+        method: 'DELETE',
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to delete bills');
+      if (!response.ok) {
+        throw new Error('Failed to delete bills');
+      }
+
+      setBills([]);
+      toast.success('All bills deleted successfully');
+      router.refresh();
+    } catch (error) {
+      toast.error('Failed to delete bills');
+    } finally {
+      setIsLoading(false);
+      setIsDeleteAllModalOpen(false);
     }
-
-    setBills([]);
-    toast.success('All bills deleted successfully');
-    router.refresh();
-  } catch (error) {
-    toast.error('Failed to delete bills');
-  } finally {
-    setIsLoading(false);
-    setIsDeleteAllModalOpen(false);
-  }
-};
+  };
 
   return (
 
@@ -587,7 +588,7 @@ const handleDeleteAll = async () => {
                         </div>
                       ))}
                       {
-                        bill.shipping ? <div className="font-semibold">Shipping: {bill?.shipping.methodName} (₹{bill?.shipping.totalCost})</div> : <></>
+                        bill.shipping ? <div className="font-semibold">Shipping: {bill?.shipping.methodName} (₹{bill?.shipping.totalCost})</div> : <>null</>
 
                       }
                       <div className="font-semibold">Total: ₹{bill.totalPrice}</div>

@@ -130,7 +130,7 @@ enum PaymentStatus {
 
 model TransactionRecord {
   id             Int           @id @default(autoincrement())
-  billNo         Int           @map("bill_no")
+  billNo         Int           @unique @map("bill_no")
   totalPrice     Float         @map("total_price")
   paymentMethod  String        @map("payment_method")
   amountPaid     Float         @default(0) @map("amount_paid")
@@ -154,7 +154,6 @@ model TransactionRecord {
   items               TransactionItem[]
   TransactionShipping TransactionShipping[]
 
-  @@unique([organisationId, billingMode, billNo])
   @@map("transaction_record")
 }
 
@@ -308,8 +307,7 @@ model MandateNotification {
   isRead         Boolean  @default(false)
   createdAt      DateTime @default(now())
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   @@index([organisationId])
   @@map("mandate_notifications")
 }
