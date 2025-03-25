@@ -73,7 +73,8 @@ export async function POST(request: Request) {
     const existingBill = await prisma.transactionRecord.findFirst({
       where: {
         billNo: parseInt(billId), // Use id instead of billNo
-        organisationId: parseInt(session.user.id)
+        organisationId: parseInt(session.user.id),
+        billingMode: 'online'
       },
       include: {
         customer: true,
@@ -103,7 +104,8 @@ export async function POST(request: Request) {
     // Update the bill with tracking details
     const updatedBill = await prisma.transactionRecord.update({
       where: {
-        id: existingBill.id
+        id: existingBill.id,
+        billingMode: 'online'
       },
       data: {
         trackingNumber,
@@ -192,7 +194,8 @@ export async function GET(request: Request) {
     const bill = await prisma.transactionRecord.findFirst({
       where: {
         billNo: parseInt(billId), // Using billNo instead of id
-        organisationId: parseInt(session.user.id)
+        organisationId: parseInt(session.user.id),
+        billingMode: 'online'
       },
       include: {
         customer: {

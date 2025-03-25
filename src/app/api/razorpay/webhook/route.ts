@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         const amount = webhookData.payload.payment_link.entity.amount / 100;
 
         const transaction = await prisma.transactionRecord.update({
-          where: { billNo },
+          where: { billNo, billingMode: 'online' },
           data: {
             amountPaid: amount,
             balance: 0,
@@ -98,12 +98,12 @@ export async function POST(request: NextRequest) {
         
           // First check if transaction exists and isn't already paid
           const existingTransaction = await prisma.transactionRecord.findUnique({
-            where: { billNo }
+            where: { billNo,billingMode: 'online' },
           });
         
           if (existingTransaction && existingTransaction.paymentStatus !== 'PAID') {
             await prisma.transactionRecord.update({
-              where: { billNo },
+              where: { billNo,billingMode: 'online' },
               data: {
                 paymentStatus: 'FAILED'
               },
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
         
           if (existingTransaction && existingTransaction.paymentStatus !== 'PAID') {
             await prisma.transactionRecord.update({
-              where: { billNo },
+              where: { billNo,billingMode: 'online' },
               data: {
                 paymentStatus: 'EXPIRED'
               },

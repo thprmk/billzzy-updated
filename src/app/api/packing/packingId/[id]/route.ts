@@ -32,6 +32,8 @@ export async function GET(
       where: {
         billNo,
         organisationId,
+        billingMode: 'online',
+
         // status: 'printed'
       },
       include: {

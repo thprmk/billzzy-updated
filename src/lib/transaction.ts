@@ -1,6 +1,7 @@
 // lib/processTransaction.ts
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { generateBillNumber } from './generateBillNumber';
 
 interface BillItem {
   productId: number;
@@ -25,12 +26,12 @@ interface BillRequest {
   total: number;
 }
 
-async function generateBillNumber(tx: Prisma.TransactionClient): Promise<number> {
-  const lastBill = await tx.transactionRecord.findFirst({
-    orderBy: { billNo: 'desc' },
-  });
-  return (lastBill?.billNo ?? 0) + 1;
-}
+// async function generateBillNumber(tx: Prisma.TransactionClient): Promise<number> {
+//   const lastBill = await tx.transactionRecord.findFirst({
+//     orderBy: { billNo: 'desc' },
+//   });
+//   return (lastBill?.billNo ?? 0) + 1;
+// }
 
 export async function processTransaction(data: BillRequest, organisationId: number) {
   return await prisma.$transaction(async (tx) => {
@@ -53,7 +54,7 @@ export async function processTransaction(data: BillRequest, organisationId: numb
     }
 
     // 2. Generate Bill Number
-    const billNo = await generateBillNumber(tx);
+    const billNo = await generateBillNumber(tx, organisationId, 'offline');
 
     // 3. Create Transaction Record
     const transaction = await tx.transactionRecord.create({

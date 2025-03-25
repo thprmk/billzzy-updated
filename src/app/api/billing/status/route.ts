@@ -69,7 +69,8 @@ export async function POST(request: Request) {
     const bill = await prisma.transactionRecord.update({
       where: {
         billNo: billId,
-        organisationId: parseInt(session.user.id)
+        organisationId: parseInt(session.user.id),
+        billingMode: 'online'
       },
       data: {
         status,

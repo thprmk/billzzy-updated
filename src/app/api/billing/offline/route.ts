@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     const transactionId = await processTransaction(transactionData, organisationId);
 
     const bill = await prisma.transactionRecord.findUnique({
-      where: { id: transactionId },
+      where: { id: transactionId,billingMode: 'offline' },
       include: {
         organisation: true,
         customer: true,

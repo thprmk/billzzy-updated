@@ -1,7 +1,5 @@
-// app/api/print-bills/[id]/route.ts
-
+// app/api/printing/print-bill/[id]/route.ts
 import { authOptions } from "@/lib/auth-options";
-import { sendOrderStatusSMS, splitProducts } from "@/lib/msg91";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
@@ -21,6 +19,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       where: {
         billNo: billId,
         organisationId,
+        billingMode: 'online',
       },
       include: {
         customer: true,
@@ -29,26 +28,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
             product: true,
           },
         },
-        TransactionShipping: true, // Use transactionShipping instead of shipping
+        TransactionShipping: true,
       },
     });
-
-
-    console.log(bill);
-    
 
     if (!bill) {
       return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
     }
-
-    await prisma.transactionRecord.update({
-      where: {
-        id: bill.id
-      },
-      data: {
-        status: 'printed'
-      }
-    });
 
     const organisation = await prisma.organisation.findUnique({
       where: { id: organisationId },
@@ -60,6 +46,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         bill_no: bill.billNo,
         date: bill.date.toISOString().split('T')[0],
         time: new Date(bill.time).toLocaleTimeString(),
+        status: bill.status
       },
       customer_details: {
         id: bill.customer?.id,
@@ -78,7 +65,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         unitPrice: item.product.sellingPrice,
         amount: item.totalPrice,
       })),
-      shipping_details: bill.TransactionShipping.length!=0 ? {
+      shipping_details: bill.TransactionShipping?.[0] ? {
         method_name: bill.TransactionShipping[0].methodName,
         method_type: bill.TransactionShipping[0].methodType,
         base_rate: bill.TransactionShipping[0].baseRate,
@@ -88,34 +75,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
       } : null,
       total_amount: bill.totalPrice,
     };
-
-    console.log(printData);
-    
-
-    const products = bill.items.map((item) => item.product.name);
-    const productList = products.join(', ');
-    const [productsPart1, productsPart2] = splitProducts(productList);
-
-
-
-    const smsVariables = {
-      var1: organisation?.shopName || '',
-      var2: productsPart1,
-      var3: productsPart2,
-      var4: organisation?.shopName || '',
-    };
-
-    if (bill.customer?.phone) {
-      await sendOrderStatusSMS({
-        phone: bill.customer.phone,
-        organisationId: organisationId,
-        status: 'packed',
-        smsVariables
-      });
-    }
-
-    revalidatePath('/transactions/online');
-    revalidatePath('/dashboard');
 
     return NextResponse.json(printData);
   } catch (error: any) {
