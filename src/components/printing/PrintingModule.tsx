@@ -1,11 +1,12 @@
 // app/printing/page.tsx
 'use client';
+import React from 'react';  // Add this import
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import JsBarcode from 'jsbarcode';
-import React from 'react';
+import { Dialog, Transition } from '@headlessui/react';
 
 interface ProductDetail {
   productName: string;
@@ -421,33 +422,74 @@ export default function PrintingModule() {
         </Button>
       </div>
       
-      {/* Print Confirmation Section */}
-      {needsConfirmation && (
-        <div className="bg-yellow-50 border border-yellow-200 p-4 sm:p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold text-yellow-800 mb-4">Print Confirmation</h2>
-          <p className="mb-4">
-            {printedBillIds.length === 1 
-              ? "Did you successfully print the shipping label?" 
-              : `Did you successfully print all ${printedBillIds.length} shipping labels?`}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button
-              onClick={() => confirmPrintStatus('printed')}
-              disabled={isLoading}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              Yes, printing completed
-            </Button>
-            <Button
-              onClick={() => confirmPrintStatus('processing')}
-              disabled={isLoading}
-              className="bg-gray-500 hover:bg-gray-600 text-white"
-            >
-              No, return to processing
-            </Button>
+      {/* Print Confirmation Modal using Headless UI */}
+      <Transition appear show={needsConfirmation} as={Fragment}>
+        <Dialog 
+          as="div" 
+          className="relative z-50" 
+          onClose={() => {}}  // Empty function to prevent closing on Escape/outside click
+        >
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-60" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title
+                    as="h3"
+                    className="text-lg font-medium leading-6 text-gray-900"
+                  >
+                    Print Confirmation
+                  </Dialog.Title>
+                  
+                  <div className="mt-3 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-md">
+                    <p className="text-sm text-yellow-800">
+                      {printedBillIds.length === 1 
+                        ? "Did you successfully print the shipping label?" 
+                        : `Did you successfully print all ${printedBillIds.length} shipping labels?`}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
+                    <Button
+                      onClick={() => confirmPrintStatus('printed')}
+                      disabled={isLoading}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {isLoading ? 'Processing...' : 'Yes, printing completed'}
+                    </Button>
+                    <Button
+                      onClick={() => confirmPrintStatus('processing')}
+                      disabled={isLoading}
+                      className="bg-gray-500 hover:bg-gray-600 text-white"
+                    >
+                      {isLoading ? 'Processing...' : 'No, return to processing'}
+                    </Button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
           </div>
-        </div>
-      )}
+        </Dialog>
+      </Transition>
     </div>
   );
 }
