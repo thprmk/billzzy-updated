@@ -1,12 +1,11 @@
 // app/printing/page.tsx
 'use client';
-import React from 'react';  // Add this import
 
-import { useState, Fragment } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import JsBarcode from 'jsbarcode';
-import { Dialog, Transition } from '@headlessui/react';
+import React from 'react';  // Add this import
 
 interface ProductDetail {
   productName: string;
@@ -24,7 +23,7 @@ interface CustomerDetails {
 }
 
 interface OrganisationDetails {
-  shopName: string;
+  shop_name: string;
   flatno?: string;
   street: string;
   district: string;
@@ -45,22 +44,12 @@ interface Bill {
   organisation_details: OrganisationDetails;
   bill_details: BillDetails;
   product_details: ProductDetail[];
-  shipping_details?: {
-    method_name: string;
-    method_type: string;
-    base_rate: number;
-    weight_charge: number;
-    total_weight: number;
-    total_cost: number;
-  } | null;
 }
 
 export default function PrintingModule() {
   const [billId, setBillId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [needsConfirmation, setNeedsConfirmation] = useState(false);
-  const [printedBillIds, setPrintedBillIds] = useState<number[]>([]);
-  const [billsCount, setBillsCount] = useState(0);
+  const [bills, setBills] = useState(0)
 
   const handleSinglePrint = async () => {
     if (!billId) {
@@ -73,19 +62,16 @@ export default function PrintingModule() {
       const response = await fetch(`/api/printing/print-bill/${billId}`);
       
       if (!response.ok) {
-        throw new Error(response.statusText);
+        throw new Error('Failed to fetch bill details');
       }
 
       const data = await response.json();
-      await printBills([data]);
-      
-      // Set the bill ID for confirmation
-      setPrintedBillIds([parseInt(data.bill_id.toString())]);
-      setNeedsConfirmation(true);
+      printBills([data]);
+      console.log(data);
       
     } catch (error) {
-      console.error('Print error:', error);
       alert('Error fetching bill details. Please try again.');
+      console.error('Print error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -101,27 +87,28 @@ export default function PrintingModule() {
       }
 
       const data = await response.json();
-      setBillsCount(data.bills.length);
+      await setBills(data.bills.length)
 
       if (data.bills.length === 0) {
         alert('No bills available for printing');
         return;
       }
 
-      await printBills(data.bills);
-      
-      // Store bill IDs for confirmation
-      setPrintedBillIds(data.bills.map((bill: Bill) => parseInt(bill.bill_id.toString())));
-      setNeedsConfirmation(true);
-      
+
+      printBills(data.bills);
+    //   alert(`${data.bills.length} bills prepared for printing`);
+
     } catch (error) {
-      console.error('Bulk print error:', error);
       alert('Error during printing. Please try again.');
+      console.error('Bulk print error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+<<<<<<< HEAD
+  const printBills = (bills: Bill[]) => {
+=======
   const confirmPrintStatus = async (status: string) => {
     try {
       setIsLoading(true);
@@ -151,6 +138,7 @@ export default function PrintingModule() {
   };
 
   const printBills = async (bills: Bill[]) => {
+>>>>>>> 4de9205afac701e62fdc04029a0ae0cdeb4572b3
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert('Unable to open print window. Please disable your pop-up blocker and try again.');
@@ -191,6 +179,9 @@ export default function PrintingModule() {
     // Cleanup
     URL.revokeObjectURL(downloadUrl);
   };
+
+  console.log(bills);
+  
 
   const generatePrintContent = (bills: Bill[]) => {
     const styles = `
@@ -303,12 +294,13 @@ export default function PrintingModule() {
           display: block;
           vertical-align: middle;
         }
-        .weight {
+          .weight{
           padding-bottom: 14px;
-        }
-        .billId {
-          font-size: 12px;
-        }
+          }
+
+          .billId{
+          font-size:12px;
+          }
       </style>
     `;
 
@@ -357,9 +349,12 @@ export default function PrintingModule() {
               </div>
               <div>
                 <strong>Date:</strong> ${bill.bill_details.date}<br>
-                <strong>Shipping Details:</strong> ${bill?.shipping_details?.method_name || 'Informing soon'}<br><br>
-                <strong class='weight'>Weight:</strong> <br>
-                <strong>Packed By:</strong> 
+                <strong>Shipping Details:</strong> ${bill?.shipping_details?.method_name?bill?.shipping_details?.method_name:'Informing soon'}<br><br>
+              <strong class='weight'>Weight:</strong> <br>
+              <strong>Packed By:</strong> 
+
+
+
               </div>
             </div>
             <div class="items">
@@ -386,7 +381,7 @@ export default function PrintingModule() {
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto py-4 sm:p-6 space-y-6">
+   <div className="w-full max-w-2xl mx-auto py-4 sm:p-6 space-y-6">
       {/* Single Print Section */}
       <div className="bg-white rounded-lg shadow p-4 sm:p-6">
         <h2 className="text-lg sm:text-xl font-semibold mb-4">Print Single Bill</h2>
@@ -397,11 +392,11 @@ export default function PrintingModule() {
             value={billId}
             onChange={(e) => setBillId(e.target.value)}
             className="w-full"
-            disabled={isLoading || needsConfirmation}
+            disabled={isLoading}
           />
           <Button
             onClick={handleSinglePrint}
-            disabled={isLoading || needsConfirmation}
+            disabled={isLoading}
             className="w-full sm:w-40"
           >
             {isLoading ? 'Printing...' : 'Print Bill'}
@@ -414,81 +409,11 @@ export default function PrintingModule() {
         <h2 className="text-lg sm:text-xl font-semibold mb-4">Bulk Printing</h2>
         <Button
           onClick={handleBulkPrint}
-          disabled={isLoading || needsConfirmation}
+          disabled={isLoading}
           className="w-full"
         >
           {isLoading ? `Preparing Bills...` : 'Print All Processing Bills'}
         </Button>
       </div>
-      
-      {/* Print Confirmation Modal using Headless UI */}
-      <Transition appear show={needsConfirmation} as={Fragment}>
-        <Dialog 
-          as="div" 
-          className="relative z-50" 
-          onClose={() => {}}  // Empty function to prevent closing on Escape/outside click
-        >
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black bg-opacity-60" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <Dialog.Title
-                    as="h3"
-                    className="text-lg font-medium leading-6 text-gray-900"
-                  >
-                    Print Confirmation
-                  </Dialog.Title>
-                  
-                  <div className="mt-3 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-md">
-                    <p className="text-sm text-yellow-800">
-                      {printedBillIds.length === 1 
-                        ? "Did you successfully print the shipping label?" 
-                        : `Did you successfully print all ${printedBillIds.length} shipping labels?`}
-                    </p>
-                  </div>
-
-                  <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
-                    <Button
-                      onClick={() => confirmPrintStatus('printed')}
-                      disabled={isLoading}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {isLoading ? 'Processing...' : 'Yes, printing completed'}
-                    </Button>
-                    <Button
-                      onClick={() => confirmPrintStatus('processing')}
-                      disabled={isLoading}
-                      className="bg-gray-500 hover:bg-gray-600 text-white"
-                    >
-                      {isLoading ? 'Processing...' : 'No, return to processing'}
-                    </Button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
-            </div>
-          </div>
-        </Dialog>
-      </Transition>
     </div>
-  );
-}
+  )
