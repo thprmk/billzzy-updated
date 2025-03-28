@@ -20,7 +20,7 @@ interface MandateCallback {
   UMN: string;
   TxnInitDate: string;
   TxnStatus: string;
-  merchantTranId: string;     // e.g. "MANDATE_1738155932830" or "EXEC_..." or "ICI..."
+  merchantTranId: string;     // e.g. "MANDATE_1738155932830", "EXEC_...", "F3_...", "ICI..."
   RespCodeDescription: string;
   PayeeVPA: string;
 }
@@ -45,13 +45,12 @@ function parseIciciDate(dateString: string) {
 
 export async function POST(request: Request) {
   try {
+    // 1. Read and log the body
     const encryptedCallback = await request.json();
+    console.log('Encrypted callback from ICICI:', encryptedCallback);
 
-    console.log('Encrypted callback from callback:', encryptedCallback);
-
+    // 2. Decrypt if needed
     let callbackData: MandateCallback;
-
-    // 1. Decrypt if needed
     if (encryptedCallback?.encryptedData) {
       if (!encryptedCallback.encryptedKey) {
         throw new Error('Missing encrypted key');
@@ -67,8 +66,51 @@ export async function POST(request: Request) {
 
     console.log('Decrypted callback:', callbackData);
 
+    // --------------------------------------------------------------------
+    // 3. If it's an F3 callback, forward to F3 and exit early
+    // --------------------------------------------------------------------
+    if (callbackData?.merchantTranId?.includes('F3_')) {
+      try {
+        // Forward the entire decrypted callback data to F3Engine
+        const f3Response = await fetch('/api/mandate/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(callbackData),
+        });
 
+        // Check if F3 responded successfully
+        if (!f3Response.ok) {
+          console.error('F3 forward failed. Status:', f3Response.status);
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'Forward to F3 failed',
+              statusCode: f3Response.status
+            },
+            { status: 502 }
+          );
+        }
 
+        console.log('Forwarded callback to F3 successfully');
+        return NextResponse.json({
+          success: true,
+          forwardedTo: 'F3',
+          message: 'Callback was forwarded to F3 successfully.'
+        });
+      } catch (error) {
+        console.error('Error forwarding to F3:', error);
+        return NextResponse.json(
+          { success: false, message: 'Error forwarding callback to F3' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // --------------------------------------------------------------------
+    // 4. Billzzy (existing) logic below
+    // --------------------------------------------------------------------
+
+    // --- A) REVOKE-SUCCESS handling ---
     if (callbackData.TxnStatus === 'REVOKE-SUCCESS') {
       // Find an associated mandate to get the organisationId (using UMN)
       const revokedMandate = await prisma.activeMandate.findFirst({
@@ -118,17 +160,14 @@ export async function POST(request: Request) {
         })
       ]);
 
-    
       return NextResponse.json({
         success: true,
         message: 'Mandate revoked successfully; all mandate records deleted and subscription reverted to trial.',
       });
     }
-    
 
-    // ----- Execute Mandate Callback Handling -----
+    // --- B) EXECUTE MANDATE handling ---
     if (isExecuteCallback(callbackData.merchantTranId)) {
-
       console.log('Execute callback received:', callbackData);
 
       // For execute mandate, consider it success only when:
@@ -137,7 +176,9 @@ export async function POST(request: Request) {
       const isSuccess =
         callbackData.TxnStatus === 'SUCCESS' &&
         callbackData.RespCodeDescription === 'APPROVED OR COMPLETED SUCCESSFULLY';
-      const finalStatus = "ACTIVATED";
+      const finalStatus = 'ACTIVATED';
+
+      // Revalidate any Next.js cached route if needed
       revalidatePath('/settings');
 
       // Determine organisationId either by extracting it (for EXEC_ payloads)
@@ -160,12 +201,12 @@ export async function POST(request: Request) {
           throw new Error(`Mandate not found for UMN: ${callbackData.UMN}`);
         }
         organisationId = mandate.organisationId;
-      }
-      else {
+      } else {
         throw new Error('Unknown merchantTranId prefix');
       }
 
       console.log('Organisation ID:', organisationId);
+
       await createNotification(
         organisationId,
         'MANDATE_EXECUTION',
@@ -236,8 +277,6 @@ export async function POST(request: Request) {
             },
           }),
 
-          
-
           // 3) Update the organisation's subscriptionType to 'pro'
           prisma.organisation.update({
             where: { id: organisationId },
@@ -247,14 +286,16 @@ export async function POST(request: Request) {
           }),
         ]);
 
-        console.log('Execute callback processed & activeMandate upserted (SUCCESS):', callbackData);
+        console.log(
+          'Execute callback processed & activeMandate upserted (SUCCESS):',
+          callbackData
+        );
         return NextResponse.json({
           success: true,
           message: 'Execute callback processed successfully',
         });
       } else {
         // FAILED execute callback: Increase retry count for execute mandate.
-        // First, fetch the active mandate record.
         const activeMandate = await prisma.activeMandate.findUnique({
           where: { organisationId },
         });
@@ -284,7 +325,10 @@ export async function POST(request: Request) {
           }
         }
 
-        console.log('Execute callback processed as failure (retry count increased):', callbackData);
+        console.log(
+          'Execute callback processed as failure (retry count increased):',
+          callbackData
+        );
         return NextResponse.json({
           success: true,
           message: 'Execute callback processed with failure; retry count updated',
@@ -292,22 +336,17 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log('Decrypted callback:', callbackData);
-
-
-    // ----- End Execute Mandate Callback Handling -----
-
-    // ----- Mandate Creation Callback Handling -----
-    // If the callback indicates mandate creation failure, for example:
-    if (callbackData.TxnStatus === 'CREATE-FAIL' || callbackData.TxnStatus === 'CREATE-FAILURE') {
+    // --- C) MANDATE CREATION handling ---
+    // If the callback indicates mandate creation failure:
+    if (
+      callbackData.TxnStatus === 'CREATE-FAIL' ||
+      callbackData.TxnStatus === 'CREATE-FAILURE'
+    ) {
       return NextResponse.json(
         { error: 'Mandate creation failed' },
         { status: 400 }
       );
     }
-
-  
-
 
     // 4. Find the existing "INITIATED" Mandate by merchantTranId
     const mandate = await prisma.mandate.findUnique({
@@ -317,7 +356,7 @@ export async function POST(request: Request) {
 
     if (!mandate) {
       console.log('Mandate not found:', callbackData.merchantTranId);
-      return NextResponse.json({ error: "Mandate not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Mandate not found' }, { status: 404 });
     }
 
     await createNotification(
@@ -338,7 +377,7 @@ export async function POST(request: Request) {
         respCodeDescription: callbackData.RespCodeDescription,
         txnInitDate: parseIciciDate(callbackData.TxnInitDate),
         txnCompletionDate: parseIciciDate(callbackData.TxnCompletionDate),
-        status: 'APPROVED',  // or "CREATED" if you prefer
+        status: 'APPROVED',
       }
     });
 
@@ -362,8 +401,7 @@ export async function POST(request: Request) {
       }
     });
 
-
-
+    // If this is the very first mandateSeqNo, try to execute the mandate immediately.
     if (activeMandate.mandateSeqNo === 1) {
       const success = await executeMandate(mandate, callbackData.UMN);
       console.log(
@@ -379,9 +417,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error("Callback Error:", error.message);
+    console.error('Callback Error:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
-
