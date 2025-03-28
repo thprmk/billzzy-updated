@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     if (callbackData?.merchantTranId?.includes('F3_')) {
       try {
         // Forward the entire decrypted callback data to F3Engine
-        const f3Response = await fetch('/api/mandate/callback', {
+        const f3Response = await fetch('http://13.232.238.61/api/mandate/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(callbackData),
