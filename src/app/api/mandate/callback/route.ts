@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     // --------------------------------------------------------------------
     // 3. If it's an F3 callback, forward to F3 and exit early
     // --------------------------------------------------------------------
-    if (callbackData?.merchantTranId?.includes('MANDATE_F3_')) {
+    if (callbackData?.merchantTranId?.includes('_F3_')) {
             try {
         // Forward the entire decrypted callback data to F3Engine
         const f3Response = await fetch('http://13.232.238.61/api/mandate/callback', {
@@ -77,6 +77,9 @@ export async function POST(request: Request) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(callbackData),
         });
+
+        console.log(f3Response);
+        
 
         // Check if F3 responded successfully
         if (!f3Response.ok) {
