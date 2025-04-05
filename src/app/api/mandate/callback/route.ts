@@ -359,7 +359,36 @@ export async function POST(request: Request) {
 
     if (!mandate) {
       console.log('Mandate not found:', callbackData.merchantTranId);
-      return NextResponse.json({ error: 'Mandate not found' }, { status: 404 });
+      
+      // Try to forward to F3 as this might be an F3 mandate
+      try {
+        const f3Response = await fetch('http://13.232.238.61/api/mandate/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(callbackData),
+        });
+        
+        if (!f3Response.ok) {
+          console.error('F3 forward failed for general missing mandate. Status:', f3Response.status);
+          return NextResponse.json(
+            { error: 'Mandate not found and forwarding to F3 failed' },
+            { status: 404 }
+          );
+        }
+        
+        console.log('Successfully forwarded callback to F3 for missing mandate');
+        return NextResponse.json({
+          success: true,
+          forwardedTo: 'F3',
+          message: 'Callback was forwarded to F3 as mandate was not found locally.'
+        });
+      } catch (error) {
+        console.error('Error forwarding to F3 for missing mandate:', error);
+        return NextResponse.json(
+          { error: 'Mandate not found and error forwarding to F3' },
+          { status: 500 }
+        );
+      }
     }
 
     await createNotification(

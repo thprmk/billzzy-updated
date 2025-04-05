@@ -201,6 +201,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    console.log(body,"online orders data");
+    
     const parsedData = createBillSchema.safeParse(body);
 
     if (!parsedData.success) {
