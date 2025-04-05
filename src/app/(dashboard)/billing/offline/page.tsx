@@ -1,4 +1,3 @@
-// types/billing.ts
 
 'use client';
 
@@ -33,7 +32,7 @@ import React from 'react';  // Add this import
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/useDebounce';
-import { ProductTable } from '@/components/billing/ProductTable';
+import { ProductTable, ProductTableRef } from '@/components/billing/ProductTable';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -58,6 +57,7 @@ const initialPaymentState: PaymentDetails = {
 };
 
 export default function OfflineBillingPage() {
+
   const router = useRouter();
   const [items, setItems] = useState<BillItem[]>([]);
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>(initialCustomerState);
@@ -68,7 +68,7 @@ export default function OfflineBillingPage() {
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<string>('');
 
-  const productTableRef = useRef<{ focusFirstProductInput: () => void }>(null);
+  const productTableRef = useRef<ProductTableRef>(null);
   const debouncedPhone = useDebounce(customerDetails.phone, 300);
 
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
@@ -194,10 +194,12 @@ export default function OfflineBillingPage() {
       toast.success('Bill created successfully');
 
       // Reset form
+  
       setCustomerDetails(initialCustomerState);
       setPaymentDetails(initialPaymentState);
       setItems([]);
       setNotes('');
+      productTableRef.current?.resetTable(); // <--- Important
 
       if (result.data) {
         handlePrintBill(result.data);
