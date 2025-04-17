@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     if (callbackData?.merchantTranId?.includes('_F3_')) {
             try {
         // Forward the entire decrypted callback data to F3Engine
-        const f3Response = await fetch('http://52.66.57.168/api/mandate/callback', {
+        const f3Response = await fetch('https://f3engine.com/api/mandate/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(callbackData),
@@ -125,7 +125,7 @@ export async function POST(request: Request) {
       
         // Try to forward to F3 as this might be an F3 mandate
         try {
-          const f3Response = await fetch('http://52.66.57.168/api/mandate/callback', {
+          const f3Response = await fetch('https://f3engine.com/api/mandate/callback', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(callbackData),
@@ -392,7 +392,7 @@ export async function POST(request: Request) {
       
       // Try to forward to F3 as this might be an F3 mandate
       try {
-        const f3Response = await fetch('http://52.66.57.168/api/mandate/callback', {
+        const f3Response = await fetch('https://f3engine.com/api/mandate/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(callbackData),
