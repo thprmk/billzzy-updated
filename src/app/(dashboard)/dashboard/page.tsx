@@ -28,6 +28,7 @@ async function getDashboardData(organisationId: string) {
     prisma.transactionRecord.aggregate({
       where: {
         organisationId: parseInt(organisationId),
+        paymentStatus: 'PAID' ,
         date: {
           gte: startOfDay,
           lte: endOfDay,

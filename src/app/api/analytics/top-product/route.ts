@@ -41,6 +41,8 @@ export async function GET(request: NextRequest) {
       by: ['productId'],
       where: {
         transaction: {
+          paymentStatus: 'PAID',
+
           organisationId: parseInt(organisationId!),
           date: {
             gte: startDate,

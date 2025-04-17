@@ -35,6 +35,7 @@ export async function POST(request: Request) {
         where: {
           organisationId: parseInt(organisationId),
           ...dateFilter,  // Only apply date filter if not all time
+          paymentStatus: 'PAID',
         },
         _sum: {
           totalPrice: true,

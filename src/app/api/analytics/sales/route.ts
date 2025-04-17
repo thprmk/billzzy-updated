@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     const sales = await prisma.transactionRecord.groupBy({
       by: ['date'],
       where: {
+        paymentStatus: 'PAID',
         organisationId: parseInt(organisationId!),
         date: {
           gte: startDate,
