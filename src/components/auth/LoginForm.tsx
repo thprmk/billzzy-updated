@@ -1,12 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import { toast } from 'react-toastify';
 import React from 'react';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 
@@ -16,48 +15,47 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const { data: session, update } = useSession();
 
   // Handler for toggling the forgot password modal
   const handleForgotPasswordClick = () => {
     setShowForgotPassword(true);
   };
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
-
+  
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-
+  
     try {
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
-
+  
       if (result?.error) {
         setError(result.error);
         return;
       }
-
-      router.refresh();
-
-      // Check role and redirect accordingly
-      const response = await fetch('/api/auth/session');
-      const session = await response.json();
-      console.log(session);
-
+  
+      // Update the session client-side
+      await update();
+      
+      // After updating the session, check the role and redirect
       if (session?.user?.role === 'admin') {
         router.push('/admin');
+
       } else {
         router.push('/dashboard');
       }
+
     } catch (error) {
       setError('An error occurred during login');
-      
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
