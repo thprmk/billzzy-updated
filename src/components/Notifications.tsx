@@ -1,8 +1,8 @@
 'use client';
-
 import React, { useEffect } from 'react';
 import useSWR from 'swr';
 import Swal from 'sweetalert2';
+import { useSession } from 'next-auth/react';
 
 interface MandateNotification {
   id: number;
@@ -23,9 +23,13 @@ const fetcher = (url: string) =>
     });
 
 export function Notifications() {
-  // Fetch unread notifications
+  const { data: sessionData, status } = useSession();
+
+  
+  
+  // Only fetch notifications if user is authenticated
   const { data, mutate } = useSWR<{ notifications: MandateNotification[] }>(
-    '/api/notifications?status=unread',
+    status === 'authenticated'||sessionData?.user?.name=="Admin" ? '/api/notifications?status=unread' : null,
     fetcher,
     {
       refreshInterval: 30000, // poll every 30s
@@ -36,10 +40,9 @@ export function Notifications() {
     if (!data || !data.notifications || data.notifications.length === 0) {
       return;
     }
-
+    
     // For this example, let's just show the first unread notification
     const firstNotification = data.notifications[0];
-
     Swal.fire({
       icon: 'info',
       title: 'New Notification',

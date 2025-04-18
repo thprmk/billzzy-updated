@@ -102,8 +102,8 @@ export default function RegisterForm() {
       return false;
     }
 
-    if (formData.password.length < 8) {
-      toast.error('Password must be at least 8 characters long');
+    if (formData.password.length < 4) {
+      toast.error('Password must be at least 4 characters long');
       return false;
     }
 
@@ -238,7 +238,7 @@ export default function RegisterForm() {
                         onChange={handleInputChange}
                         required
                         className="w-full pr-10 text-sm"
-                        minLength={8}
+                        minLength={4}
                       />
                       <button
                         type="button"
@@ -249,7 +249,7 @@ export default function RegisterForm() {
                       </button>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Minimum 8 characters
+                      Minimum 4 characters
                     </p>
                   </div>
 
