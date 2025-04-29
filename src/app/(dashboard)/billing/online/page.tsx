@@ -175,6 +175,7 @@ export default function OnlineBillPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(customer),
         });
+        
         if (!updateCustomerResponse.ok) {
           const errData = await updateCustomerResponse.json();
           throw new Error(errData.message || 'Failed to update customer');

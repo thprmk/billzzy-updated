@@ -137,6 +137,10 @@ export async function POST(request: Request) {
       optionalParam: ""
     };
 
+    console.log("encrypted payload", encryptedPayload);
+    
+console.log("ICICI_API_BASE_URL", process.env.ICICI_API_BASE_URL," ICICI_API_KEY", process.env.ICICI_API_KEY);
+
     const response = await fetch(
       `${process.env.ICICI_API_BASE_URL}/CreateMandate`,
       {
