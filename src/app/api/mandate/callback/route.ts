@@ -108,7 +108,45 @@ export async function POST(request: Request) {
         );
       }
     }
+    if (callbackData?.merchantTranId?.includes('_INSTAX_')) {
+      try {
+  // Forward the entire decrypted callback data to F3Engine
+  const f3Response = await fetch('https://4211-2401-4900-88e4-b089-d16e-6a3f-232f-fa83.ngrok-free.app/api/mandate/callback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(callbackData),
+  });
 
+  console.log(f3Response);
+  
+
+  // Check if F3 responded successfully
+  if (!f3Response.ok) {
+    console.error('F3 forward failed. Status:', f3Response.status);
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Forward to F3 failed',
+        statusCode: f3Response.status
+      },
+      { status: 502 }
+    );
+  }
+
+  console.log('Forwarded callback to F3 successfully');
+  return NextResponse.json({
+    success: true,
+    forwardedTo: 'F3',
+    message: 'Callback was forwarded to F3 successfully.'
+  });
+} catch (error) {
+  console.error('Error forwarding to F3:', error);
+  return NextResponse.json(
+    { success: false, message: 'Error forwarding callback to F3' },
+    { status: 500 }
+  );
+}
+}
     // --------------------------------------------------------------------
     // 4. Billzzy (existing) logic below
     // --------------------------------------------------------------------
