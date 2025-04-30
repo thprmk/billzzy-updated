@@ -111,7 +111,7 @@ export async function POST(request: Request) {
     if (callbackData?.merchantTranId?.includes('_INSTAX_')) {
       try {
   // Forward the entire decrypted callback data to F3Engine
-  const f3Response = await fetch('https://instaxbot-server.onrender.com/api/mandate/callback', {
+  const f3Response = await fetch('https://4211-2401-4900-88e4-b089-d16e-6a3f-232f-fa83.ngrok-free.app/api/mandate/callback', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(callbackData),
