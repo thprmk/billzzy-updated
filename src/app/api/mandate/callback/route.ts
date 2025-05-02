@@ -70,7 +70,9 @@ export async function POST(request: Request) {
     // 3. If it's an F3 callback, forward to F3 and exit early
     // --------------------------------------------------------------------
     if (callbackData?.merchantTranId?.includes('_F3_')) {
-            try {
+      console.log("callbackData contains _F3_");
+
+      try {
         // Forward the entire decrypted callback data to F3Engine
         const f3Response = await fetch('https://f3engine.com/api/mandate/callback', {
           method: 'POST',
@@ -79,7 +81,7 @@ export async function POST(request: Request) {
         });
 
         console.log(f3Response);
-        
+
 
         // Check if F3 responded successfully
         if (!f3Response.ok) {
@@ -109,44 +111,46 @@ export async function POST(request: Request) {
       }
     }
     if (callbackData?.merchantTranId?.includes('_INSTAX_')) {
+      console.log("callbackData contains _INSTAX_");
+      
       try {
-  // Forward the entire decrypted callback data to F3Engine
-  const f3Response = await fetch('https://4211-2401-4900-88e4-b089-d16e-6a3f-232f-fa83.ngrok-free.app/api/mandate/callback', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(callbackData),
-  });
+        // Forward the entire decrypted callback data to F3Engine
+        const f3Response = await fetch('https://fb41-117-247-96-193.ngrok-free.app/api/mandate/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(callbackData),
+        });
 
-  console.log(f3Response);
-  
+        console.log(f3Response);
 
-  // Check if F3 responded successfully
-  if (!f3Response.ok) {
-    console.error('F3 forward failed. Status:', f3Response.status);
-    return NextResponse.json(
-      {
-        success: false,
-        message: 'Forward to F3 failed',
-        statusCode: f3Response.status
-      },
-      { status: 502 }
-    );
-  }
 
-  console.log('Forwarded callback to F3 successfully');
-  return NextResponse.json({
-    success: true,
-    forwardedTo: 'F3',
-    message: 'Callback was forwarded to F3 successfully.'
-  });
-} catch (error) {
-  console.error('Error forwarding to F3:', error);
-  return NextResponse.json(
-    { success: false, message: 'Error forwarding callback to F3' },
-    { status: 500 }
-  );
-}
-}
+        // Check if F3 responded successfully
+        if (!f3Response.ok) {
+          console.error('instax forward failed. Status:', f3Response.status);
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'Forward to instax failed',
+              statusCode: f3Response.status
+            },
+            { status: 502 }
+          );
+        }
+
+        console.log('Forwarded callback to instax successfully');
+        return NextResponse.json({
+          success: true,
+          forwardedTo: 'F3',
+          message: 'Callback was forwarded to instax successfully.'
+        });
+      } catch (error) {
+        console.error('Error forwarding to instax:', error);
+        return NextResponse.json(
+          { success: false, message: 'Error forwarding callback to instax' },
+          { status: 500 }
+        );
+      }
+    }
     // --------------------------------------------------------------------
     // 4. Billzzy (existing) logic below
     // --------------------------------------------------------------------
@@ -157,10 +161,10 @@ export async function POST(request: Request) {
       const revokedMandate = await prisma.activeMandate.findFirst({
         where: { UMN: callbackData.UMN }
       });
-    
+
       if (!revokedMandate) {
         console.log('Mandate not found:', callbackData.merchantTranId);
-      
+
         // Try to forward to F3 as this might be an F3 mandate
         try {
           const f3Response = await fetch('https://f3engine.com/api/mandate/callback', {
@@ -168,9 +172,9 @@ export async function POST(request: Request) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(callbackData),
           });
-          
+
           console.log(f3Response.json().then((data) => console.log(data)));
-          
+
           if (!f3Response.ok) {
             console.error('F3 forward failed for general missing mandate. Status:', f3Response.status);
             return NextResponse.json(
@@ -178,7 +182,7 @@ export async function POST(request: Request) {
               { status: 404 }
             );
           }
-          
+
           console.log('Successfully forwarded callback to F3 for missing mandate');
           return NextResponse.json({
             success: true,
@@ -192,24 +196,24 @@ export async function POST(request: Request) {
             { status: 500 }
           );
         }
-    
+
       }
-    
+
       const organisationId = revokedMandate.organisationId;
-    
+
       // Send a notification about the revocation
       await createNotification(
         organisationId,
         'MANDATE_REVOKED',
         'Your auto-pay has been successfully revoked. Subscription reverted to trial.'
       );
-    
+
       console.log('Revoke-Success for Org:', organisationId);
-    
+
       // Calculate next month's date for the trial endDate
       const nextMonthDate = new Date();
       nextMonthDate.setMonth(nextMonthDate.getMonth() + 1); // +1 month
-    
+
       // Run a transaction to delete all mandate records for this organisation,
       // delete the active mandate, and update the organisation.
       await prisma.$transaction([
@@ -331,7 +335,7 @@ export async function POST(request: Request) {
               payerVA: callbackData.PayerVA,
               payerName: callbackData.PayerName,
               payerMobile: callbackData.PayerMobile,
-              mandateSeqNo: 1, 
+              mandateSeqNo: 1,
               retryCount: 0,
             },
             update: {
@@ -427,7 +431,7 @@ export async function POST(request: Request) {
 
     if (!mandate) {
       console.log('Mandate not found:', callbackData.merchantTranId);
-      
+
       // Try to forward to F3 as this might be an F3 mandate
       try {
         const f3Response = await fetch('https://f3engine.com/api/mandate/callback', {
@@ -435,7 +439,7 @@ export async function POST(request: Request) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(callbackData),
         });
-        
+
         if (!f3Response.ok) {
           console.error('F3 forward failed for general missing mandate. Status:', f3Response.status);
           return NextResponse.json(
@@ -443,7 +447,7 @@ export async function POST(request: Request) {
             { status: 404 }
           );
         }
-        
+
         console.log('Successfully forwarded callback to F3 for missing mandate');
         return NextResponse.json({
           success: true,
