@@ -30,7 +30,8 @@ const createBillSchema = z.object({
   ),
   billingMode: z.string().optional().default('online'),
   notes: z.string().nullable().optional().default(null),
-  shippingMethodId: z.number().int().positive().nullable().default(null)
+  shippingMethodId: z.number().int().positive().nullable().default(null), // ✅ Add comma here
+  taxAmount: z.number().optional().default(0) // ✅ Now this is valid
 });
 
 interface TransactionOptions {
@@ -157,7 +158,8 @@ async function createTransactionRecord(
   customerId: number,
   totalPrice: number,
   billingMode: string,
-  notes: string | null
+  notes: string | null,
+  taxAmount: number
 ) {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
@@ -189,6 +191,7 @@ async function createTransactionRecord(
       paymentStatus: 'PENDING',
       paymentMethod: 'offline',
       notes: notes,
+      taxAmount: taxAmount, // ✅ include this
     },
   });
 }
@@ -212,7 +215,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { customerId, items, billingMode, notes, shippingMethodId } = parsedData.data;
+    const { customerId, items, billingMode, notes, shippingMethodId, taxAmount } = parsedData.data; //added
     const organisationId = parseInt(session.user.id, 10);
 
     const organisation = await prisma.organisation.findUnique({
@@ -327,8 +330,17 @@ export async function POST(request: Request) {
           shippingCost = 0;
         }
 
-        const finalTotal = itemsTotalPrice + shippingCost;
-        const newBill = await createTransactionRecord(tx, organisationId, customer.id, finalTotal, billingMode || 'online', notes || null);
+        const finalTotal = itemsTotalPrice + shippingCost + taxAmount;
+        const newBill = await createTransactionRecord(
+          tx,
+          organisationId,
+          customer.id,
+          finalTotal,
+          billingMode || 'online',
+          notes || null,
+          taxAmount || 0 // ✅ pass tax
+        );
+        
 
         await tx.transactionItem.createMany({
           data: transactionItemsData.map((item) => ({

@@ -54,6 +54,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
       where: { id: organisationId },
     });
 
+    const tax = await prisma.tax.findFirst({
+      where: {
+        organisationId,
+        autoApply: true
+      }
+    });
+    
+
+    const shippingCost = bill.TransactionShipping[0]?.totalCost || 0;
+    const taxAmount = bill.taxAmount || 0;
+    const subtotal = bill.totalPrice - taxAmount - shippingCost
+
     const printData = {
       bill_id: bill.id,
       bill_details: {
@@ -86,8 +98,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
         total_weight: bill.TransactionShipping[0].totalWeight,
         total_cost: bill.TransactionShipping[0].totalCost,
       } : null,
-      total_amount: bill.totalPrice,
-    };
+     // ✅ Add these fields:
+      subtotal: subtotal,
+      shipping: shippingCost,
+      taxAmount: taxAmount,
+      taxName: tax?.name || "Tax",
+      total: bill.totalPrice
+};
 
     console.log(printData);
     

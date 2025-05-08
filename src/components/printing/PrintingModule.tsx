@@ -53,7 +53,13 @@ interface Bill {
     total_weight: number;
     total_cost: number;
   } | null;
+  subtotal?: number;
+  shipping?: number;
+  taxName?: string;
+  taxAmount?: number;
+  total?: number;
 }
+
 
 export default function PrintingModule() {
   const [billId, setBillId] = useState('');
@@ -228,13 +234,23 @@ export default function PrintingModule() {
         .label {
           border: 1px solid black;
           width: 100%;
-          height: 100%;
+          min-height: 100%;
           display: flex;
           flex-direction: column;
           margin: 0;
           padding: 0;
           box-sizing: border-box;
         }
+          .price-summary p {
+            margin: 2px 0;
+            padding: 0;
+          }
+
+          .total-line {
+          margin-top: 2px;
+          font-weight: bold;
+        }
+
         .header {
           display: flex;
           justify-content: space-between;
@@ -279,16 +295,25 @@ export default function PrintingModule() {
         }
         .items {
           padding: 6px;
-          overflow: hidden;
-          display: flex;
+          overflow-wrap: break-word;
+          word-wrap: break-word;
+          white-space: normal;
+          display: block;
+          flex: 1;
         }
         .items-header {
           font-weight: bold;
           margin-bottom: 4px;
         }
         .items-content {
-          display: flex;
-          flex-direction: row;
+          display: block;
+          white-space: normal;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+          word-break: break-word;
+          max-width: 100%;
+          font-size: 12px;
+          line-height: 1.4;
         }
         .barcode {
           text-align: center;
@@ -315,7 +340,7 @@ export default function PrintingModule() {
     const billsHTML = bills.map(bill => {
       const itemsList = bill.product_details
         .map(product => `${product.productName} x ${product.quantity}`)
-        .join("\n");
+        .join("");
 
       const canvas = document.createElement('canvas');
       JsBarcode(canvas, bill.bill_details.bill_no.toString(), {
@@ -365,6 +390,12 @@ export default function PrintingModule() {
             <div class="items">
               <div class="items-content">${itemsList}</div>
             </div>
+            <div class="price-summary">
+  <p><strong>Subtotal:</strong> ₹${bill.subtotal?.toFixed(2) || '0.00'}</p>
+  <p><strong>Shipping:</strong> ₹${bill.shipping?.toFixed(2) || '0.00'}</p>
+  ${bill.taxAmount ? `<p><strong>${bill.taxName || 'Tax'}:</strong> ₹${bill.taxAmount.toFixed(2)}</p>` : ''}
+  <p  class="total-line"><strong>Total:</strong> ₹${bill.total?.toFixed(2) || '0.00'}</p>
+</div>
           </div>
         </div>
       `;
