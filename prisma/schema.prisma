@@ -140,6 +140,7 @@ model TransactionRecord {
   isEdited            Boolean               @default(false)
   gst_amount          Float?
   gst_percent         Float?
+  taxAmount           Float?                // Add this field
   items               TransactionItem[]
   customer            Customer?             @relation(fields: [customerId], references: [id])
   organisation        Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -149,6 +150,7 @@ model TransactionRecord {
   @@index([organisationId], map: "transaction_record_organisation_id_fkey")
   @@map("transaction_record")
 }
+
 
 model TransactionItem {
   id            Int               @id @default(autoincrement())

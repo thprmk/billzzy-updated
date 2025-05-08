@@ -1,5 +1,4 @@
 'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import { CustomerForm } from '@/components/billing/CustomerSearch';
 import { ProductTable } from '@/components/billing/ProductTable';
@@ -44,14 +43,35 @@ export default function OnlineBillPage() {
   }>(null);
 
   const [showModal, setShowModal] = useState(false);
+  const [taxRate, setTaxRate] = useState<{ name: string; type: 'Percentage' | 'Fixed'; value: number } | null>(null);
+  const [taxAmount, setTaxAmount] = useState<number>(0);
 
-  const handleUpgradeClick = () => {
-    setShowModal(true); // show the UPI ID popup
-  };
+  const handleUpgradeClick = () => setShowModal(true);
+  const handleClose = () => setShowModal(false);
 
-  const handleClose = () => {
-    setShowModal(false);
-  };
+  useEffect(() => {
+    const fetchTaxRate = async () => {
+      try {
+        const res = await fetch(`/api/settings/tax?cacheBust=${Date.now()}`);
+        const data = await res.json();
+        if (data.tax && data.tax.autoApply) {
+          setTaxRate({ name: data.tax.name, type: data.tax.type, value: data.tax.value });
+        } else {
+          setTaxRate(null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch tax rate:', err);
+      }
+    };
+  
+    fetchTaxRate();
+  
+    // ✅ Refetch tax when user switches back to this tab
+    window.addEventListener('focus', fetchTaxRate);
+    return () => window.removeEventListener('focus', fetchTaxRate);
+  }, []);
+  
+  
 
   useEffect(() => {
     fetchShippingMethods();
@@ -61,19 +81,22 @@ export default function OnlineBillPage() {
     calculateShipping();
   }, [selectedShippingId, items, shippingMethods]);
 
-  // Automatically select free shipping if conditions are met
+  useEffect(() => {
+    if (!taxRate) return setTaxAmount(0);
+    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+    const baseAmount = subtotal + shippingCost;
+    const tax = taxRate.type === 'Percentage' ? (baseAmount * taxRate.value) / 100 : taxRate.value;
+    setTaxAmount(tax);
+  }, [items, shippingCost, taxRate]);
+
   useEffect(() => {
     if (shippingMethods.length === 0 || items.length === 0) return;
-
     const subtotal = items.reduce((sum, item) => sum + item.total, 0);
     const freeShippingMethod = shippingMethods.find(m => m.type === 'FREE_SHIPPING');
     if (freeShippingMethod) {
-      // If there's a minAmount, check it
       if (freeShippingMethod.minAmount && subtotal >= freeShippingMethod.minAmount) {
-        // Automatically select free shipping method
         setSelectedShippingId(freeShippingMethod.id);
       } else if (!freeShippingMethod.minAmount) {
-        // If no minAmount required, always select free shipping
         setSelectedShippingId(freeShippingMethod.id);
       }
     }
@@ -92,38 +115,15 @@ export default function OnlineBillPage() {
   };
 
   const calculateShipping = () => {
-    // If no shipping methods or no items, shipping cost = 0
-    if (shippingMethods.length === 0 || items.length === 0) {
-      setShippingCost(0);
-      return;
-    }
-
-    if (!selectedShippingId) {
-      setShippingCost(0);
-      return;
-    }
-
+    if (shippingMethods.length === 0 || items.length === 0 || !selectedShippingId) return setShippingCost(0);
     const method = shippingMethods.find((m) => m.id === selectedShippingId);
-    if (!method) {
-      setShippingCost(0);
-      return;
-    }
-
-    const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+    if (!method) return setShippingCost(0);
     let cost = 0;
-
-    if (method.type === 'FREE_SHIPPING') {
-      // If minAmount is required, check if we meet it. If not met, cost=0 but show message.
-      cost = 0;
-    } else if (method.type === 'COURIER_PARTNER') {
-      if (method.useWeight && method.ratePerKg) {
-        const totalWeight = calculateTotalWeight(items);
-        cost = totalWeight * method.ratePerKg;
-      } else {
-        cost = method.fixedRate || 0;
-      }
+    if (method.type === 'COURIER_PARTNER') {
+      cost = method.useWeight && method.ratePerKg
+        ? calculateTotalWeight(items) * method.ratePerKg
+        : method.fixedRate || 0;
     }
-
     setShippingCost(cost);
   };
 
@@ -134,74 +134,37 @@ export default function OnlineBillPage() {
     setError(null);
     setSelectedShippingId(null);
     setShippingCost(0);
-    
-    if (customerFormRef.current) {
-      customerFormRef.current.resetForm();
-    }
-    if (productTableRef.current) {
-      productTableRef.current.resetTable();
-    }
+    if (customerFormRef.current) customerFormRef.current.resetForm();
+    if (productTableRef.current) productTableRef.current.resetTable();
   };
 
   const handleSubmit = async () => {
-    if (!customer) {
-      setError('Please enter customer details.');
-      toast.error('Please enter customer details.');
-      return;
-    }
-  
-    if (items.length === 0) {
-      setError('Please add at least one item.');
-      toast.error('Please add at least one item.');
-      return;
-    }
-  
-    if (shippingMethods.length > 0 && !selectedShippingId) {
-      setError('Please select a shipping method.');
-      toast.error('Please select a shipping method.');
-      return;
-    }
-  
+    if (!customer) return toast.error('Please enter customer details.');
+    if (items.length === 0) return toast.error('Please add at least one item.');
+    if (shippingMethods.length > 0 && !selectedShippingId) return toast.error('Please select a shipping method.');
+
     setIsLoading(true);
-    setError(null);
-  
     try {
       let customerId = customer.id;
-  
       if (customer.id) {
-        // 1) Existing customer -> Update
-        const updateCustomerResponse = await fetch(`/api/customers/${customer.id}`, {
+        const res = await fetch(`/api/customers/${customer.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(customer),
         });
-        
-        if (!updateCustomerResponse.ok) {
-          const errData = await updateCustomerResponse.json();
-          throw new Error(errData.message || 'Failed to update customer');
-        }
-  
-        // Keep the same ID after update
-        customerId = customer.id;
+        if (!res.ok) throw new Error((await res.json()).message || 'Failed to update customer');
       } else {
-        // 2) New customer -> Create
-        const createCustomerResponse = await fetch('/api/customers', {
+        const res = await fetch('/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(customer),
         });
-  
-        const createCustomerData = await createCustomerResponse.json();
-  
-        if (!createCustomerResponse.ok) {
-          throw new Error(createCustomerData.message || 'Failed to create customer');
-        }
-  
-        customerId = createCustomerData.id;
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to create customer');
+        customerId = data.id;
       }
-  
-      // 3) Create the online bill
-      const response = await fetch('/api/billing/online', {
+
+      const res = await fetch('/api/billing/online', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -210,40 +173,31 @@ export default function OnlineBillPage() {
           billingMode: 'online',
           notes: notes.trim() || null,
           shippingMethodId: shippingMethods.length === 0 ? null : selectedShippingId,
+          taxAmount,
         }),
       });
-  
-      const data = await response.json();
-  
-      if (response.status === 403) {
+
+      const data = await res.json();
+      if (res.status === 403) {
         setLimitReached(true);
         setNextResetDate(data.nextResetDate);
-        setIsLoading(false);
         return;
       }
-  
-      if (!response.ok) {
-        throw new Error(data.details || 'Failed to create bill');
-      }
-  
+      if (!res.ok) throw new Error(data.details || 'Failed to create bill');
+
       await resetForm();
       toast.success('Bill created successfully');
       router.refresh();
-  
+
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to create bill');
       toast.error(error instanceof Error ? error.message : 'Failed to create bill');
     } finally {
       setIsLoading(false);
     }
   };
-  
-  
 
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-  const totalAmount = subtotal + shippingCost;
-
-  // Check if there's a free shipping method with a minAmount
+  const totalAmount = subtotal + shippingCost + taxAmount;
   const freeShippingMethod = shippingMethods.find(m => m.type === 'FREE_SHIPPING' && m.minAmount);
   const showMinAmountMessage = freeShippingMethod && subtotal < freeShippingMethod.minAmount;
 
@@ -302,9 +256,16 @@ export default function OnlineBillPage() {
         )}
         
         <div className="mt-4 space-y-1">
-          <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
-          <p>Shipping: ₹{shippingCost.toFixed(2)}</p>
-          <p className="font-bold">Total: ₹{totalAmount.toFixed(2)}</p>
+        <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
+<p>Shipping: ₹{shippingCost.toFixed(2)}</p>
+{taxAmount > 0 && taxRate && (
+  <p>
+    {taxRate.name} ({taxRate.type === 'Percentage' ? `${taxRate.value}%` : `₹${taxRate.value}`}): ₹{taxAmount.toFixed(2)}
+  </p>
+)}
+
+<p className="font-bold">Total: ₹{totalAmount.toFixed(2)}</p>
+
         </div>
       </div>
 
