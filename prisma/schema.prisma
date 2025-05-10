@@ -8,52 +8,56 @@ datasource db {
 }
 
 model Organisation {
-  id                     Int                   @id @default(autoincrement())
+  id                     Int       @id @default(autoincrement())
   password               String
-  email                  String                @unique
+  email                  String    @unique
   phone                  String
   name                   String
-  companySize            String                @map("company_size")
-  shopName               String                @map("shop_name")
-  flatNo                 String                @map("flatno")
+  companySize            String    @map("company_size")
+  shopName               String    @map("shop_name")
+  flatNo                 String    @map("flatno")
   street                 String
   city                   String?
   district               String
   state                  String
-  smsCount               Int                   @default(0) @map("sms_count")
-  smsCost                Float                 @default(0) @map("sms_cost")
+  smsCount               Int       @default(0) @map("sms_count")
+  smsCost                Float     @default(0) @map("sms_cost")
   country                String
   pincode                String
-  mobileNumber           String                @map("mobile_number")
-  landlineNumber         String?               @map("landline_number")
-  websiteAddress         String?               @map("website_address")
-  gstNumber              String?               @map("gst_number")
-  subscriptionType       String                @map("subscription_type")
-  endDate                DateTime              @map("end_date") @db.DateTime(0)
-  whatsappNumber         String?               @map("whatsapp_number")
-  resetToken             String?               @map("reset_token")
-  resetTokenExpiry       DateTime?             @map("reset_token_expiry")
-  createdAt              DateTime              @default(now())
-  updatedAt              DateTime              @updatedAt
-  razorpayAccessToken    String?               @map("razorpay_access_token") @db.Text
-  razorpayRefreshToken   String?               @map("razorpay_refresh_token") @db.Text
-  razorpayTokenExpiresAt DateTime?             @map("razorpay_token_expires_at")
-  razorpayState          String?               @map("razorpay_state")
-  razorpayStateExpiresAt DateTime?             @map("razorpay_state_expires_at")
-  razorpayAccountId      String?               @map("razorpay_account_id")
-  monthlyUsage           Int                   @default(0)
-  CustomerSubmission     CustomerSubmission[]
-  activeMandates         ActiveMandate?
-  customers              Customer[]
-  inventory              Inventory[]
-  MandateNotification    MandateNotification[]
-  Mandate                Mandate[]
-  productCategories      ProductCategory[]
-  products               Product[]
-  sellers                Seller[]
-  ShippingMethod         ShippingMethod[]
-  transactions           TransactionRecord[]
-  taxes                  Tax[]               @relation("OrganisationTax")
+  mobileNumber           String    @map("mobile_number")
+  landlineNumber         String?   @map("landline_number")
+  websiteAddress         String?   @map("website_address")
+  gstNumber              String?   @map("gst_number")
+  subscriptionType       String    @map("subscription_type")
+  endDate                DateTime  @map("end_date") @db.DateTime(0)
+  whatsappNumber         String?   @map("whatsapp_number")
+  resetToken             String?   @map("reset_token")
+  resetTokenExpiry       DateTime? @map("reset_token_expiry")
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  razorpayAccessToken    String?   @map("razorpay_access_token") @db.Text
+  razorpayRefreshToken   String?   @map("razorpay_refresh_token") @db.Text
+  razorpayTokenExpiresAt DateTime? @map("razorpay_token_expires_at")
+  razorpayState          String?   @map("razorpay_state")
+  razorpayStateExpiresAt DateTime? @map("razorpay_state_expires_at")
+  razorpayAccountId      String?   @map("razorpay_account_id")
+  monthlyUsage           Int       @default(0)
+
+ // Relation field for CustomShipping
+  customShippings        CustomShipping[]  @relation("OrganisationCustomShippings")
+
+  CustomerSubmission  CustomerSubmission[]
+  activeMandates      ActiveMandate?
+  customers           Customer[]
+  inventory           Inventory[]
+  MandateNotification MandateNotification[]
+  Mandate             Mandate[]
+  productCategories   ProductCategory[]
+  products            Product[]
+  sellers             Seller[]
+  ShippingMethod      ShippingMethod[]
+  transactions        TransactionRecord[]
+  taxes               Tax[]                 @relation("OrganisationTax")
 
   @@index([resetToken])
   @@map("organisation")
@@ -121,6 +125,8 @@ model Seller {
 
 model TransactionRecord {
   id                  Int                   @id @default(autoincrement())
+  shippingCost        Float? // Make sure the field exists
+  shippingMethodId    Int?
   billNo              Int                   @unique(map: "bill_no") @map("bill_no")
   totalPrice          Float                 @map("total_price")
   billingMode         String                @map("billing_mode")
@@ -140,7 +146,7 @@ model TransactionRecord {
   isEdited            Boolean               @default(false)
   gst_amount          Float?
   gst_percent         Float?
-  taxAmount           Float?                // Add this field
+  taxAmount           Float? // Add this field
   items               TransactionItem[]
   customer            Customer?             @relation(fields: [customerId], references: [id])
   organisation        Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -150,7 +156,6 @@ model TransactionRecord {
   @@index([organisationId], map: "transaction_record_organisation_id_fkey")
   @@map("transaction_record")
 }
-
 
 model TransactionItem {
   id            Int               @id @default(autoincrement())
@@ -222,6 +227,7 @@ model ShippingMethod {
   useWeight      Boolean            @default(false) @map("use_weight")
   ratePerKg      Float?             @map("rate_per_kg")
   fixedRate      Float?             @map("fixed_rate")
+  customRate     Float? // custom shipping rate
   isActive       Boolean            @default(true) @map("is_active")
   organisationId Int                @map("organisation_id")
   createdAt      DateTime           @default(now()) @map("created_at")
@@ -288,18 +294,28 @@ model ActiveMandate {
   @@map("active_mandates")
 }
 
-
 model Tax {
-  id              Int      @id @default(autoincrement())
-  organisationId  Int
-  name            String
-  type            String
-  value           Float
-  autoApply       Boolean
-  organisation    Organisation @relation(fields: [organisationId], references: [id], name: "OrganisationTax")
+  id             Int          @id @default(autoincrement())
+  organisationId Int
+  name           String
+  type           String
+  value          Float
+  autoApply      Boolean
+  organisation   Organisation @relation(fields: [organisationId], references: [id], name: "OrganisationTax")
 
   @@index([organisationId])
-  @@map("tax")  // Ensure the table is named 'tax' in the database
+  @@map("tax") // Ensure the table is named 'tax' in the database
+}
+
+model CustomShipping {
+  id             Int          @id @default(autoincrement())
+  price          Float
+  name           String?
+  organisationId Int
+  organisation   Organisation @relation("OrganisationCustomShippings", fields: [organisationId], references: [id])
+
+  @@index([organisationId])
+  @@map("custom_shippings")
 }
 
 
