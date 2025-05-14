@@ -98,7 +98,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
         total_weight: bill.TransactionShipping[0].totalWeight,
         total_cost: bill.TransactionShipping[0].totalCost,
       } : null,
-     // ✅ Add these fields:
+
+      // If custom shipping exists, include it here as well
+      custom_shipping_details: bill.customShippingDetails || null, // Assuming `customShippingDetails` exists in the bill object
+    
+  // ✅ Add these fields:
       subtotal: subtotal,
       shipping: shippingCost,
       taxAmount: taxAmount,

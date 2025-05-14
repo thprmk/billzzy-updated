@@ -60,7 +60,6 @@ interface Bill {
   total?: number;
 }
 
-
 export default function PrintingModule() {
   const [billId, setBillId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -390,14 +389,40 @@ export default function PrintingModule() {
             <div class="items">
               <div class="items-content">${itemsList}</div>
             </div>
-            <div class="price-summary">
-  <p><strong>Subtotal:</strong> ₹${bill.subtotal?.toFixed(2) || '0.00'}</p>
-  <p><strong>Shipping:</strong> ₹${bill.shipping?.toFixed(2) || '0.00'}</p>
-  ${bill.taxAmount ? `<p><strong>${bill.taxName || 'Tax'}:</strong> ₹${bill.taxAmount.toFixed(2)}</p>` : ''}
-  <p  class="total-line"><strong>Total:</strong> ₹${bill.total?.toFixed(2) || '0.00'}</p>
-</div>
+          <div class="price-summary">
+            <p><strong>Subtotal:</strong> ₹${bill.subtotal?.toFixed(2) || '0.00'}</p>
+            <p><strong>Shipping:</strong> ₹${bill.shipping?.toFixed(2) || '0.00'}</p>
+            ${bill.taxAmount ? `<p><strong>${bill.taxName || 'Tax'}:</strong> ₹${bill.taxAmount.toFixed(2)}</p>` : ''}
+            <p  class="total-line"><strong>Total:</strong> ₹${bill.total?.toFixed(2) || '0.00'}</p>
+
+
+            <!-- Custom shipping info (if available) -->
+              ${bill.custom_shipping_details ? `
+                <p><strong>Custom Shipping:</strong></p>
+                <p>Custom Method: ${bill.custom_shipping_details.method_name || 'N/A'}</p>
+                <p>Custom Rate: ₹${bill.custom_shipping_details.rate || 'N/A'}</p>
+                <p>Custom Weight Charge: ₹${bill.custom_shipping_details.weight_charge || 'N/A'}</p>
+                <p>Custom Shipping Total: ₹${bill.custom_shipping_details.total_cost || 'N/A'}</p>
+              ` : ''}
+            </div>
+          </div>
+          <div class="items">
+            <div class="items-content">${itemsList}</div>
+          </div>
+          <div class="price-summary">
+            <p><strong>Subtotal:</strong> ₹${bill.subtotal?.toFixed(2) || '0.00'}</p>
+            <p><strong>Shipping:</strong> ₹${bill.shipping?.toFixed(2) || '0.00'}</p>
+            ${bill.taxAmount ? `<p><strong>${bill.taxName || 'Tax'}:</strong> ₹${bill.taxAmount.toFixed(2)}</p>` : ''}
+            <p class="total-line"><strong>Total:</strong> ₹${bill.total?.toFixed(2) || '0.00'}</p>
           </div>
         </div>
+      </div>
+
+          </div>
+
+          </div>
+        </div>
+        
       `;
     }).join('');
 
@@ -497,7 +522,6 @@ export default function PrintingModule() {
                         : `Did you successfully print all ${printedBillIds.length} shipping labels?`}
                     </p>
                   </div>
-
                   <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
                     <Button
                       onClick={() => confirmPrintStatus('printed')}

@@ -342,4 +342,5 @@ enum PaymentStatus {
 enum ShippingMethodType {
   FREE_SHIPPING
   COURIER_PARTNER
+   CUSTOM_SHIPPING  // Add this line
 }

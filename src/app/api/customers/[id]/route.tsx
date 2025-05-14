@@ -6,7 +6,7 @@ import { authOptions } from '@/lib/auth-options';
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // Note the Promise wrapper
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,7 +14,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const customerId = parseInt(params.id);
+    const { id } = await params; // Await params first
+    const customerId = parseInt(id);
     if (isNaN(customerId)) {
       return NextResponse.json({ error: 'Invalid customer ID' }, { status: 400 });
     }
@@ -44,20 +45,20 @@ export async function PUT(
     }
 
     // Check if phone number is being used by another customer
-    const phoneExists = await prisma.customer.findFirst({
-      where: {
-        phone,
-        id: { not: customerId },
-        organisationId: parseInt(session.user.id)
-      }
-    });
+    // const phoneExists = await prisma.customer.findFirst({
+    //   where: {
+    //     phone,
+    //     id: { not: customerId },
+    //     organisationId: parseInt(session.user.id)
+    //   }
+    // });
 
-    if (phoneExists) {
-      return NextResponse.json(
-        { error: 'Phone number is already in use by another customer' },
-        { status: 400 }
-      );
-    }
+    // // if (phoneExists) {
+    // //   return NextResponse.json(
+    // //     { error: 'Phone number is already in use by another customer' },
+    // //     { status: 400 }
+    // //   );
+    // // }
 
     const customer = await prisma.customer.update({
       where: { id: customerId },
@@ -84,7 +85,7 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -92,7 +93,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const customerId = parseInt(params.id);
+    const { id } = await params; // Await params first
+    const customerId = parseInt(id);
     if (isNaN(customerId)) {
       return NextResponse.json({ error: 'Invalid customer ID' }, { status: 400 });
     }

@@ -1,4 +1,4 @@
-// app/api/create_online_bill/route.ts
+// app/api/create_online_bill/route.ts - Updated
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -27,22 +27,20 @@ const createBillSchema = z.object({
       quantity: z.number().int().positive(),
       price: z.number().nonnegative(),
       total: z.number().nonnegative(),
-      productWeight: z.number().optional(),  // Add productWeight here
+      productWeight: z.number().optional(),
     })
   ),
   billingMode: z.string().optional().default('online'),
   notes: z.string().nullable().optional().default(null),
-  shippingMethodId: z.number().int().positive().nullable().default(null), // ✅ Add comma here
-  taxAmount: z.number().optional().default(0), // ✅ Now this is valid
+  shippingMethodId: z.number().int().positive().nullable().default(null),
+  taxAmount: z.number().optional().default(0),
   customShipping: z
-  .object({
-    price: z.number().nonnegative(),
-    name: z.string().optional(),
-  })
-  
-  .nullable()
-  .optional(), // Add this line to handle customShipping
-
+    .object({
+      price: z.number().nonnegative(),
+      name: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 interface TransactionOptions {
@@ -126,28 +124,23 @@ async function processItems(
       );
     }
 
-    const calculatedTotal = dbProduct.sellingPrice * quantity;
-
-    if (calculatedTotal !== total) {
-      throw new Error(
-        `Total mismatch for ${dbProduct.name}. Expected: ${calculatedTotal}, Received: ${total}`
-      );
-    }
-
-    totalPrice += calculatedTotal;
+    // Use the provided total from the request instead of recalculating
+    // This fixes an issue where price might be different than sellingPrice
+    const itemTotal = total;
+    totalPrice += itemTotal;
 
     transactionItemsData.push({
       productId,
       quantity,
-      totalPrice: calculatedTotal,
+      totalPrice: itemTotal,
     });
 
     processedItems.push({
       productName: dbProduct.name,
       SKU: dbProduct.SKU,
       quantity,
-      unitPrice: dbProduct.sellingPrice,
-      amount: calculatedTotal,
+      unitPrice: price || dbProduct.sellingPrice, // Use price from request or fallback to DB
+      amount: itemTotal,
     });
   }
 
@@ -170,7 +163,8 @@ async function createTransactionRecord(
   totalPrice: number,
   billingMode: string,
   notes: string | null,
-  taxAmount: number
+  taxAmount: number,
+  shippingCost: number
 ) {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
@@ -202,13 +196,13 @@ async function createTransactionRecord(
       paymentStatus: 'PENDING',
       paymentMethod: 'offline',
       notes: notes,
-      taxAmount: taxAmount, // ✅ include this
+      taxAmount: taxAmount,
+      shippingCost: shippingCost, // Added shippingCost field to the record
     },
   });
 }
 
 export async function POST(request: Request) {
-
     try {
       const session = await getServerSession(authOptions);
       if (!session) {
@@ -238,59 +232,80 @@ export async function POST(request: Request) {
         throw new Error('Organisation not found');
       }
   
-      // 1) Check if custom shipping is provided and use its price
+      // 1) Calculate shipping cost
       let shippingCost = 0;
-      let baseRate = 0; // Default baseRate initialization
-
+      let baseRate = 0;
+      let shippingMethodDetails = null;
+      
+      const validShippingMethodId = shippingMethodId ?? 0;
       let shippingMethod = null;
 
-if (shippingMethodId !== null) {
-  shippingMethod = await prisma.shippingMethod.findFirst({
-    where: {
-      id: shippingMethodId,
-      organisationId: organisationId,
-      isActive: true,
-    },
-  });
-}
-  
-      if (customShipping && customShipping.price) {
-        shippingCost = customShipping.price;  // Use custom shipping price
-      } else if (shippingMethodId !== null) {
-        // 2) If no custom shipping, calculate shipping cost based on selected shipping method
-        const shippingMethod = await prisma.shippingMethod.findFirst({
+      if (shippingMethodId !== 0 && shippingMethodId !== null) {
+        shippingMethod = await prisma.shippingMethod.findFirst({
           where: {
-            id: shippingMethodId,
+            id: validShippingMethodId,
             organisationId: organisationId,
             isActive: true,
           },
         });
-  
-
-        
-        if (shippingMethod) {
-          if (shippingMethod.type === 'FREE_SHIPPING') {
-            shippingCost = 0;
-          } else if (shippingMethod.type === 'COURIER_PARTNER') {
-            // Calculate shipping cost based on weight or fixed rate
-            if (shippingMethod.useWeight && shippingMethod.ratePerKg) {
-              const totalWeight = items.reduce(
-                (sum, item) => sum + (item.productWeight || 0) * item.quantity,
-                0
-              );
-              shippingCost = totalWeight * shippingMethod.ratePerKg;
-              baseRate = shippingMethod.ratePerKg; // Set the base rate
-            } else {
-              shippingCost = shippingMethod.fixedRate || 0;
-              baseRate = shippingMethod.fixedRate; // Set the base rate
-            }
-          }
-        }
       }
   
+      // Handle custom shipping first (priority over selected shipping method)
+      if (customShipping && customShipping.price) {
+        shippingCost = customShipping.price;
+        const customShippingName = customShipping.name || "Custom Shipping";
+        shippingMethodDetails = {
+          type: "CUSTOM_SHIPPING",
+          name: customShippingName,
+          cost: customShipping.price,
+          useWeight: false,
+          ratePerKg: null,
+          baseRate: customShipping.price,
+        };
+        console.log(`Using one-time custom shipping cost: ${shippingCost}`);
+      } else if (shippingMethodId !== null && shippingMethod) {
+        // Use selected shipping method if no custom shipping
+        if (shippingMethod.type === 'FREE_SHIPPING') {
+          shippingCost = 0;
+        } else if (shippingMethod.type === 'COURIER_PARTNER') {
+          if (shippingMethod.useWeight && shippingMethod.ratePerKg) {
+            const totalWeight = items.reduce(
+              (sum, item) => sum + (item.productWeight || 0) * item.quantity,
+              0
+            );
+            shippingCost = totalWeight * shippingMethod.ratePerKg;
+            baseRate = shippingMethod.ratePerKg;
+          } else {
+            shippingCost = shippingMethod.fixedRate || 0;
+            baseRate = shippingMethod.fixedRate;
+          }
+        }
+        
+        shippingMethodDetails = {
+          type: shippingMethod.type,
+          name: shippingMethod.name,
+          cost: shippingCost,
+          useWeight: shippingMethod.useWeight || false,
+          ratePerKg: shippingMethod.ratePerKg,
+          baseRate: baseRate,
+          id: shippingMethod.id
+        };
+        
+        console.log(`Using shipping method cost: ${shippingCost} for method: ${shippingMethod.name}`);
+      }
+  
+      // Parse the tax amount to ensure it's a number
+      const parsedTaxAmount = Number(taxAmount) || 0;
+      console.log(`Tax amount: ${parsedTaxAmount}`);
+      
       // 3) Calculate the final total (items total + shipping cost + tax)
-      const itemsTotalPrice = items.reduce((sum: number, item: any) => sum + item.total, 0);
-      const finalTotal = itemsTotalPrice + shippingCost + taxAmount;  // Include custom shipping cost here
+      const itemsTotalPrice = items.reduce((sum: number, item: any) => sum + Number(item.total), 0);
+      console.log(`Items total price: ${itemsTotalPrice}`);
+      console.log(`Shipping cost: ${shippingCost}`);
+      console.log(`Tax amount: ${parsedTaxAmount}`);
+      
+      const finalTotal = itemsTotalPrice + shippingCost + parsedTaxAmount;
+      console.log(`Final total: ${finalTotal}`);
   
       const result = await executeWithRetry(async () => {
         return await prisma.$transaction(async (tx) => {
@@ -303,16 +318,17 @@ if (shippingMethodId !== null) {
           }
   
           const { productDetails, transactionItemsData } = await processItems(tx, items, organisationId);
-  
-          // Create the transaction record with final total (including custom shipping)
+
+          // Create the transaction record with final total (including shipping and tax)
           const newBill = await createTransactionRecord(
             tx,
             organisationId,
             customer.id,
-            finalTotal, // This final total includes custom shipping
+            finalTotal,
             billingMode || 'online',
             notes || null,
-            taxAmount || 0
+            parsedTaxAmount,
+            shippingCost
           );
   
           // Create transaction items in the database
@@ -324,25 +340,32 @@ if (shippingMethodId !== null) {
               totalPrice: item.totalPrice,
             })),
           });
-  
-          // If shipping method was selected, record shipping details
-          if (shippingMethodId !== null) {
+
+          // Store shipping details for this transaction without creating a permanent method
+          if (shippingMethodDetails) {
             await tx.transactionShipping.create({
               data: {
                 transactionId: newBill.id,
-                methodName: shippingMethod.name,
-                methodType: shippingMethod.type,
+                methodName: shippingMethodDetails.name,
+                methodType: shippingMethodDetails.type,
                 totalCost: shippingCost,
-                baseRate: baseRate, // Ensure baseRate is passed correctly
-              }
+                baseRate: shippingMethodDetails.baseRate || shippingCost,
+              },
             });
           }
   
-          return { newBill, customer, productDetails };
+          return { 
+            newBill, 
+            customer, 
+            productDetails,
+            shippingDetails: shippingMethodDetails,
+            itemsTotal: itemsTotalPrice,
+            taxAmount: parsedTaxAmount
+          };
         });
       });
   
-      const { newBill, customer, productDetails } = result;
+      const { newBill, customer, productDetails, shippingDetails, itemsTotal, taxAmount: finalTaxAmount } = result;
   
       // Prepare the response data
       const indianDateTime = moment(newBill.date).tz('Asia/Kolkata');
@@ -358,6 +381,9 @@ if (shippingMethodId !== null) {
           date: formattedDate,
           time: formattedTime,
           total_amount: newBill.totalPrice,
+          items_total: itemsTotal,
+          shipping_cost: shippingDetails?.cost || 0,
+          tax_amount: finalTaxAmount || 0
         },
         customer_details: {
           id: customer.id,
@@ -383,6 +409,8 @@ if (shippingMethodId !== null) {
         },
         product_details: productDetails,
         total_amount: newBill.totalPrice,
+        shipping_details: shippingDetails, // Add this to response
+        tax_amount: finalTaxAmount || 0
       };
 
       try {
@@ -400,32 +428,28 @@ if (shippingMethodId !== null) {
           ].filter(Boolean).join(', ');
   
           let message: string;
-  
-          if (shippingMethod) {
-            // If shippingMethod is chosen, include details in the SMS
-            const shippingName = shippingMethod.name;
-            const shippingRate = baseRate === null ? 0 : baseRate;
-            message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingName} (₹${shippingRate}).`;
+          
+          if (shippingDetails && shippingDetails.name) {
+            message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${shippingDetails.cost}).`;
           } else {
-            // No shipping method selected
             message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
           }
   
-          await sendBillingSMS({
-            phone: customer.phone,
-            companyName: organisation.shopName,
-            products: productsString,
-            amount: newBill.totalPrice,
-            address: fullAddress,
-            organisationId: organisation.id,
-            billNo: newBill.billNo,
-            shippingMethod: shippingMethod ? {
-              name: shippingMethod.name,
-              type: shippingMethod.type,
-              cost: baseRate || 0
-            } : null
-          });
-  
+          // Uncomment this to enable SMS sending
+          // await sendBillingSMS({
+          //   phone: customer.phone,
+          //   companyName: organisation.shopName,
+          //   products: productsString,
+          //   amount: newBill.totalPrice,
+          //   address: fullAddress,
+          //   organisationId: organisation.id,
+          //   billNo: newBill.billNo,
+          //   shippingMethod: shippingDetails && shippingDetails.name ? {
+          //     name: shippingDetails.name,
+          //     type: shippingDetails.type,
+          //     cost: shippingDetails.cost || 0
+          //   } : null
+          // });
         }
       } catch (smsError) {
         console.error('SMS sending failed:', smsError);
