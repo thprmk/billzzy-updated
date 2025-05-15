@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 type Tax = {
   name: string;
@@ -37,10 +38,10 @@ export const TaxSettings = () => {
   const saveTax = async () => {
     try {
       await axios.post('/api/settings/tax', tax);
-      alert('Tax saved successfully!');
+      toast.success('Tax saved successfully!'); // Using toast instead of alert
     } catch (err) {
       console.error(err);
-      alert('Failed to save tax.');
+      toast.error('Failed to save tax.'); // Using toast instead of alert
     }
   };
 
