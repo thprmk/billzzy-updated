@@ -126,7 +126,7 @@ async function processItems(
 
     // Use the provided total from the request instead of recalculating
     // This fixes an issue where price might be different than sellingPrice
-    const itemTotal = total;
+    const itemTotal = Math.round(total);
     totalPrice += itemTotal;
 
     transactionItemsData.push({
@@ -139,7 +139,7 @@ async function processItems(
       productName: dbProduct.name,
       SKU: dbProduct.SKU,
       quantity,
-      unitPrice: price || dbProduct.sellingPrice, // Use price from request or fallback to DB
+      unitPrice: Math.round(price || dbProduct.sellingPrice), // Use price from request or fallback to DB
       amount: itemTotal,
     });
   }
@@ -273,10 +273,10 @@ export async function POST(request: Request) {
               (sum, item) => sum + (item.productWeight || 0) * item.quantity,
               0
             );
-            shippingCost = totalWeight * shippingMethod.ratePerKg;
+            shippingCost = Math.round(totalWeight * shippingMethod.ratePerKg);
             baseRate = shippingMethod.ratePerKg;
           } else {
-            shippingCost = shippingMethod.fixedRate || 0;
+            shippingCost = Math.round(shippingMethod.fixedRate || 0);
             baseRate = shippingMethod.fixedRate;
           }
         }
@@ -295,16 +295,23 @@ export async function POST(request: Request) {
       }
   
       // Parse the tax amount to ensure it's a number
-      const parsedTaxAmount = Number(taxAmount) || 0;
+      const parsedTaxAmount = Math.round(Number(taxAmount) || 0);
       console.log(`Tax amount: ${parsedTaxAmount}`);
       
       // 3) Calculate the final total (items total + shipping cost + tax)
-      const itemsTotalPrice = items.reduce((sum: number, item: any) => sum + Number(item.total), 0);
+      const itemsTotalPrice = Math.round(items.reduce((sum: number, item: any) => sum + Number(item.total), 0));
       console.log(`Items total price: ${itemsTotalPrice}`);
+
+      // Round the shipping cost
+      const roundedShippingCost = Math.round(shippingCost);
+      console.log(`Shipping cost: ${roundedShippingCost}`);
+
+
       console.log(`Shipping cost: ${shippingCost}`);
       console.log(`Tax amount: ${parsedTaxAmount}`);
-      
-      const finalTotal = itemsTotalPrice + shippingCost + parsedTaxAmount;
+
+      // Calculate the final total with rounded values
+      const finalTotal = itemsTotalPrice + roundedShippingCost + parsedTaxAmount;
       console.log(`Final total: ${finalTotal}`);
   
       const result = await executeWithRetry(async () => {

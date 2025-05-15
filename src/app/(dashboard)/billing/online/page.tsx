@@ -348,7 +348,10 @@ export default function OnlineBillPage() {
                 <input
                   type="number"
                   value={customShipping.price}
-                  onChange={(e) => setCustomShipping({ ...customShipping, price: Number(e.target.value) || 0 })}
+                  onChange={(e) => setCustomShipping({ 
+                    ...customShipping, 
+                    price: e.target.value === '' ? '' : Number(e.target.value) 
+                  })}
                   placeholder="Enter price"
                   className="w-full p-2 border border-gray-300 rounded-md"
                 />
