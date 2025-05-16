@@ -247,9 +247,9 @@ export default function OnlineBillPage() {
       </div>
 
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <h2 className="text-lg font-medium mb-4">Shipping Method</h2>
+        <h2 className="text-lg font-medium mb-6">Shipping Method</h2>
         {shippingMethods.length === 0 && !useCustomShipping ? (
-          <div className="text-gray-700 mb-4">
+          <div className="text-gray-600 mb-4 py-3 text-sm">
             No shipping methods found. If no shipping is needed, shipping cost = ₹0 by default.
           </div>
         ) : (
@@ -269,18 +269,18 @@ export default function OnlineBillPage() {
                       }
                     }}
                   >
-                    <option value="">--Select a method--</option>
+                    <option value="">Select a method</option>
                     {shippingMethods.map((method) => (
                       <option key={method.id} value={method.id}>
                         {method.name}
                       </option>
                     ))}
-                    <option value="custom">+ Custom Shipping</option>
+                    <option value="custom">Custom Shipping</option>
                   </Select>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{customShipping.name}</span>
-                    <span>₹{customShipping.price.toFixed(2)}</span>
+                  <div className="flex items-center gap-2 py-2 px-1 border-b border-gray-200">
+                    <span className="font-medium text-gray-800">{customShipping.name}:</span>
+                    <span className="text-gray-700">₹{customShipping.price.toFixed(2)}</span>
                   </div>
                 )}
               </div>
@@ -288,9 +288,12 @@ export default function OnlineBillPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setShowCustomShippingModal(true)}
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                    className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 flex items-center gap-1"
                   >
-                    Modify Custom Shipping
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    Edit
                   </button>
                   <button
                     onClick={() => {
@@ -298,90 +301,140 @@ export default function OnlineBillPage() {
                       setSelectedShippingId(null)
                       toast.success("Custom shipping removed")
                     }}
-                    className="px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200"
+                    className="px-3 py-1.5 text-sm text-red-500 hover:text-red-700 transition-colors duration-200 flex items-center gap-1"
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path
+                        fillRule="evenodd"
+                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                     Remove
                   </button>
                 </div>
               )}
             </div>
             {showMinAmountMessage && !useCustomShipping && (
-              <p className="text-red-600 mt-2 text-[12px]">
+              <div className="mt-2 text-amber-600 text-xs">
                 Your order hasn't reached the minimum amount (₹{freeShippingMethod!.minAmount}) for free shipping.
                 Please select a courier partner method or add more items.
-              </p>
+              </div>
             )}
           </>
         )}
 
-        <div className="mt-4 space-y-1">
-          <p>Subtotal: ₹{subtotal.toFixed(2)}</p>
-          <p>Shipping: ₹{shippingCost.toFixed(2)}</p>
+        <div className="mt-8 space-y-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-500">Subtotal</span>
+            <span className="text-gray-800">₹{subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-500">Shipping</span>
+            <span className="text-gray-800">₹{shippingCost.toFixed(2)}</span>
+          </div>
           {taxAmount > 0 && taxRate && (
-            <p>
-              {taxRate.name} ({taxRate.type === "Percentage" ? `${taxRate.value}%` : `₹${taxRate.value}`}): ₹
-              {taxAmount.toFixed(2)}
-            </p>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">
+                {taxRate.name} ({taxRate.type === "Percentage" ? `${taxRate.value}%` : `₹${taxRate.value}`})
+              </span>
+              <span className="text-gray-800">₹{taxAmount.toFixed(2)}</span>
+            </div>
           )}
-          <p className="font-bold">Total: ₹{totalAmount.toFixed(2)}</p>
+          <div className="border-t border-gray-100 pt-3 mt-3"></div>
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Total</span>
+            <span className="font-medium text-lg">₹{totalAmount.toFixed(2)}</span>
+          </div>
         </div>
       </div>
 
       {/* Custom Shipping Modal */}
       {showCustomShippingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium mb-4">Custom Shipping Details</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Shipping Name</label>
-                <input
-                  type="text"
-                  value={customShipping.name}
-                  onChange={(e) => setCustomShipping({ ...customShipping, name: e.target.value })}
-                  placeholder="Enter shipping name"
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-[2px]"
+            onClick={() => {
+              setShowCustomShippingModal(false)
+              if (!useCustomShipping) {
+                setSelectedShippingId(null)
+              }
+            }}
+          ></div>
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white w-full max-w-md rounded-lg shadow-xl p-6 transform transition-all">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-medium text-gray-800">Custom Shipping</h3>
+                <button
+                  onClick={() => {
+                    setShowCustomShippingModal(false)
+                    if (!useCustomShipping) {
+                      setSelectedShippingId(null)
+                    }
+                  }}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Close"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path
+                      fillRule="evenodd"
+                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price (₹)</label>
-                <input
-                  type="number"
-                  value={customShipping.price}
-                  onChange={(e) => setCustomShipping({ 
-                    ...customShipping, 
-                    price: e.target.value === '' ? '' : Number(e.target.value) 
-                  })}
-                  placeholder="Enter price"
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                />
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2">Shipping Name</label>
+                  <input
+                    type="text"
+                    value={customShipping.name}
+                    onChange={(e) => setCustomShipping({ ...customShipping, name: e.target.value })}
+                    placeholder="Enter shipping name"
+                    className="w-full p-2.5 border border-gray-200 rounded-md focus:border-gray-400 focus:ring-0 transition-colors placeholder-gray-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-2">Price (₹)</label>
+                  <input
+                    type="number"
+                    value={customShipping.price}
+                    onChange={(e) => setCustomShipping({ 
+                      ...customShipping, 
+                      price: e.target.value === '' ? '' : Number(e.target.value) 
+                    })}
+                    placeholder="Enter price"
+                    className="w-full p-2.5 border border-gray-200 rounded-md focus:border-gray-400 focus:ring-0 transition-colors placeholder-gray-300"
+                  />
+                </div>
               </div>
-            </div>
-            <div className="flex justify-end space-x-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowCustomShippingModal(false)
-                  if (!useCustomShipping) {
-                    // If they cancel without saving and weren't using custom shipping before
+              <div className="flex justify-end space-x-4 mt-8">
+                <button
+                  onClick={() => {
+                    setShowCustomShippingModal(false)
+                    if (!useCustomShipping) {
+                      // If they cancel without saving and weren't using custom shipping before
+                      setSelectedShippingId(null)
+                    }
+                  }}
+                  className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    // Apply custom shipping without saving to API
+                    setUseCustomShipping(true)
                     setSelectedShippingId(null)
-                  }
-                }}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  // Apply custom shipping without saving to API
-                  setUseCustomShipping(true)
-                  setSelectedShippingId(null)
-                  setShowCustomShippingModal(false)
-                  toast.success("Custom shipping applied")
-                }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              >
-                Apply
-              </button>
+                    setShowCustomShippingModal(false)
+                    toast.success("Custom shipping applied")
+                  }}
+                  className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
             </div>
           </div>
         </div>

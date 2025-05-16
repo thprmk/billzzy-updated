@@ -101,7 +101,7 @@ export const TaxSettings = () => {
         <div className="text-right pt-4">
           <button
             onClick={saveTax}
-            className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+            className="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700"
           >
             Save Tax
           </button>

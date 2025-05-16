@@ -443,20 +443,20 @@ export async function POST(request: Request) {
           }
   
           // Uncomment this to enable SMS sending
-          // await sendBillingSMS({
-          //   phone: customer.phone,
-          //   companyName: organisation.shopName,
-          //   products: productsString,
-          //   amount: newBill.totalPrice,
-          //   address: fullAddress,
-          //   organisationId: organisation.id,
-          //   billNo: newBill.billNo,
-          //   shippingMethod: shippingDetails && shippingDetails.name ? {
-          //     name: shippingDetails.name,
-          //     type: shippingDetails.type,
-          //     cost: shippingDetails.cost || 0
-          //   } : null
-          // });
+          await sendBillingSMS({
+            phone: customer.phone,
+            companyName: organisation.shopName,
+            products: productsString,
+            amount: newBill.totalPrice,
+            address: fullAddress,
+            organisationId: organisation.id,
+            billNo: newBill.billNo,
+            shippingMethod: shippingDetails && shippingDetails.name ? {
+              name: shippingDetails.name,
+              type: shippingDetails.type,
+              cost: shippingDetails.cost || 0
+            } : null
+          });
         }
       } catch (smsError) {
         console.error('SMS sending failed:', smsError);
