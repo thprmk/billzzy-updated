@@ -18,6 +18,7 @@ export function SettingsTabs({
     { name: 'WhatsApp', key: 'whatsapp' },
     { name: 'Billing', key: 'billing' },
     { name: 'Integrations', key: 'integrations' },
+    { name: 'Tax', key: 'tax' }, // Added
   ];
 
   return (

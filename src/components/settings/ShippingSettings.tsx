@@ -1,4 +1,3 @@
-// components/settings/ShippingSettings.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -11,11 +10,12 @@ import React from 'react';
 interface ShippingMethod {
   id?: number;
   name: string;
-  type: 'FREE_SHIPPING' | 'COURIER_PARTNER';
+  type: 'FREE_SHIPPING' | 'COURIER_PARTNER' | 'CUSTOM_SHIPPING';
   minAmount?: number;
   useWeight: boolean;
   ratePerKg?: number;
   fixedRate?: number;
+  customRate?: number; // For custom shipping rate
   isActive: boolean;
 }
 
@@ -132,7 +132,8 @@ export function ShippingSettings() {
                         type: e.target.value as ShippingMethod['type'],
                         useWeight: false,
                         ratePerKg: undefined,
-                        fixedRate: undefined
+                        fixedRate: undefined,
+                        customRate: e.target.value === 'CUSTOM_SHIPPING' ? 0 : undefined // Initialize custom rate when 'CUSTOM_SHIPPING' is selected
                       };
                       setMethods(updated);
                     }}
@@ -140,6 +141,7 @@ export function ShippingSettings() {
                   >
                     <option value="FREE_SHIPPING">Free Shipping</option>
                     <option value="COURIER_PARTNER">Courier Partner</option>
+                    <option value="CUSTOM_SHIPPING">Custom Shipping</option>
                   </Select>
 
                   {method.type === 'FREE_SHIPPING' && (
@@ -209,6 +211,22 @@ export function ShippingSettings() {
                     </>
                   )}
 
+                  {method.type === 'CUSTOM_SHIPPING' && (
+                    <Input
+                      type="number"
+                      label="Custom Shipping Rate"
+                      value={method.customRate || ''}
+                      onChange={(e) => {
+                        const updated = [...methods];
+                        updated[index] = { 
+                          ...method, 
+                          customRate: e.target.value ? parseFloat(e.target.value) : undefined 
+                        };
+                        setMethods(updated);
+                      }}
+                    />
+                  )}
+
                   <div className="flex items-center space-x-2">
                     <Switch
                       checked={method.isActive}
@@ -247,7 +265,9 @@ export function ShippingSettings() {
                         method.minAmount
                           ? `Free shipping for orders above ₹${method.minAmount}`
                           : 'Completely free shipping'
-                      ) : method.useWeight ? 
+                      ) : method.type === 'CUSTOM_SHIPPING' ?
+                        `Custom shipping rate: ₹${method.customRate}` :
+                        method.useWeight ? 
                         `Weight-based: ₹${method.ratePerKg}/kg` : 
                         `Fixed rate: ₹${method.fixedRate}`
                       }

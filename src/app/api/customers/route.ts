@@ -72,12 +72,12 @@ export async function POST(request: Request) {
       }
     });
 
-    if (existingCustomer) {
-      return NextResponse.json(
-        { error: 'Customer with this phone number already exists' },
-        { status: 400 }
-      );
-    }
+    // if (existingCustomer) {
+    //   return NextResponse.json(
+    //     { error: 'Customer with this phone number already exists' },
+    //     { status: 400 }
+    //   );
+    // }
 
     const customer = await prisma.customer.create({
       data: {
