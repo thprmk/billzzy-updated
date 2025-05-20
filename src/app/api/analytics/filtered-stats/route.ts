@@ -30,11 +30,13 @@ export async function POST(request: Request) {
           }
         };
       }
-  
-      const filteredStats = await prisma.transactionRecord.aggregate({
+
+      // Get online paid transactions
+      const onlinePaidStats = await prisma.transactionRecord.aggregate({
         where: {
           organisationId: parseInt(organisationId),
-          ...dateFilter,  // Only apply date filter if not all time
+          ...dateFilter,
+          billingMode: 'online',
           paymentStatus: 'PAID',
         },
         _sum: {
@@ -42,10 +44,27 @@ export async function POST(request: Request) {
         },
         _count: true,
       });
+
+      // Get all offline transactions (regardless of payment status)
+      const offlineStats = await prisma.transactionRecord.aggregate({
+        where: {
+          organisationId: parseInt(organisationId),
+          ...dateFilter,
+          billingMode: 'offline',
+        },
+        _sum: {
+          totalPrice: true,
+        },
+        _count: true,
+      });
+
+      // Calculate total orders and revenue
+      const totalOrders = (onlinePaidStats._count || 0) + (offlineStats._count || 0);
+      const totalSales = (onlinePaidStats._sum.totalPrice || 0) + (offlineStats._sum.totalPrice || 0);
   
       return NextResponse.json({
-        totalOrders: filteredStats._count,
-        totalSales: filteredStats._sum.totalPrice || 0,
+        totalOrders: totalOrders,
+        totalSales: totalSales,
       });
     } catch (error) {
       console.error('Error in filtered-stats route:', error);
