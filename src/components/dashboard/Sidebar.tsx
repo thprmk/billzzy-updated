@@ -4,6 +4,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 import {
   HomeIcon,
@@ -104,6 +105,13 @@ const navigation = [
   },
   { name: 'Customers', href: '/customers', icon: UsersIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
+
+  {
+    name: 'Report Download',
+    icon: DocumentTextIcon,
+    href:'/reports'
+
+  },
 ];
 
 // ---------------------------------
@@ -342,12 +350,25 @@ export default function Sidebar({
         `}
       >
         <div className="relative h-full overflow-y-auto">
+
           {/* Sidebar header area */}
-          <div className="flex items-center justify-between h-16 px-4 bg-indigo-600">
-            <h1 className="text-white text-2xl font-bold">Billzzy</h1>
+          <div className="flex items-center justify-between h-16 px-4 bg-">
+
+            {/* <h1 className="text-indigo-600 text-2xl font-bold">Billzzy</h1> */}
+            
+            <div className="flex justify-start pl-0 mt-1">
+              <Image
+              src="/assets/billzzylog.png"
+              alt="Billzzy Logo"
+              width={120}  // Reduced width
+              height={120}  // Much smaller height
+              className="w-auto h-18 -ml-2 mt-1"  // Control size with Tailwind classes
+              />
+            </div>
+
             <div className="flex items-center space-x-4">
               <button
-                className="relative text-white focus:outline-none"
+                className="relative text-indigo-600 focus:outline-none"
                 onClick={() => {
                   // close sidebar & navigate to pendingBills
                   setIsOpen(false);
@@ -451,7 +472,7 @@ export default function Sidebar({
               return (
                 <Link
                   key={item.name}
-                  href={item.href}
+                  href={item.href || '/'}
                   className={`group flex items-center px-2 py-2 text-sm font-medium 
                               rounded-md ${
                     isActive

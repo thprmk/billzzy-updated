@@ -106,6 +106,7 @@ export const TaxSettings = () => {
             Save Tax
           </button>
         </div>
+
       </div>
     </div>
   );

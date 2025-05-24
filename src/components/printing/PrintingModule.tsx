@@ -1,5 +1,6 @@
+// app/printing/page.tsx
 'use client';
-import React from 'react';
+import React from 'react';  // Add this import
 
 import { useState, Fragment } from 'react';
 import { Input } from '@/components/ui/Input';
@@ -38,13 +39,6 @@ interface BillDetails {
   time: string;
 }
 
-interface CustomShippingDetails {
-  method_name: string;
-  rate?: number;
-  weight_charge?: number;
-  total_cost?: number;
-}
-
 interface Bill {
   bill_id: string | number;
   customer_details: CustomerDetails;
@@ -59,12 +53,6 @@ interface Bill {
     total_weight: number;
     total_cost: number;
   } | null;
-  custom_shipping_details?: CustomShippingDetails;
-  subtotal?: number;
-  shipping?: number;
-  taxName?: string;
-  taxAmount?: number;
-  total?: number;
 }
 
 export default function PrintingModule() {
@@ -231,6 +219,7 @@ export default function PrintingModule() {
         }
         .label-container {
           width: 4in;
+          padding: 4px;
           height: 4in;
           margin: 0 auto;
           box-sizing: border-box;
@@ -239,20 +228,12 @@ export default function PrintingModule() {
         .label {
           border: 1px solid black;
           width: 100%;
-          min-height: 100%;
+          height: 100%;
           display: flex;
           flex-direction: column;
           margin: 0;
           padding: 0;
           box-sizing: border-box;
-        }
-        .price-summary p {
-          margin: 2px 0;
-          padding: 0;
-        }
-        .total-line {
-          margin-top: 2px;
-          font-weight: bold;
         }
         .header {
           display: flex;
@@ -298,25 +279,16 @@ export default function PrintingModule() {
         }
         .items {
           padding: 6px;
-          overflow-wrap: break-word;
-          word-wrap: break-word;
-          white-space: normal;
-          display: block;
-          flex: 1;
+          overflow: hidden;
+          display: flex;
         }
         .items-header {
           font-weight: bold;
           margin-bottom: 4px;
         }
         .items-content {
-          display: block;
-          white-space: normal;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-          word-break: break-word;
-          max-width: 100%;
-          font-size: 12px;
-          line-height: 1.4;
+          display: flex;
+          flex-direction: row;
         }
         .barcode {
           text-align: center;
@@ -337,17 +309,13 @@ export default function PrintingModule() {
         .billId {
           font-size: 12px;
         }
-        .price-summary {
-          padding: 0 6px 6px 6px;
-          border-top: 1px solid #eee;
-        }
       </style>
     `;
 
     const billsHTML = bills.map(bill => {
       const itemsList = bill.product_details
         .map(product => `${product.productName} x ${product.quantity}`)
-        .join(", ");
+        .join("\n");
 
       const canvas = document.createElement('canvas');
       JsBarcode(canvas, bill.bill_details.bill_no.toString(), {
@@ -357,10 +325,6 @@ export default function PrintingModule() {
         displayValue: false
       });
       const barcodeDataUrl = canvas.toDataURL("image/png");
-      
-      // Determine shipping method name based on whether custom shipping is being used
-      const shippingMethodName = bill.custom_shipping_details?.method_name || 
-                               (bill.shipping_details?.method_name || 'Informing soon');
 
       return `
         <div class="label-container">
@@ -393,19 +357,13 @@ export default function PrintingModule() {
               </div>
               <div>
                 <strong>Date:</strong> ${bill.bill_details.date}<br>
-                <strong>Shipping Details:</strong> ${shippingMethodName}<br><br>
+                <strong>Shipping Details:</strong> ${bill?.shipping_details?.method_name || 'Informing soon'}<br><br>
                 <strong class='weight'>Weight:</strong> <br>
                 <strong>Packed By:</strong> 
               </div>
             </div>
             <div class="items">
               <div class="items-content">${itemsList}</div>
-            </div>
-            <div class="price-summary">
-              <p><strong>Subtotal:</strong> ₹${bill.subtotal?.toFixed(2) || '0.00'}</p>
-              <p><strong>Shipping:</strong> ₹${bill.shipping?.toFixed(2) || '0.00'}</p>
-              ${bill.taxAmount ? `<p><strong>${bill.taxName || 'Tax'}:</strong> ₹${bill.taxAmount.toFixed(2)}</p>` : ''}
-              <p class="total-line"><strong>Total:</strong> ₹${bill.total?.toFixed(2) || '0.00'}</p>
             </div>
           </div>
         </div>
@@ -508,6 +466,7 @@ export default function PrintingModule() {
                         : `Did you successfully print all ${printedBillIds.length} shipping labels?`}
                     </p>
                   </div>
+
                   <div className="mt-6 flex flex-col sm:flex-row justify-end gap-3">
                     <Button
                       onClick={() => confirmPrintStatus('printed')}
