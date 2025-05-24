@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "react-toastify"
 import { Select } from "@/components/ui/Select"
 import { MandateModal } from "@/components/mandate/MandateModal"
+import React from 'react';
 
 interface ShippingMethod {
   id: number

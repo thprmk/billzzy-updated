@@ -1,3 +1,4 @@
+// This is a Next.js API route that handles customer-related operations.
 'use client';
 
 import { useState } from 'react';
