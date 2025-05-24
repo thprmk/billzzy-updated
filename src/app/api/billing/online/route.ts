@@ -41,19 +41,6 @@ const createBillSchema = z.object({
     })
     .nullable()
     .optional(),
-    billingAddress: z.object({
-      name: z.string(),
-      phone: z.string(),
-      email: z.preprocess(
-        (val) => val === '' ? undefined : val,
-        z.string().email().optional()
-      ),
-      flatNo: z.string().optional(),
-      street: z.string().optional(),
-      district: z.string().optional(),
-      state: z.string().optional(),
-      pincode: z.string().optional(),
-    }).optional(),
 });
 
 interface TransactionOptions {
@@ -234,7 +221,7 @@ export async function POST(request: Request) {
         );
       }
   
-      const { customerId, items, billingMode, notes, shippingMethodId, taxAmount, customShipping, billingAddress } = parsedData.data;
+      const { customerId, items, billingMode, notes, shippingMethodId, taxAmount, customShipping } = parsedData.data;
       const organisationId = parseInt(session.user.id, 10);
   
       const organisation = await prisma.organisation.findUnique({
@@ -361,34 +348,6 @@ export async function POST(request: Request) {
             })),
           });
 
-
-        // Save billing address for the transaction if provided
-        try {
-          if (billingAddress) {
-            console.log("Saving billing address:", billingAddress, "for transaction ID:", newBill.id);
-            await tx.transactionBillingAddress.create({
-              data: {
-                transactionId: newBill.id,
-                name: billingAddress.name,
-                phone: billingAddress.phone,
-                email: billingAddress.email || null, // Convert empty string to null
-                flatNo: billingAddress.flatNo,
-                street: billingAddress.street,
-                district: billingAddress.district,
-                state: billingAddress.state,
-                pincode: billingAddress.pincode,
-              },
-            });
-            console.log("Billing address saved successfully");
-          }
-        } catch (error) {
-          console.error("Error saving billing address:", error);
-          throw error;  // Rethrow to rollback transaction and send error response
-        }
-        
-
-
-
           // Store shipping details for this transaction without creating a permanent method
           if (shippingMethodDetails) {
             await tx.transactionShipping.create({
@@ -398,7 +357,6 @@ export async function POST(request: Request) {
                 methodType: shippingMethodDetails.type,
                 totalCost: shippingCost,
                 baseRate: shippingMethodDetails.baseRate || shippingCost,
-    
               },
             });
           }
@@ -484,7 +442,6 @@ export async function POST(request: Request) {
             message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
           }
   
-
           // Uncomment this to enable SMS sending
           await sendBillingSMS({
             phone: customer.phone,
@@ -494,14 +451,13 @@ export async function POST(request: Request) {
             address: fullAddress,
             organisationId: organisation.id,
             billNo: newBill.billNo,
-
-          shippingMethod: shippingDetails ? {
-        name: shippingDetails.name,
-        type: shippingDetails.type,
-        cost: shippingDetails.cost || 0
-      } : null
-    });
-  }
+            shippingMethod: shippingDetails && shippingDetails.name ? {
+              name: shippingDetails.name,
+              type: shippingDetails.type,
+              cost: shippingDetails.cost || 0
+            } : null
+          });
+        }
       } catch (smsError) {
         console.error('SMS sending failed:', smsError);
         return NextResponse.json(
