@@ -43,8 +43,8 @@ model Organisation {
   razorpayAccountId      String?   @map("razorpay_account_id")
   monthlyUsage           Int       @default(0)
 
- // Relation field for CustomShipping
-  customShippings        CustomShipping[]  @relation("OrganisationCustomShippings")
+  // Relation field for CustomShipping
+  customShippings CustomShipping[] @relation("OrganisationCustomShippings")
 
   CustomerSubmission  CustomerSubmission[]
   activeMandates      ActiveMandate?
@@ -124,33 +124,34 @@ model Seller {
 }
 
 model TransactionRecord {
-  id                  Int                   @id @default(autoincrement())
-  shippingCost        Float? // Make sure the field exists
-  shippingMethodId    Int?
-  billNo              Int                   @unique(map: "bill_no") @map("bill_no")
-  totalPrice          Float                 @map("total_price")
-  billingMode         String                @map("billing_mode")
-  organisationId      Int                   @map("organisation_id")
-  customerId          Int?                  @map("customer_id")
-  status              String                @default("confirmed")
-  trackingNumber      String?               @map("tracking_number")
-  weight              Float?
-  time                DateTime              @db.Time(0)
-  paymentMethod       String                @map("payment_method")
-  amountPaid          Float                 @default(0) @map("amount_paid")
-  balance             Float                 @default(0)
-  date                DateTime              @db.Date
-  paymentId           String?               @map("payment_id")
-  paymentStatus       PaymentStatus         @default(PENDING) @map("payment_status")
-  notes               String?               @db.Text
-  isEdited            Boolean               @default(false)
-  gst_amount          Float?
-  gst_percent         Float?
-  taxAmount           Float? // Add this field
-  items               TransactionItem[]
-  customer            Customer?             @relation(fields: [customerId], references: [id])
-  organisation        Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  TransactionShipping TransactionShipping[]
+  id                        Int                        @id @default(autoincrement())
+  shippingCost              Float? // Make sure the field exists
+  shippingMethodId          Int?
+  billNo                    Int                        @unique(map: "bill_no") @map("bill_no")
+  totalPrice                Float                      @map("total_price")
+  billingMode               String                     @map("billing_mode")
+  organisationId            Int                        @map("organisation_id")
+  customerId                Int?                       @map("customer_id")
+  status                    String                     @default("confirmed")
+  trackingNumber            String?                    @map("tracking_number")
+  weight                    Float?
+  time                      DateTime                   @db.Time(0)
+  paymentMethod             String                     @map("payment_method")
+  amountPaid                Float                      @default(0) @map("amount_paid")
+  balance                   Float                      @default(0)
+  date                      DateTime                   @db.Date
+  paymentId                 String?                    @map("payment_id")
+  paymentStatus             PaymentStatus              @default(PENDING) @map("payment_status")
+  notes                     String?                    @db.Text
+  isEdited                  Boolean                    @default(false)
+  gst_amount                Float?
+  gst_percent               Float?
+  taxAmount                 Float? // Add this field
+  items                     TransactionItem[]
+  customer                  Customer?                  @relation(fields: [customerId], references: [id])
+  organisation              Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  TransactionShipping       TransactionShipping[]
+  transactionBillingAddress TransactionBillingAddress? @relation()
 
   @@index([customerId], map: "transaction_record_customer_id_fkey")
   @@index([organisationId], map: "transaction_record_organisation_id_fkey")
@@ -253,6 +254,23 @@ model TransactionShipping {
   @@map("transaction_shipping")
 }
 
+model TransactionBillingAddress {
+  id            Int               @id @default(autoincrement())
+  transactionId Int               @unique
+  name          String
+  phone         String
+  email         String?
+  flatNo        String?
+  street        String?
+  district      String?
+  state         String?
+  pincode       String?
+
+  transaction   TransactionRecord @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@map("transaction_billing_address")
+}
+
 model Mandate {
   id                  Int          @id @default(autoincrement())
   organisationId      Int
@@ -318,7 +336,6 @@ model CustomShipping {
   @@map("custom_shippings")
 }
 
-
 model MandateNotification {
   id             Int          @id @default(autoincrement())
   organisationId Int
@@ -342,5 +359,5 @@ enum PaymentStatus {
 enum ShippingMethodType {
   FREE_SHIPPING
   COURIER_PARTNER
-   CUSTOM_SHIPPING  // Add this line
+  CUSTOM_SHIPPING // Add this line
 }

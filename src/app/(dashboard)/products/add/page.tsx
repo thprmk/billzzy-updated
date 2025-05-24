@@ -21,7 +21,7 @@ export default function AddProductPage() {
   return (
     <div className="min-h-screen flex  bg-gray-100 md:p-4 p-2">
       <div className="w-full max-w-3xl">
-        <h1 className="text-2xl hidden md:block sm:text-3xl font-bold text-center mb-6">
+        <h1 className="text-2xl hidden md:block sm:text-3xl font-bold  mb-6">
           Add New Product
         </h1>
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">

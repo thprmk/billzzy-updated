@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "react-toastify"
 import { Select } from "@/components/ui/Select"
 import { MandateModal } from "@/components/mandate/MandateModal"
+import { BillingAddressForm, BillingAddressData } from '@/components/billing/BillingAddressForm'
 
 interface ShippingMethod {
   id: number
@@ -54,6 +55,17 @@ export default function OnlineBillPage() {
 
   const handleUpgradeClick = () => setShowModal(true)
   const handleClose = () => setShowModal(false)
+
+  const [billingAddress, setBillingAddress] = useState<BillingAddressData>({
+    name: '',
+    phone: '',
+    email: '',
+    flatNo: '',
+    street: '',
+    district: '',
+    state: '',
+    pincode: '',
+  });
 
   useEffect(() => {
     const fetchTaxRate = async () => {
@@ -164,6 +176,7 @@ export default function OnlineBillPage() {
       return toast.error("Please select a shipping method.")
 
     setIsLoading(true)
+    console.log('Submitting billing address:', billingAddress)
     try {
       let customerId = customer.id
       if (customer.id) {
@@ -200,6 +213,7 @@ export default function OnlineBillPage() {
               }
             : null,
           taxAmount,
+          billingAddress, 
         }),
       })
 
@@ -239,6 +253,12 @@ export default function OnlineBillPage() {
             }, 100)
           }}
         />
+      </div>
+
+       {/* Billing Address form */}
+       <div className="bg-white shadow-sm rounded-lg p-6 mt-6">
+        <h2 className="text-lg font-medium mb-4">Billing Address</h2>
+        <BillingAddressForm initialData={billingAddress} onChange={setBillingAddress} />
       </div>
 
       <div className="bg-white shadow-sm rounded-lg p-6">
