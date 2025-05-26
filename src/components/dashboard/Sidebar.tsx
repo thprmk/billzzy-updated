@@ -4,6 +4,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 import {
   HomeIcon,
@@ -17,7 +18,6 @@ import {
   BellIcon,
 } from '@heroicons/react/24/outline';
 import { PackageIcon, PrinterIcon, Truck } from 'lucide-react';
-
 import useSWR from 'swr';
 import { parseISO, differenceInCalendarDays, isAfter } from 'date-fns';
 import { toast } from 'react-toastify';
@@ -29,6 +29,8 @@ import { MandateModal } from '../mandate/MandateModal';
 // ---------------------------------
 // Types
 // ---------------------------------
+
+
 interface Organisation {
   id: number;
   email: string;
@@ -101,6 +103,13 @@ const navigation = [
   },
   { name: 'Customers', href: '/customers', icon: UsersIcon },
   { name: 'Settings', href: '/settings', icon: CogIcon },
+
+  {
+    name: 'Report Download',
+    icon: DocumentTextIcon,
+    href:'/reports'
+
+  },
 ];
 
 // ---------------------------------
@@ -253,8 +262,8 @@ export default function Sidebar({
         {/* Close button in top-right (mobile only) */}
         <button
           className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-500 
-                     hover:text-gray-600 hover:bg-gray-100 focus:outline-none 
-                     transition-transform duration-300 transform"
+                    hover:text-gray-600 hover:bg-gray-100 focus:outline-none 
+                    transition-transform duration-300 transform"
           onClick={() => setIsOpen(false)}
         >
           {/* X icon */}
@@ -286,8 +295,8 @@ export default function Sidebar({
       <>
         <button
           className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-500 
-                     hover:text-gray-600 hover:bg-gray-100 focus:outline-none 
-                     transition-transform duration-300 transform"
+                    hover:text-gray-600 hover:bg-gray-100 focus:outline-none 
+                    transition-transform duration-300 transform"
           onClick={() => setIsOpen(false)}
         >
           <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -322,7 +331,7 @@ export default function Sidebar({
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-40 
-                     transition-opacity duration-300 md:hidden"
+                    transition-opacity duration-300 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -337,12 +346,25 @@ export default function Sidebar({
         `}
       >
         <div className="relative h-full overflow-y-auto">
+
           {/* Sidebar header area */}
-          <div className="flex items-center justify-between h-16 px-4 bg-indigo-600">
-            <h1 className="text-white text-2xl font-bold">Billzzy</h1>
+          <div className="flex items-center justify-between h-16 px-4 bg-">
+
+            {/* <h1 className="text-indigo-600 text-2xl font-bold">Billzzy</h1> */}
+            
+            <div className="flex justify-start pl-0 mt-1">
+              <Image
+              src="/assets/billzzylog.png"
+              alt="Billzzy Logo"
+              width={120}  // Reduced width
+              height={120}  // Much smaller height
+              className="w-auto h-18 -ml-2 mt-1"  // Control size with Tailwind classes
+              />
+            </div>
+
             <div className="flex items-center space-x-4">
               <button
-                className="relative text-white focus:outline-none"
+                className="relative text-indigo-600 focus:outline-none"
                 onClick={() => {
                   // close sidebar & navigate to pendingBills
                   setIsOpen(false);
@@ -352,9 +374,9 @@ export default function Sidebar({
                 <BellIcon className="h-6 w-6" />
                 {pendingCount > 0 && (
                   <span className="absolute top-0 right-0 inline-flex items-center 
-                                   justify-center px-1 py-0.5 text-xs font-bold 
-                                   leading-none text-white transform 
-                                   translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full"
+                                  justify-center px-1 py-0.5 text-xs font-bold 
+                                  leading-none text-white transform 
+                                  translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full"
                   >
                     {pendingCount}
                   </span>
@@ -373,8 +395,8 @@ export default function Sidebar({
                     key={item.name}
                     onClick={() => setIsSharePopupOpen(true)}
                     className="w-full group flex items-center px-2 py-2 text-sm 
-                               font-medium rounded-md text-gray-600 
-                               hover:bg-gray-50 hover:text-gray-900"
+                              font-medium rounded-md text-gray-600 
+                              hover:bg-gray-50 hover:text-gray-900"
                   >
                     <item.icon 
                       className="mr-3 h-6 w-6 text-gray-400 group-hover:text-gray-500" 
@@ -446,7 +468,7 @@ export default function Sidebar({
               return (
                 <Link
                   key={item.name}
-                  href={item.href}
+                  href={item.href || '/'}
                   className={`group flex items-center px-2 py-2 text-sm font-medium 
                               rounded-md ${
                     isActive

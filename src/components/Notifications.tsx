@@ -23,10 +23,9 @@ const fetcher = (url: string) =>
     });
 
 export function Notifications() {
-  const { data: sessionData, status } = useSession();
+const { data: sessionData, status } = useSession();
 
-  
-  
+
   // Only fetch notifications if user is authenticated
   const { data, mutate } = useSWR<{ notifications: MandateNotification[] }>(
     status === 'authenticated'||sessionData?.user?.name=="Admin" ? '/api/notifications?status=unread' : null,

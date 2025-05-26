@@ -11,6 +11,8 @@ import React from 'react';
 import type { OrganisationDetails } from '@/types/settings';
 import BillingTab from '../mandate/BillingTab';
 import { WhatsAppSettings } from './WhatsappSettings';
+import { TaxSettings } from '@/components/settings/TaxSettings';
+
 
 
 interface ExtendedOrganisationDetails extends OrganisationDetails {
@@ -25,7 +27,7 @@ export default function SettingsForm({ initialData }: { initialData: ExtendedOrg
   console.log(initialData.endDate);
 
   const [activeTab, setActiveTab] = useState<
-    'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'billing'
+    'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'billing' | 'tax'
   >('shop');
 
   return (
@@ -64,6 +66,11 @@ export default function SettingsForm({ initialData }: { initialData: ExtendedOrg
                 activeMandate={initialData.activeMandate}
               />
             )}
+
+            {activeTab === 'tax' && (
+            <TaxSettings />
+            )}
+
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-// app/api/create_online_bill/route.ts
+// app/api/create_online_bill/route.ts - Updated
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth-options';
 import { z } from 'zod';
 import moment from 'moment-timezone';
 import { sendBillingSMS } from '@/lib/msg91';
+import { Product } from '@prisma/client'; 
 
 function addOneMonthClamped(date: Date): Date {
   const newDate = new Date(date.getTime());
@@ -26,11 +27,20 @@ const createBillSchema = z.object({
       quantity: z.number().int().positive(),
       price: z.number().nonnegative(),
       total: z.number().nonnegative(),
+      productWeight: z.number().optional(),
     })
   ),
   billingMode: z.string().optional().default('online'),
   notes: z.string().nullable().optional().default(null),
-  shippingMethodId: z.number().int().positive().nullable().default(null)
+  shippingMethodId: z.number().int().positive().nullable().default(null),
+  taxAmount: z.number().optional().default(0),
+  customShipping: z
+    .object({
+      price: z.number().nonnegative(),
+      name: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 interface TransactionOptions {
@@ -102,7 +112,7 @@ async function processItems(
 
   for (const item of items) {
     const { productId, quantity, price, total } = item;
-    const dbProduct = productMap.get(productId);
+    const dbProduct = productMap.get(productId) as Product;
 
     if (!dbProduct) {
       throw new Error(`Product not found with ID: ${productId}`);
@@ -114,28 +124,23 @@ async function processItems(
       );
     }
 
-    const calculatedTotal = dbProduct.sellingPrice * quantity;
-
-    if (calculatedTotal !== total) {
-      throw new Error(
-        `Total mismatch for ${dbProduct.name}. Expected: ${calculatedTotal}, Received: ${total}`
-      );
-    }
-
-    totalPrice += calculatedTotal;
+    // Use the provided total from the request instead of recalculating
+    // This fixes an issue where price might be different than sellingPrice
+    const itemTotal = Math.round(total);
+    totalPrice += itemTotal;
 
     transactionItemsData.push({
       productId,
       quantity,
-      totalPrice: calculatedTotal,
+      totalPrice: itemTotal,
     });
 
     processedItems.push({
       productName: dbProduct.name,
       SKU: dbProduct.SKU,
       quantity,
-      unitPrice: dbProduct.sellingPrice,
-      amount: calculatedTotal,
+      unitPrice: Math.round(price || dbProduct.sellingPrice), // Use price from request or fallback to DB
+      amount: itemTotal,
     });
   }
 
@@ -157,7 +162,9 @@ async function createTransactionRecord(
   customerId: number,
   totalPrice: number,
   billingMode: string,
-  notes: string | null
+  notes: string | null,
+  taxAmount: number,
+  shippingCost: number
 ) {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
@@ -189,294 +196,294 @@ async function createTransactionRecord(
       paymentStatus: 'PENDING',
       paymentMethod: 'offline',
       notes: notes,
+      taxAmount: taxAmount,
+      shippingCost: shippingCost, // Added shippingCost field to the record
     },
   });
 }
 
 export async function POST(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    console.log(body,"online orders data");
-    
-    const parsedData = createBillSchema.safeParse(body);
-
-    if (!parsedData.success) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid request data', errors: parsedData.error.errors },
-        { status: 400 }
-      );
-    }
-
-    const { customerId, items, billingMode, notes, shippingMethodId } = parsedData.data;
-    const organisationId = parseInt(session.user.id, 10);
-
-    const organisation = await prisma.organisation.findUnique({
-      where: { id: organisationId },
-    });
-
-    if (!organisation) {
-      throw new Error('Organisation not found');
-    }
-
-
-  // 1) If user is "pro", skip usage check
-  if (organisation.subscriptionType !== 'pro') {
-    // 2) If now >= endDate => reset monthlyUsage=0, endDate=+1month (clamped)
-    const now = new Date();
-    if (now >= organisation.endDate) {
-      const newEndDate = addOneMonthClamped(now);
-      await prisma.organisation.update({
-        where: { id: organisationId },
-        data: {
-          monthlyUsage: 0,
-          endDate: newEndDate
-        }
-      });
-      // Refresh the org object in memory
-      organisation.monthlyUsage = 0;
-      organisation.endDate = newEndDate;
-    }
-
-    // 3) If monthlyUsage >= 50, block
-    if (organisation.monthlyUsage >= (parseInt(process.env.MONTHLY_FREE_LIMIT ?? '50'))) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'You have reached the monthly free limit (50 orders). Please wait until your next cycle or upgrade to Pro.'
-        },
-        { status: 403 }
-      );
-    }
-
-    // 4) monthlyUsage++ (They are under limit)
-    await prisma.organisation.update({
-      where: { id: organisationId },
-      data: {
-        monthlyUsage: { increment: 1 },
-      },
-    });
-  }
-
-    if (items.length === 0) {
-      return NextResponse.json(
-        { success: false, message: 'At least one product is required.' },
-        { status: 400 }
-      );
-    }
-
-    // If shippingMethodId is provided, validate it
-    let shippingMethod = null;
-    if (shippingMethodId !== null) {
-      shippingMethod = await prisma.shippingMethod.findFirst({
-        where: {
-          id: shippingMethodId,
-          organisationId: organisationId,
-          isActive: true,
-        },
-      });
-
-      if (!shippingMethod) {
+    try {
+      const session = await getServerSession(authOptions);
+      if (!session) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+  
+      const body = await request.json();
+      console.log(body, "online orders data");
+  
+      const parsedData = createBillSchema.safeParse(body);
+  
+      if (!parsedData.success) {
         return NextResponse.json(
-          { success: false, message: 'Invalid or inactive shipping method.' },
+          { success: false, message: 'Invalid request data', errors: parsedData.error.errors },
           { status: 400 }
         );
       }
-    }
+  
+      const { customerId, items, billingMode, notes, shippingMethodId, taxAmount, customShipping } = parsedData.data;
+      const organisationId = parseInt(session.user.id, 10);
+  
+      const organisation = await prisma.organisation.findUnique({
+        where: { id: organisationId },
+      });
+  
+      if (!organisation) {
+        throw new Error('Organisation not found');
+      }
+  
+      // 1) Calculate shipping cost
+      let shippingCost = 0;
+      let baseRate = 0;
+      let shippingMethodDetails = null;
+      
+      const validShippingMethodId = shippingMethodId ?? 0;
+      let shippingMethod = null;
 
-    let baseRate;
-
-    const result = await executeWithRetry(async () => {
-      return await prisma.$transaction(async (tx) => {
-        const customer = await tx.customer.findUnique({
-          where: { id: customerId },
+      if (shippingMethodId !== 0 && shippingMethodId !== null) {
+        shippingMethod = await prisma.shippingMethod.findFirst({
+          where: {
+            id: validShippingMethodId,
+            organisationId: organisationId,
+            isActive: true,
+          },
         });
-
-        if (!customer || customer.organisationId !== organisationId) {
-          throw new Error('Customer not found or does not belong to your organisation.');
-        }
-
-        const { productDetails, totalPrice: itemsTotalPrice, transactionItemsData } = await processItems(tx, items, organisationId);
-
-        let shippingCost = 0;
-        let totalWeight: number | null = null;
-
-        if (shippingMethod) {
-          // Compute shipping cost if shipping method is selected
-          if (shippingMethod.type === 'FREE_SHIPPING') {
-            if (shippingMethod.minAmount && itemsTotalPrice < shippingMethod.minAmount) {
-              // If below min amount, still 0 or handle differently if needed
-              shippingCost = 0;
-            } else {
-              shippingCost = 0;
-            }
-          } else if (shippingMethod.type === 'COURIER_PARTNER') {
-            if (shippingMethod.useWeight && shippingMethod.ratePerKg) {
-              totalWeight = items.reduce((sum, item) => sum + ((item.productWeight || 0) * item.quantity), 0);
-              shippingCost = totalWeight * shippingMethod.ratePerKg;
-            } else {
-              shippingCost = shippingMethod.fixedRate || 0;
-            }
-          }
-        } else {
-          // No shipping method selected, shipping cost = 0
+      }
+  
+      // Handle custom shipping first (priority over selected shipping method)
+      if (customShipping && customShipping.price) {
+        shippingCost = customShipping.price;
+        const customShippingName = customShipping.name || "Custom Shipping";
+        shippingMethodDetails = {
+          type: "CUSTOM_SHIPPING",
+          name: customShippingName,
+          cost: customShipping.price,
+          useWeight: false,
+          ratePerKg: null,
+          baseRate: customShipping.price,
+        };
+        console.log(`Using one-time custom shipping cost: ${shippingCost}`);
+      } else if (shippingMethodId !== null && shippingMethod) {
+        // Use selected shipping method if no custom shipping
+        if (shippingMethod.type === 'FREE_SHIPPING') {
           shippingCost = 0;
+        } else if (shippingMethod.type === 'COURIER_PARTNER') {
+          if (shippingMethod.useWeight && shippingMethod.ratePerKg) {
+            const totalWeight = items.reduce(
+              (sum, item) => sum + (item.productWeight || 0) * item.quantity,
+              0
+            );
+            shippingCost = Math.round(totalWeight * shippingMethod.ratePerKg);
+            baseRate = shippingMethod.ratePerKg;
+          } else {
+            shippingCost = Math.round(shippingMethod.fixedRate || 0);
+            baseRate = shippingMethod.fixedRate;
+          }
         }
+        
+        shippingMethodDetails = {
+          type: shippingMethod.type,
+          name: shippingMethod.name,
+          cost: shippingCost,
+          useWeight: shippingMethod.useWeight || false,
+          ratePerKg: shippingMethod.ratePerKg,
+          baseRate: baseRate,
+          id: shippingMethod.id
+        };
+        
+        console.log(`Using shipping method cost: ${shippingCost} for method: ${shippingMethod.name}`);
+      }
+  
+      // Parse the tax amount to ensure it's a number
+      const parsedTaxAmount = Math.round(Number(taxAmount) || 0);
+      console.log(`Tax amount: ${parsedTaxAmount}`);
+      
+      // 3) Calculate the final total (items total + shipping cost + tax)
+      const itemsTotalPrice = Math.round(items.reduce((sum: number, item: any) => sum + Number(item.total), 0));
+      console.log(`Items total price: ${itemsTotalPrice}`);
 
-        const finalTotal = itemsTotalPrice + shippingCost;
-        const newBill = await createTransactionRecord(tx, organisationId, customer.id, finalTotal, billingMode || 'online', notes || null);
+      // Round the shipping cost
+      const roundedShippingCost = Math.round(shippingCost);
+      console.log(`Shipping cost: ${roundedShippingCost}`);
 
-        await tx.transactionItem.createMany({
-          data: transactionItemsData.map((item) => ({
-            transactionId: newBill.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            totalPrice: item.totalPrice,
-          })),
-        });
 
-        // Only create a TransactionShipping record if a shipping method is selected
-        if (shippingMethod) {
-          baseRate = (!shippingMethod.useWeight && shippingMethod.fixedRate !== null && shippingMethod.fixedRate !== undefined)
-            ? shippingMethod.fixedRate
-            : null;
-          const weightCharge = (shippingMethod.useWeight && shippingMethod.ratePerKg) ? shippingMethod.ratePerKg : null;
+      console.log(`Shipping cost: ${shippingCost}`);
+      console.log(`Tax amount: ${parsedTaxAmount}`);
 
-          await tx.transactionShipping.create({
-            data: {
+      // Calculate the final total with rounded values
+      const finalTotal = itemsTotalPrice + roundedShippingCost + parsedTaxAmount;
+      console.log(`Final total: ${finalTotal}`);
+  
+      const result = await executeWithRetry(async () => {
+        return await prisma.$transaction(async (tx) => {
+          const customer = await tx.customer.findUnique({
+            where: { id: customerId },
+          });
+  
+          if (!customer || customer.organisationId !== organisationId) {
+            throw new Error('Customer not found or does not belong to your organisation.');
+          }
+  
+          const { productDetails, transactionItemsData } = await processItems(tx, items, organisationId);
+
+          // Create the transaction record with final total (including shipping and tax)
+          const newBill = await createTransactionRecord(
+            tx,
+            organisationId,
+            customer.id,
+            finalTotal,
+            billingMode || 'online',
+            notes || null,
+            parsedTaxAmount,
+            shippingCost
+          );
+  
+          // Create transaction items in the database
+          await tx.transactionItem.createMany({
+            data: transactionItemsData.map((item) => ({
               transactionId: newBill.id,
-              methodName: shippingMethod.name,
-              methodType: shippingMethod.type,
-              baseRate: baseRate === null ? 0 : baseRate,
-              weightCharge: weightCharge,
-              totalWeight: totalWeight,
-              totalCost: shippingCost,
-            }
+              productId: item.productId,
+              quantity: item.quantity,
+              totalPrice: item.totalPrice,
+            })),
+          });
+
+          // Store shipping details for this transaction without creating a permanent method
+          if (shippingMethodDetails) {
+            await tx.transactionShipping.create({
+              data: {
+                transactionId: newBill.id,
+                methodName: shippingMethodDetails.name,
+                methodType: shippingMethodDetails.type,
+                totalCost: shippingCost,
+                baseRate: shippingMethodDetails.baseRate || shippingCost,
+              },
+            });
+          }
+  
+          return { 
+            newBill, 
+            customer, 
+            productDetails,
+            shippingDetails: shippingMethodDetails,
+            itemsTotal: itemsTotalPrice,
+            taxAmount: parsedTaxAmount
+          };
+        });
+      });
+  
+      const { newBill, customer, productDetails, shippingDetails, itemsTotal, taxAmount: finalTaxAmount } = result;
+  
+      // Prepare the response data
+      const indianDateTime = moment(newBill.date).tz('Asia/Kolkata');
+      const formattedDate = indianDateTime.format('YYYY-MM-DD');
+      const formattedTime = indianDateTime.format('hh:mm A');
+  
+      const responseData = {
+        success: true,
+        message: 'Online bill created successfully! Please review the bill before finalizing.',
+        bill_id: newBill.id,
+        bill_details: {
+          bill_no: newBill.billNo,
+          date: formattedDate,
+          time: formattedTime,
+          total_amount: newBill.totalPrice,
+          items_total: itemsTotal,
+          shipping_cost: shippingDetails?.cost || 0,
+          tax_amount: finalTaxAmount || 0
+        },
+        customer_details: {
+          id: customer.id,
+          name: customer.name,
+          phone: customer.phone,
+          flat_no: customer.flatNo || '',
+          street: customer.street || '',
+          district: customer.district || '',
+          state: customer.state || '',
+          pincode: customer.pincode || '',
+        },
+        organisation_details: {
+          id: organisation.id,
+          shop_name: organisation.shopName,
+          flatno: organisation.flatNo || '',
+          street: organisation.street || '',
+          district: organisation.district || '',
+          city: organisation.city || '',
+          state: organisation.state || '',
+          country: organisation.country || '',
+          pincode: organisation.pincode || '',
+          phone: organisation.mobileNumber || '',
+        },
+        product_details: productDetails,
+        total_amount: newBill.totalPrice,
+        shipping_details: shippingDetails, // Add this to response
+        tax_amount: finalTaxAmount || 0
+      };
+
+      try {
+        if (customer.phone) {
+          const productsString = productDetails
+            .map((item) => `${item.productName} x ${item.quantity}`)
+            .join(', ');
+        
+          const fullAddress = [
+            customer.flatNo,
+            customer.street,
+            customer.district,
+            customer.state,
+            customer.pincode,
+          ].filter(Boolean).join(', ');
+  
+          let message: string;
+          
+          if (shippingDetails && shippingDetails.name) {
+            message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${shippingDetails.cost}).`;
+          } else {
+            message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
+          }
+  
+          // Uncomment this to enable SMS sending
+          await sendBillingSMS({
+            phone: customer.phone,
+            companyName: organisation.shopName,
+            products: productsString,
+            amount: newBill.totalPrice,
+            address: fullAddress,
+            organisationId: organisation.id,
+            billNo: newBill.billNo,
+            shippingMethod: shippingDetails && shippingDetails.name ? {
+              name: shippingDetails.name,
+              type: shippingDetails.type,
+              cost: shippingDetails.cost || 0
+            } : null
           });
         }
-
-        return { newBill, customer, productDetails };
-      });
-    });
-
-    const { newBill, customer, productDetails } = result;
-
-
-
- 
-
-    const indianDateTime = moment(newBill.date).tz('Asia/Kolkata');
-    const formattedDate = indianDateTime.format('YYYY-MM-DD');
-    const formattedTime = indianDateTime.format('hh:mm A');
-
-    const responseData = {
-      success: true,
-      message: 'Online bill created successfully! Please review the bill before finalizing.',
-      bill_id: newBill.id,
-      bill_details: {
-        bill_no: newBill.billNo,
-        date: formattedDate,
-        time: formattedTime,
-        total_amount: newBill.totalPrice,
-      },
-      customer_details: {
-        id: customer.id,
-        name: customer.name,
-        phone: customer.phone,
-        flat_no: customer.flatNo || '',
-        street: customer.street || '',
-        district: customer.district || '',
-        state: customer.state || '',
-        pincode: customer.pincode || '',
-      },
-      organisation_details: {
-        id: organisation.id,
-        shop_name: organisation.shopName,
-        flatno: organisation.flatNo || '',
-        street: organisation.street || '',
-        district: organisation.district || '',
-        city: organisation.city || '',
-        state: organisation.state || '',
-        country: organisation.country || '',
-        pincode: organisation.pincode || '',
-        phone: organisation.mobileNumber || '',
-      },
-      product_details: productDetails,
-      total_amount: newBill.totalPrice,
-    };
-
-    try {
-      if (customer.phone) {
-        const productsString = productDetails
-          .map((item) => `${item.productName} x ${item.quantity}`)
-          .join(', ');
-      
-        const fullAddress = [
-          customer.flatNo,
-          customer.street,
-          customer.district,
-          customer.state,
-          customer.pincode,
-        ].filter(Boolean).join(', ');
-
-        let message: string;
-
-        if (shippingMethod) {
-          // If shippingMethod is chosen, include details in the SMS
-          const shippingName = shippingMethod.name;
-          const shippingRate = baseRate === null ? 0 : baseRate;
-          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingName} (₹${shippingRate}).`;
-        } else {
-          // No shipping method selected
-          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
-        }
-
-        await sendBillingSMS({
-          phone: customer.phone,
-          companyName: organisation.shopName,
-          products: productsString,
-          amount: newBill.totalPrice,
-          address: fullAddress,
-          organisationId: organisation.id,
-          billNo: newBill.billNo,
-          shippingMethod: shippingMethod ? {
-            name: shippingMethod.name,
-            type: shippingMethod.type,
-            cost: baseRate || 0
-          } : null
-        });
-
+      } catch (smsError) {
+        console.error('SMS sending failed:', smsError);
+        return NextResponse.json(
+          {
+            success: false,
+            error: smsError,
+          },
+          { status: 500 }
+        );
       }
-    } catch (smsError) {
-      console.error('SMS sending failed:', smsError);
+  
+      return NextResponse.json(responseData, { status: 200 });
+    } catch (error: any) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+  
       return NextResponse.json(
         {
           success: false,
-          error: smsError,
+          error: error.message,
+          details: error.message,
         },
         { status: 500 }
       );
     }
-  
-    return NextResponse.json(responseData, { status: 200 });
-  } catch (error: any) {
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    });
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-        details: error.message,
-      },
-      { status: 500 }
-    );
   }
-}
