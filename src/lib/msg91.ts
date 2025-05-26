@@ -222,11 +222,7 @@ export async function sendOrderStatusSMS({
 }: {
   phone: string;
   organisationId: number;
-<<<<<<< HEAD
-  status: string;
-=======
   status: 'packed' | 'dispatch' | 'shipped';
->>>>>>> 0e8bab97b651740e853c66bee3599230b58bca1b
   smsVariables: { [key: string]: string };
 }) {
   const templates = {
@@ -273,11 +269,4 @@ export async function sendOrderStatusSMS({
     console.error('Status SMS sending error:', error);
     throw error;
   }
-<<<<<<< HEAD
 }
-
-
-
-=======
-}
->>>>>>> 0e8bab97b651740e853c66bee3599230b58bca1b

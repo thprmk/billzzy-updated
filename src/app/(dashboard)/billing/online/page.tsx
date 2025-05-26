@@ -86,12 +86,11 @@ export default function OnlineBillPage() {
   }, [selectedShippingId, items, shippingMethods, customShipping, useCustomShipping])
 
   useEffect(() => {
-    if (!taxRate) return setTaxAmount(0)
-    const subtotal = items.reduce((sum, item) => sum + item.total, 0)
-    const baseAmount = subtotal + shippingCost
-    const tax = taxRate.type === "Percentage" ? (baseAmount * taxRate.value) / 100 : taxRate.value
-    setTaxAmount(tax)
-  }, [items, shippingCost, taxRate])
+  if (!taxRate) return setTaxAmount(0)
+  const subtotal = items.reduce((sum, item) => sum + item.total, 0)
+  const tax = taxRate.type === "Percentage" ? (subtotal * taxRate.value) / 100 : taxRate.value
+  setTaxAmount(tax)
+}, [items, taxRate])
 
   useEffect(() => {
     if (shippingMethods.length === 0 || items.length === 0) return

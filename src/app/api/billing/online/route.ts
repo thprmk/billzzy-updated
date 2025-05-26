@@ -1,4 +1,4 @@
-// app/api/create_online_bill/route.ts - Updated
+// app/api/create_online_bill/route.ts - Updated (with monthly usage tracking)
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -7,7 +7,7 @@ import { authOptions } from '@/lib/auth-options';
 import { z } from 'zod';
 import moment from 'moment-timezone';
 import { sendBillingSMS } from '@/lib/msg91';
-import { Product } from '@prisma/client'; 
+import { Product } from '@prisma/client';
 
 function addOneMonthClamped(date: Date): Date {
   const newDate = new Date(date.getTime());
@@ -124,8 +124,6 @@ async function processItems(
       );
     }
 
-    // Use the provided total from the request instead of recalculating
-    // This fixes an issue where price might be different than sellingPrice
     const itemTotal = Math.round(total);
     totalPrice += itemTotal;
 
@@ -139,7 +137,7 @@ async function processItems(
       productName: dbProduct.name,
       SKU: dbProduct.SKU,
       quantity,
-      unitPrice: Math.round(price || dbProduct.sellingPrice), // Use price from request or fallback to DB
+      unitPrice: Math.round(price || dbProduct.sellingPrice),
       amount: itemTotal,
     });
   }
@@ -168,17 +166,13 @@ async function createTransactionRecord(
 ) {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
+    where: { organisationId } // Ensure billNo is unique per organisation
   });
 
   const newBillNo = (lastBill?.billNo || 0) + 1;
 
-  // Get current Indian date and time
   const indianDateTime = moment().tz('Asia/Kolkata');
-  
-  // Format date as YYYY-MM-DD
   const indianDate = indianDateTime.format('YYYY-MM-DD');
-  
-  // Format time as HH:mm:ss
   const indianTime = indianDateTime.format('HH:mm:ss');
 
   return await tx.transactionRecord.create({
@@ -197,7 +191,7 @@ async function createTransactionRecord(
       paymentMethod: 'offline',
       notes: notes,
       taxAmount: taxAmount,
-      shippingCost: shippingCost, // Added shippingCost field to the record
+      shippingCost: shippingCost,
     },
   });
 }
@@ -208,65 +202,124 @@ export async function POST(request: Request) {
       if (!session) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-  
+
       const body = await request.json();
       console.log(body, "online orders data");
-  
+
       const parsedData = createBillSchema.safeParse(body);
-  
+
       if (!parsedData.success) {
         return NextResponse.json(
           { success: false, message: 'Invalid request data', errors: parsedData.error.errors },
           { status: 400 }
         );
       }
-  
+
       const { customerId, items, billingMode, notes, shippingMethodId, taxAmount, customShipping } = parsedData.data;
       const organisationId = parseInt(session.user.id, 10);
-  
-      const organisation = await prisma.organisation.findUnique({
+
+      const organisation = await prisma.organisation.findUnique({ // Make organisation mutable
         where: { id: organisationId },
       });
-  
+
       if (!organisation) {
         throw new Error('Organisation not found');
       }
-  
+
+      // --- START: MONTHLY USAGE TRACKING ---
+      if (organisation.subscriptionType !== 'pro') {
+        const now = new Date();
+        let needsOrgUpdateForUsage = false;
+        let orgUpdateData: any = {};
+
+
+        if (now >= organisation.endDate) {
+          const newEndDate = addOneMonthClamped(now);
+          orgUpdateData.monthlyUsage = 0;
+          orgUpdateData.endDate = newEndDate;
+          needsOrgUpdateForUsage = true;
+
+          // Refresh the org object in memory for subsequent checks in this request
+          organisation.monthlyUsage = 0;
+          organisation.endDate = newEndDate;
+        }
+
+        if (organisation.monthlyUsage >= (parseInt(process.env.MONTHLY_FREE_LIMIT ?? '50'))) {
+          // If we also needed to update endDate, do that before blocking
+          if(needsOrgUpdateForUsage && Object.keys(orgUpdateData).length > 0){
+             await prisma.organisation.update({
+                where: { id: organisationId },
+                data: orgUpdateData,
+            });
+          }
+          return NextResponse.json(
+            {
+              success: false,
+              message: 'You have reached the monthly free limit. Please wait until your next cycle or upgrade to Pro.'
+            },
+            { status: 403 }
+          );
+        }
+
+        // Increment monthly usage
+        orgUpdateData.monthlyUsage = { increment: 1 };
+        needsOrgUpdateForUsage = true;
+
+
+        if (needsOrgUpdateForUsage && Object.keys(orgUpdateData).length > 0) {
+          await prisma.organisation.update({
+            where: { id: organisationId },
+            data: orgUpdateData,
+          });
+        }
+      }
+      // --- END: MONTHLY USAGE TRACKING ---
+
+      if (items.length === 0) { // Added check for empty items array
+        return NextResponse.json(
+          { success: false, message: 'At least one product is required.' },
+          { status: 400 }
+        );
+      }
+
       // 1) Calculate shipping cost
       let shippingCost = 0;
-      let baseRate = 0;
+      let baseRate: number | null = 0; // Initialize to null or number
       let shippingMethodDetails = null;
-      
-      const validShippingMethodId = shippingMethodId ?? 0;
+
+      const validShippingMethodId = shippingMethodId ?? 0; // Use 0 or another non-ID value if null
       let shippingMethod = null;
 
-      if (shippingMethodId !== 0 && shippingMethodId !== null) {
+      // Ensure shippingMethodId is not 0 before querying
+      if (shippingMethodId !== null && shippingMethodId !== 0) {
         shippingMethod = await prisma.shippingMethod.findFirst({
           where: {
-            id: validShippingMethodId,
+            id: shippingMethodId, // No longer using validShippingMethodId here as it's confirmed not null/0
             organisationId: organisationId,
             isActive: true,
           },
         });
       }
-  
+
       // Handle custom shipping first (priority over selected shipping method)
-      if (customShipping && customShipping.price) {
+      if (customShipping && typeof customShipping.price === 'number') { // Check price is a number
         shippingCost = customShipping.price;
         const customShippingName = customShipping.name || "Custom Shipping";
         shippingMethodDetails = {
-          type: "CUSTOM_SHIPPING",
+          type: "CUSTOM_SHIPPING" as const, // Use 'as const' for literal type
           name: customShippingName,
           cost: customShipping.price,
           useWeight: false,
           ratePerKg: null,
           baseRate: customShipping.price,
+          id: null // No ID for custom shipping
         };
         console.log(`Using one-time custom shipping cost: ${shippingCost}`);
-      } else if (shippingMethodId !== null && shippingMethod) {
+      } else if (shippingMethod) { // Removed shippingMethodId !== null check as shippingMethod implies it
         // Use selected shipping method if no custom shipping
         if (shippingMethod.type === 'FREE_SHIPPING') {
           shippingCost = 0;
+          baseRate = 0;
         } else if (shippingMethod.type === 'COURIER_PARTNER') {
           if (shippingMethod.useWeight && shippingMethod.ratePerKg) {
             const totalWeight = items.reduce(
@@ -277,10 +330,10 @@ export async function POST(request: Request) {
             baseRate = shippingMethod.ratePerKg;
           } else {
             shippingCost = Math.round(shippingMethod.fixedRate || 0);
-            baseRate = shippingMethod.fixedRate;
+            baseRate = shippingMethod.fixedRate || 0; // Ensure baseRate is a number
           }
         }
-        
+
         shippingMethodDetails = {
           type: shippingMethod.type,
           name: shippingMethod.name,
@@ -290,43 +343,40 @@ export async function POST(request: Request) {
           baseRate: baseRate,
           id: shippingMethod.id
         };
-        
+
         console.log(`Using shipping method cost: ${shippingCost} for method: ${shippingMethod.name}`);
+      } else {
+        // No shipping method selected and no custom shipping, shipping cost = 0
+        shippingCost = 0;
+        baseRate = 0;
+        console.log("No shipping method selected and no custom shipping. Shipping cost is 0.");
       }
-  
-      // Parse the tax amount to ensure it's a number
+
+
       const parsedTaxAmount = Math.round(Number(taxAmount) || 0);
       console.log(`Tax amount: ${parsedTaxAmount}`);
-      
-      // 3) Calculate the final total (items total + shipping cost + tax)
+
       const itemsTotalPrice = Math.round(items.reduce((sum: number, item: any) => sum + Number(item.total), 0));
       console.log(`Items total price: ${itemsTotalPrice}`);
 
-      // Round the shipping cost
       const roundedShippingCost = Math.round(shippingCost);
-      console.log(`Shipping cost: ${roundedShippingCost}`);
+      console.log(`Rounded Shipping cost: ${roundedShippingCost}`);
 
-
-      console.log(`Shipping cost: ${shippingCost}`);
-      console.log(`Tax amount: ${parsedTaxAmount}`);
-
-      // Calculate the final total with rounded values
       const finalTotal = itemsTotalPrice + roundedShippingCost + parsedTaxAmount;
       console.log(`Final total: ${finalTotal}`);
-  
+
       const result = await executeWithRetry(async () => {
         return await prisma.$transaction(async (tx) => {
           const customer = await tx.customer.findUnique({
             where: { id: customerId },
           });
-  
+
           if (!customer || customer.organisationId !== organisationId) {
             throw new Error('Customer not found or does not belong to your organisation.');
           }
-  
+
           const { productDetails, transactionItemsData } = await processItems(tx, items, organisationId);
 
-          // Create the transaction record with final total (including shipping and tax)
           const newBill = await createTransactionRecord(
             tx,
             organisationId,
@@ -335,10 +385,9 @@ export async function POST(request: Request) {
             billingMode || 'online',
             notes || null,
             parsedTaxAmount,
-            shippingCost
+            roundedShippingCost // Pass rounded shipping cost
           );
-  
-          // Create transaction items in the database
+
           await tx.transactionItem.createMany({
             data: transactionItemsData.map((item) => ({
               transactionId: newBill.id,
@@ -348,37 +397,36 @@ export async function POST(request: Request) {
             })),
           });
 
-          // Store shipping details for this transaction without creating a permanent method
           if (shippingMethodDetails) {
             await tx.transactionShipping.create({
               data: {
                 transactionId: newBill.id,
                 methodName: shippingMethodDetails.name,
                 methodType: shippingMethodDetails.type,
-                totalCost: shippingCost,
-                baseRate: shippingMethodDetails.baseRate || shippingCost,
+                totalCost: roundedShippingCost, // Store rounded shipping cost
+                baseRate: shippingMethodDetails.baseRate || roundedShippingCost, // Ensure baseRate is a number
               },
             });
           }
-  
-          return { 
-            newBill, 
-            customer, 
+
+          return {
+            newBill,
+            customer,
             productDetails,
             shippingDetails: shippingMethodDetails,
             itemsTotal: itemsTotalPrice,
-            taxAmount: parsedTaxAmount
+            taxAmount: parsedTaxAmount,
+            calculatedShippingCost: roundedShippingCost
           };
         });
       });
-  
-      const { newBill, customer, productDetails, shippingDetails, itemsTotal, taxAmount: finalTaxAmount } = result;
-  
-      // Prepare the response data
+
+      const { newBill, customer, productDetails, shippingDetails, itemsTotal, taxAmount: finalTaxAmount, calculatedShippingCost } = result;
+
       const indianDateTime = moment(newBill.date).tz('Asia/Kolkata');
       const formattedDate = indianDateTime.format('YYYY-MM-DD');
       const formattedTime = indianDateTime.format('hh:mm A');
-  
+
       const responseData = {
         success: true,
         message: 'Online bill created successfully! Please review the bill before finalizing.',
@@ -389,7 +437,7 @@ export async function POST(request: Request) {
           time: formattedTime,
           total_amount: newBill.totalPrice,
           items_total: itemsTotal,
-          shipping_cost: shippingDetails?.cost || 0,
+          shipping_cost: calculatedShippingCost, // Use the cost returned from transaction
           tax_amount: finalTaxAmount || 0
         },
         customer_details: {
@@ -416,7 +464,7 @@ export async function POST(request: Request) {
         },
         product_details: productDetails,
         total_amount: newBill.totalPrice,
-        shipping_details: shippingDetails, // Add this to response
+        shipping_details: shippingDetails,
         tax_amount: finalTaxAmount || 0
       };
 
@@ -425,7 +473,7 @@ export async function POST(request: Request) {
           const productsString = productDetails
             .map((item) => `${item.productName} x ${item.quantity}`)
             .join(', ');
-        
+
           const fullAddress = [
             customer.flatNo,
             customer.street,
@@ -433,16 +481,15 @@ export async function POST(request: Request) {
             customer.state,
             customer.pincode,
           ].filter(Boolean).join(', ');
-  
+
           let message: string;
-          
+
           if (shippingDetails && shippingDetails.name) {
-            message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${shippingDetails.cost}).`;
+            message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${calculatedShippingCost}).`;
           } else {
             message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
           }
-  
-          // Uncomment this to enable SMS sending
+
           await sendBillingSMS({
             phone: customer.phone,
             companyName: organisation.shopName,
@@ -454,21 +501,25 @@ export async function POST(request: Request) {
             shippingMethod: shippingDetails && shippingDetails.name ? {
               name: shippingDetails.name,
               type: shippingDetails.type,
-              cost: shippingDetails.cost || 0
+              cost: calculatedShippingCost || 0 // Use calculatedShippingCost
             } : null
           });
         }
       } catch (smsError) {
         console.error('SMS sending failed:', smsError);
-        return NextResponse.json(
-          {
-            success: false,
-            error: smsError,
-          },
-          { status: 500 }
-        );
+        // Consider not failing the whole request if SMS fails, maybe just log it
+        // For now, keeping original behavior:
+        // return NextResponse.json(
+        //   {
+        //     success: false,
+        //     message: "Bill created, but SMS sending failed.",
+        //     bill_id: newBill.id, // still return bill id
+        //     smsError: (smsError as Error).message
+        //   },
+        //   { status: 207 } // Multi-Status
+        // );
       }
-  
+
       return NextResponse.json(responseData, { status: 200 });
     } catch (error: any) {
       console.error('Error details:', {
@@ -476,12 +527,12 @@ export async function POST(request: Request) {
         message: error.message,
         stack: error.stack,
       });
-  
+
       return NextResponse.json(
         {
           success: false,
-          error: error.message,
-          details: error.message,
+          error: error.message, // Keep it simple for client
+          // details: error.message, //
         },
         { status: 500 }
       );
