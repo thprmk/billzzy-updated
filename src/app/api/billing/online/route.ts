@@ -166,10 +166,12 @@ async function createTransactionRecord(
 ) {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
-    where: { organisationId } // Ensure billNo is unique per organisation
   });
 
   const newBillNo = (lastBill?.billNo || 0) + 1;
+
+  console.log(newBillNo, "new bill no");
+  
 
   const indianDateTime = moment().tz('Asia/Kolkata');
   const indianDate = indianDateTime.format('YYYY-MM-DD');
