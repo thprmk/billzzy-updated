@@ -89,7 +89,7 @@ const navigation = [
     ],
   },
   { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
-  { name: 'printing', href: '/printing', icon: PrinterIcon },
+  { name: 'Printing', href: '/printing', icon: PrinterIcon },
   { name: 'Packing', href: '/packing', icon: PackageIcon },
   { name: 'Tracking Number', href: '/tracking', icon: Truck },
   {
