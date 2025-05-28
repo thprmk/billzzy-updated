@@ -78,7 +78,7 @@ model CustomerSubmission {
   customers    Customer?    @relation(fields: [customerId], references: [id])
 
   @@index([organisationId])
-  @@map("customersubmission") // Corrected map name
+  @@map("CustomerSubmission") // Corrected map name
 }
 
 model ProductCategory {
