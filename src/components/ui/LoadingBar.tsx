@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
@@ -12,7 +12,8 @@ NProgress.configure({
   minimum: 0.3,
 })
 
-export default function LoadingBar() {
+// Move your existing logic to a separate component
+function LoadingBarContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -40,4 +41,13 @@ export default function LoadingBar() {
   }, [pathname, searchParams])
 
   return null
+}
+
+// Export the component wrapped with Suspense
+export default function LoadingBar() {
+  return (
+    <Suspense fallback={null}>
+      <LoadingBarContent />
+    </Suspense>
+  )
 }
