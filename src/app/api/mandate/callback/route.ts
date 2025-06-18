@@ -155,7 +155,6 @@ export async function POST(request: Request) {
     // 4. Billzzy (existing) logic below
     // --------------------------------------------------------------------
 
-    // --- A) REVOKE-SUCCESS handling ---
     if (callbackData.TxnStatus === 'REVOKE-SUCCESS') {
       // Find an associated mandate to get the organisationId (using UMN)
       const revokedMandate = await prisma.activeMandate.findFirst({
@@ -163,40 +162,98 @@ export async function POST(request: Request) {
       });
 
       if (!revokedMandate) {
-        console.log('Mandate not found:', callbackData.merchantTranId);
+        console.log('Mandate not found for REVOKE-SUCCESS:', callbackData.merchantTranId);
 
-        // Try to forward to F3 as this might be an F3 mandate
+        // First, try to forward to INSTAX endpoint
         try {
-          const f3Response = await fetch('https://f3engine.com/api/mandate/callback', {
+          const instaxResponse = await fetch('https://2547-2409-40f4-142-bea1-4cd0-74de-691a-e683.ngrok-free.app/api/mandate/callback', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(callbackData),
           });
 
-          console.log(f3Response.json().then((data) => console.log(data)));
+          console.log('INSTAX Response:', instaxResponse);
 
-          if (!f3Response.ok) {
-            console.error('F3 forward failed for general missing mandate. Status:', f3Response.status);
-            return NextResponse.json(
-              { error: 'Mandate not found and forwarding to F3 failed' },
-              { status: 404 }
-            );
+          if (instaxResponse.ok) {
+            console.log('Successfully forwarded REVOKE-SUCCESS callback to INSTAX');
+            return NextResponse.json({
+              success: true,
+              forwardedTo: 'INSTAX',
+              message: 'REVOKE-SUCCESS callback was forwarded to INSTAX successfully.'
+            });
+          } else {
+            console.error('INSTAX forward failed for REVOKE-SUCCESS. Status:', instaxResponse.status);
+
+            // If INSTAX fails, try F3 as fallback
+            try {
+              const f3Response = await fetch('https://f3engine.com/api/mandate/callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(callbackData),
+              });
+
+              console.log('F3 Response:', f3Response);
+
+              if (f3Response.ok) {
+                console.log('Successfully forwarded REVOKE-SUCCESS callback to F3 as fallback');
+                return NextResponse.json({
+                  success: true,
+                  forwardedTo: 'F3',
+                  message: 'REVOKE-SUCCESS callback was forwarded to F3 as fallback after INSTAX failed.'
+                });
+              } else {
+                console.error('F3 forward also failed for REVOKE-SUCCESS. Status:', f3Response.status);
+
+                // TODO: Add third endpoint here if needed
+                // try {
+                //   const thirdEndpointResponse = await fetch('https://your-third-endpoint.com/api/mandate/callback', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify(callbackData),
+                //   });
+                //   
+                //   if (thirdEndpointResponse.ok) {
+                //     return NextResponse.json({
+                //       success: true,
+                //       forwardedTo: 'ThirdEndpoint',
+                //       message: 'REVOKE-SUCCESS callback was forwarded to third endpoint.'
+                //     });
+                //   }
+                // } catch (error) {
+                //   console.error('Error forwarding to third endpoint:', error);
+                // }
+
+                return NextResponse.json(
+                  {
+                    error: 'Mandate not found for REVOKE-SUCCESS and all forwarding attempts failed',
+                    attempts: ['INSTAX', 'F3']
+                  },
+                  { status: 404 }
+                );
+              }
+            } catch (f3Error) {
+              console.error('Error forwarding REVOKE-SUCCESS to F3:', f3Error);
+              return NextResponse.json(
+                {
+                  error: 'Mandate not found for REVOKE-SUCCESS, INSTAX failed, and F3 forwarding error',
+                  instaxStatus: instaxResponse.status,
+                  f3Error: (f3Error as any).message
+                },
+                { status: 500 }
+              );
+            }
           }
+        } catch (instaxError: any) {
+          console.error('Error forwarding REVOKE-SUCCESS to INSTAX:', instaxError);
 
-          console.log('Successfully forwarded callback to F3 for missing mandate');
-          return NextResponse.json({
-            success: true,
-            forwardedTo: 'F3',
-            message: 'Callback was forwarded to F3 as mandate was not found locally.'
-          });
-        } catch (error) {
-          console.error('Error forwarding to F3 for missing mandate:', error);
           return NextResponse.json(
-            { error: 'Mandate not found and error forwarding to F3' },
-            { status: 500 }
-          );
+              {
+                error: 'Mandate not found for REVOKE-SUCCESS and all forwarding attempts failed with errors',
+                instaxError: instaxError.message,
+              },
+              { status: 500 }
+            );
         }
-
       }
 
       const organisationId = revokedMandate.organisationId;
@@ -240,7 +297,6 @@ export async function POST(request: Request) {
         message: 'Mandate revoked successfully; all mandate records deleted and subscription reverted to trial.',
       });
     }
-
     // --- B) EXECUTE MANDATE handling ---
     if (isExecuteCallback(callbackData.merchantTranId)) {
       console.log('Execute callback received:', callbackData);
