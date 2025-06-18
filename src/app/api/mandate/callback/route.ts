@@ -112,10 +112,10 @@ export async function POST(request: Request) {
     }
     if (callbackData?.merchantTranId?.includes('_INSTAX_')) {
       console.log("callbackData contains _INSTAX_");
-      
+
       try {
         // Forward the entire decrypted callback data to F3Engine
-        const f3Response = await fetch('https://43a6-2409-40f4-3145-7cc9-954e-cd88-80c8-7b39.ngrok-free.app/api/mandate/callback', {
+        const f3Response = await fetch('https://2547-2409-40f4-142-bea1-4cd0-74de-691a-e683.ngrok-free.app/api/mandate/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(callbackData),
