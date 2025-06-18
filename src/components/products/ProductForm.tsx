@@ -104,13 +104,16 @@ export default function ProductForm({ initialData, categories }: ProductFormProp
     }
   };
 
+const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+) => {
+  const { name, value } = e.target;
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  setFormData(prev => ({
+    ...prev,
+    [name]: name === 'SKU' ? value.toUpperCase() : value,
+  }));
+};
 
   return (
 <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-4xl mx-auto p-4 sm:p-6 bg-white rounded-lg shadow">

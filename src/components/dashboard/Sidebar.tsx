@@ -61,7 +61,6 @@ interface CustomerSubmission {
 // ---------------------------------
 // Fetcher
 // ---------------------------------
-
 const fetcher = (url: string) =>
   fetch(url).then((res) => {
     if (!res.ok) throw new Error('Failed to fetch');
@@ -71,7 +70,6 @@ const fetcher = (url: string) =>
 // ---------------------------------
 // Navigation
 // ---------------------------------
-
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   {
@@ -117,7 +115,6 @@ const navigation = [
 // ---------------------------------
 // Share Popup
 // ---------------------------------
-
 function SharePopup({
   isOpen,
   onClose,
@@ -205,7 +202,6 @@ function SharePopup({
 // ---------------------------------
 // Sidebar Component
 // ---------------------------------
-
 export default function Sidebar({
   isOpen,
   setIsOpen,
