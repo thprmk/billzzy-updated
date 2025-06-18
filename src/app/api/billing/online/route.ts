@@ -389,7 +389,7 @@ export async function POST(request: Request) {
           time: formattedTime,
           total_amount: newBill.totalPrice,
           items_total: itemsTotal,
-          shipping_cost: shippingDetails?.cost || 0,
+          shippingCost: shippingDetails?.cost || 0,
           tax_amount: finalTaxAmount || 0
         },
         customer_details: {

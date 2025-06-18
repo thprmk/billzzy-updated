@@ -43,8 +43,8 @@ model Organisation {
   razorpayAccountId      String?   @map("razorpay_account_id")
   monthlyUsage           Int       @default(0)
 
- // Relation field for CustomShipping
-  customShippings        CustomShipping[]  @relation("OrganisationCustomShippings")
+  // Relation field for CustomShipping
+  customShippings CustomShipping[] @relation("OrganisationCustomShippings")
 
   CustomerSubmission  CustomerSubmission[]
   activeMandates      ActiveMandate?
@@ -318,7 +318,6 @@ model CustomShipping {
   @@map("custom_shippings")
 }
 
-
 model MandateNotification {
   id             Int          @id @default(autoincrement())
   organisationId Int
@@ -342,5 +341,5 @@ enum PaymentStatus {
 enum ShippingMethodType {
   FREE_SHIPPING
   COURIER_PARTNER
-   CUSTOM_SHIPPING  // Add this line
+  CUSTOM_SHIPPING // Add this line
 }
