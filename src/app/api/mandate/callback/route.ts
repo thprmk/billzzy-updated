@@ -115,7 +115,7 @@ export async function POST(request: Request) {
       
       try {
         // Forward the entire decrypted callback data to F3Engine
-        const f3Response = await fetch('https://fb41-117-247-96-193.ngrok-free.app/api/mandate/callback', {
+        const f3Response = await fetch('https://43a6-2409-40f4-3145-7cc9-954e-cd88-80c8-7b39.ngrok-free.app/api/mandate/callback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(callbackData),
