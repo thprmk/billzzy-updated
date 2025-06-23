@@ -204,7 +204,7 @@ async function updateSMSCount(organisationId: number) {
           increment: 1
         },
         smsCost: {
-          increment: 0.30 // Cost per SMS in rupees
+          increment: 0.25 
         }
       }
     });

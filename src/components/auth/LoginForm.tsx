@@ -44,9 +44,11 @@ export default function LoginForm() {
   
       // Update the session client-side
       await update();
+
+      
       
       // After updating the session, check the role and redirect
-      if (session?.user?.role === 'admin') {
+      if (await session?.user?.role === 'admin') {
         router.push('/admin');
 
       } else {

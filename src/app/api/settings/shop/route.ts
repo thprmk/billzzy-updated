@@ -11,12 +11,16 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const data = await request.json();
+    const { id, ...updateData } = await request.json();
+
+    console.log('Updating shop details for user:', session);
+    
     const organisation = await prisma.organisation.update({
       where: {
         id: parseInt(session.user.id)
       },
-      data
+     data: updateData 
+
     });
 
     return NextResponse.json(organisation);

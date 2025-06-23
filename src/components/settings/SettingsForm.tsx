@@ -21,7 +21,7 @@ interface ExtendedOrganisationDetails extends OrganisationDetails {
   activeMandate?: any;
 }
 
-export default function SettingsForm({ initialData }: { initialData: ExtendedOrganisationDetails }) {
+export default function SettingsForm({organisation, initialData }: { initialData: ExtendedOrganisationDetails }) {
   const router = useRouter();
 
   console.log(initialData.endDate);
@@ -40,7 +40,7 @@ export default function SettingsForm({ initialData }: { initialData: ExtendedOrg
           {/* Right side: Content Area */}
           <div className="flex-1 min-h-[90vh] p-4 md:p-4">
             {activeTab === 'shop' && (
-              <ShopSettings initialData={initialData} onSuccess={() => router.refresh()} />
+              <ShopSettings initialData={organisation} onSuccess={() => router.refresh()} />
             )}
             {activeTab === 'password' && (
               <PasswordSettings onSuccess={() => router.refresh()} />

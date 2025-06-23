@@ -17,11 +17,25 @@ export function ShopSettings({
   onSuccess: () => void;
 }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [details, setDetails] = useState(initialData);
+
+  console.log('Initial data in ShopSettings:', initialData);
+  
+  
+  // Ensure all optional fields have default empty strings
+  const [details, setDetails] = useState<OrganisationDetails>({
+    ...initialData,
+    landlineNumber: initialData.landlineNumber || '',
+    websiteAddress: initialData.websiteAddress || '',
+    gstNumber: initialData.gstNumber || '',
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+
+    console.log('Submitting shop details:', details);
+    
 
     try {
       const response = await fetch('/api/settings/shop', {
@@ -47,7 +61,7 @@ export function ShopSettings({
         <Input
           label="Shop Name"
           value={details.shopName}
-          onChange={(v) => setDetails({ ...details, shopName: v })}
+          onChange={(e) => setDetails({ ...details, shopName: e.target.value })}
           required
         />
 
@@ -55,7 +69,7 @@ export function ShopSettings({
           label="Email"
           type="email"
           value={details.email}
-          onChange={(v) => setDetails({ ...details, email: v })}
+          onChange={(e) => setDetails({ ...details, email: e.target.value })}
           required
         />
 
@@ -63,49 +77,49 @@ export function ShopSettings({
           label="Phone"
           type="tel"
           value={details.phone}
-          onChange={(v) => setDetails({ ...details, phone: v })}
+          onChange={(e) => setDetails({ ...details, phone: e.target.value })}
           required
         />
 
         <Input
           label="Flat/Door No"
           value={details.flatNo}
-          onChange={(v) => setDetails({ ...details, flatNo: v })}
+          onChange={(e) => setDetails({ ...details, flatNo: e.target.value })}
           required
         />
 
         <Input
           label="Street"
           value={details.street}
-          onChange={(v) => setDetails({ ...details, street: v })}
+          onChange={(e) => setDetails({ ...details, street: e.target.value })}
           required
         />
 
         <Input
           label="District"
           value={details.district}
-          onChange={(v) => setDetails({ ...details, district: v })}
+          onChange={(e) => setDetails({ ...details, district: e.target.value })}
           required
         />
 
         <Input
           label="State"
           value={details.state}
-          onChange={(v) => setDetails({ ...details, state: v })}
+          onChange={(e) => setDetails({ ...details, state: e.target.value })}
           required
         />
 
         <Input
           label="Country"
           value={details.country}
-          onChange={(v) => setDetails({ ...details, country: v })}
+          onChange={(e) => setDetails({ ...details, country: e.target.value })}
           required
         />
 
         <Input
           label="Pincode"
           value={details.pincode}
-          onChange={(v) => setDetails({ ...details, pincode: v })}
+          onChange={(e) => setDetails({ ...details, pincode: e.target.value })}
           required
         />
 
@@ -113,28 +127,28 @@ export function ShopSettings({
           label="Mobile Number"
           type="tel"
           value={details.mobileNumber}
-          onChange={(v) => setDetails({ ...details, mobileNumber: v })}
+          onChange={(e) => setDetails({ ...details, mobileNumber: e.target.value })}
           required
         />
 
         <Input
           label="Landline Number (Optional)"
           type="tel"
-          value={details.landlineNumber || ''}
-          onChange={(v) => setDetails({ ...details, landlineNumber: v })}
+          value={details.landlineNumber}
+          onChange={(e) => setDetails({ ...details, landlineNumber: e.target.value })}
         />
 
         <Input
           label="Website (Optional)"
           type="url"
-          value={details.websiteAddress || ''}
-          onChange={(v) => setDetails({ ...details, websiteAddress: v })}
+          value={details.websiteAddress}
+          onChange={(e) => setDetails({ ...details, websiteAddress: e.target.value })}
         />
 
         <Input
           label="GST Number (Optional)"
-          value={details.gstNumber || ''}
-          onChange={(v) => setDetails({ ...details, gstNumber: v })}
+          value={details.gstNumber}
+          onChange={(e) => setDetails({ ...details, gstNumber: e.target.value })}
         />
 
         <Select

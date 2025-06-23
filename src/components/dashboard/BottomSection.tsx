@@ -37,7 +37,7 @@ interface BottomSectionProps {
 }
 
 export default function BottomSection({ customerCount, smsCount }: BottomSectionProps) {
-  const smsCost = smsCount * 0.30;
+  const smsCost = smsCount * 0.25;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">

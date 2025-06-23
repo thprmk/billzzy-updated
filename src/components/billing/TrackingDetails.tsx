@@ -149,7 +149,7 @@ export function TrackingDetails({ billId, initialData }: TrackingDetailsProps) {
         value={formData.weight}
         onChange={(e) => setFormData(prev => ({ ...prev, weight: e.target.value }))}
         onKeyDown={handleWeightKeyDown}
-        required
+        
       />
 
       {error && (

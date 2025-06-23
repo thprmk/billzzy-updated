@@ -59,11 +59,7 @@ export default function TrackingPage() {
       return false;
     }
 
-    if (!weight.trim()) {
-      toast.error('Please enter Weight');
-      weightRef.current?.focus();
-      return false;
-    }
+
 
     return true;
   };
@@ -161,7 +157,6 @@ export default function TrackingPage() {
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     onKeyDown={handleWeightKeyDown}
-                    required
                     placeholder="Enter weight"
                   />
                 </div>

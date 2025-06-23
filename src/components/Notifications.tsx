@@ -23,12 +23,12 @@ const fetcher = (url: string) =>
     });
 
 export function Notifications() {
-const { data: sessionData, status } = useSession();
+  const { data: sessionData, status } = useSession();
 
 
   // Only fetch notifications if user is authenticated
   const { data, mutate } = useSWR<{ notifications: MandateNotification[] }>(
-    status === 'authenticated'||sessionData?.user?.name=="Admin" ? '/api/notifications?status=unread' : null,
+    status === 'authenticated' || sessionData?.user?.name == "Admin" ? '/api/notifications?status=unread' : null,
     fetcher,
     {
       refreshInterval: 30000, // poll every 30s
@@ -39,7 +39,7 @@ const { data: sessionData, status } = useSession();
     if (!data || !data.notifications || data.notifications.length === 0) {
       return;
     }
-    
+
     // For this example, let's just show the first unread notification
     const firstNotification = data.notifications[0];
     Swal.fire({
@@ -53,7 +53,7 @@ const { data: sessionData, status } = useSession();
           </p>
         </div>
       `,
-      confirmButtonText: 'OK', 
+      confirmButtonText: 'OK',
       // Single button
       allowOutsideClick: false,
       allowEscapeKey: false

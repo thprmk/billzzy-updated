@@ -5,7 +5,6 @@ import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import SettingsForm from '@/components/settings/SettingsForm';
 
-
 export const revalidate = 0; 
 
 export default async function SettingsPage() {
@@ -23,10 +22,21 @@ export default async function SettingsPage() {
       email: true,
       phone: true,
       shopName: true,
-      endDate:true,
+      endDate: true,
       subscriptionType: true,
       razorpayAccessToken: true,
-      // etc.
+      // Add all the missing fields that ShopSettings expects:
+      flatNo: true,
+      street: true,
+      district: true,
+      state: true,
+      country: true,
+      pincode: true,
+      mobileNumber: true,
+      landlineNumber: true,
+      websiteAddress: true,
+      gstNumber: true,
+      companySize: true,
     }
   });
 
@@ -50,9 +60,8 @@ export default async function SettingsPage() {
   }
 
   return (
-    <SettingsForm
+    <SettingsForm organisation={organisationData}
       initialData={{
-        ...organisationData,
         mandates,
         activeMandate,
       }}

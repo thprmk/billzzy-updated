@@ -57,8 +57,8 @@ model Organisation {
   Mandate             Mandate[]
   activeMandates      ActiveMandate?
   MandateNotification MandateNotification[]
-  customShippings     CustomShipping[]    // <--- NEW RELATION
-  taxes               Tax[]               // <--- NEW RELATION
+  customShippings     CustomShipping[] // <--- NEW RELATION
+  taxes               Tax[] // <--- NEW RELATION
 
   @@index([resetToken])
   @@map("organisation")
@@ -151,13 +151,13 @@ model TransactionRecord {
   isEdited       Boolean       @default(false) @map("isEdited") // Updated mapping for consistency if db is is_edited
 
   // --- NEW FIELDS ADDED TO THE DATABASE ---
-  gstAmount        Float?        @map("gst_amount")
-  gstPercent       Float?        @map("gst_percent")
-  shippingCost     Float?        // Assumes DB column name is 'shippingCost'
-  shippingMethodId Int?          // Assumes DB column name is 'shippingMethodId'
-                                  // Optional: ADD @relation to ShippingMethod if desired
-                                  // shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], name: "TransactionShippingMethod")
-  taxAmount        Float?        // Assumes DB column name is 'taxAmount'
+  gstAmount        Float? @map("gst_amount")
+  gstPercent       Float? @map("gst_percent")
+  shippingCost     Float? // Assumes DB column name is 'shippingCost'
+  shippingMethodId Int? // Assumes DB column name is 'shippingMethodId'
+  // Optional: ADD @relation to ShippingMethod if desired
+  // shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], name: "TransactionShippingMethod")
+  taxAmount        Float? // Assumes DB column name is 'taxAmount'
 
   organisation        Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   customer            Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -244,15 +244,14 @@ model ShippingMethod {
   fixedRate      Float?             @map("fixed_rate")
   isActive       Boolean            @default(true) @map("is_active")
   organisationId Int                @map("organisation_id")
-  customRate     Float?             // <--- NEW FIELD (if db col is customRate)
-                                    //      use @map("custom_rate") if db col is custom_rate
+  customRate     Float? // <--- NEW FIELD (if db col is customRate)
+  //      use @map("custom_rate") if db col is custom_rate
   organisation   Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
 
   // Optional: Add relation back to TransactionRecord if you made shippingMethodId a foreign key
   // transactions   TransactionRecord[] @relation("TransactionShippingMethod")
-
 
   @@map("shipping_methods")
 }
@@ -320,11 +319,11 @@ model MandateNotification {
   isRead         Boolean  @default(false)
   createdAt      DateTime @default(now())
 
-  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
   @@index([organisationId])
   @@map("mandate_notifications")
 }
-
 
 // --- NEW MODELS ---
 model CustomShipping {

@@ -20,6 +20,8 @@ function determineShippingPartner(trackingNumber: string): string {
   if (trackingNumber.startsWith("1")) return "SHIP ROCKET";
   if (trackingNumber.startsWith("7")) return "DELHIVERY";
   if (trackingNumber.startsWith("JT")) return "J&T";
+  if (trackingNumber.startsWith("TRZ")) return "PROFESSIONAL COURIER";
+
   return "Unknown";
 }
 
@@ -43,6 +45,8 @@ function getTrackingUrl(shippingPartner: string): string {
       return `https://ekartlogistics.com/track`;
     case "XPRESSBEES":
       return `https://www.xpressbees.com/track`;
+    case "PROFESSIONAL COURIER":
+      return `https://www.tpcindia.com/`;
     default:
       return `https://vaseegrahveda.com/tracking`;
   }
@@ -52,7 +56,7 @@ function getTrackingUrl(shippingPartner: string): string {
 export async function POST(request: Request) {
   try {
 
-    
+
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -121,7 +125,7 @@ export async function POST(request: Request) {
       }
     });
 
-    
+
 
     // Send SMS notification
     if (updatedBill.customer?.phone) {
@@ -133,16 +137,16 @@ export async function POST(request: Request) {
       const shippingPartner = determineShippingPartner(trackingNumber || '');
       const trackingUrl = getTrackingUrl(shippingPartner, trackingNumber || '');
 
-     const smsVariables = {
+      const smsVariables = {
         var1: organisationName,   // Organisation Name
-        var2: productsPart1, 
-        var3:productsPart2,       // Products list
+        var2: productsPart1,
+        var3: productsPart2,       // Products list
         var4: shippingPartner,    // Courier Name
-        var5: trackingNumber, 
+        var5: trackingNumber,
         var6: `${weight} Kg`,        // Tracking URL
         // Tracking URL
         var7: trackingUrl,
-        var8:organisationName    // Organisation Name
+        var8: organisationName    // Organisation Name
       };
       await sendOrderStatusSMS({
         phone: updatedBill.customer.phone,
@@ -159,10 +163,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error details:', error.message);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to update tracking details',
-        message: error.message 
+        message: error.message
       },
       { status: 500 }
     );
@@ -228,10 +232,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error fetching bill:', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to fetch bill details',
-        message: error.message 
+        message: error.message
       },
       { status: 500 }
     );
