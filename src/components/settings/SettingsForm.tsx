@@ -12,6 +12,7 @@ import type { OrganisationDetails } from '@/types/settings';
 import BillingTab from '../mandate/BillingTab';
 import { WhatsAppSettings } from './WhatsappSettings';
 import { TaxSettings } from '@/components/settings/TaxSettings';
+import ShopifySettings from './ShopifySettings';
 
 
 
@@ -21,13 +22,13 @@ interface ExtendedOrganisationDetails extends OrganisationDetails {
   activeMandate?: any;
 }
 
-export default function SettingsForm({organisation, initialData }: { initialData: ExtendedOrganisationDetails }) {
+export default function SettingsForm({ organisation, initialData }: { initialData: ExtendedOrganisationDetails }) {
   const router = useRouter();
 
   console.log(initialData.endDate);
 
   const [activeTab, setActiveTab] = useState<
-    'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'billing' | 'tax'
+    'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'shopify' | 'billing' | 'tax'
   >('shop');
 
   return (
@@ -45,6 +46,11 @@ export default function SettingsForm({organisation, initialData }: { initialData
             {activeTab === 'password' && (
               <PasswordSettings onSuccess={() => router.refresh()} />
             )}
+            {activeTab === 'shopify' && (
+              <ShopifySettings
+                initialDomain={organisation.shopifyDomain}
+                initialToken={organisation.shopifyToken}
+              />)}
             {activeTab === 'shipping' && <ShippingSettings />}
             {activeTab === 'whatsapp' && (
               <WhatsAppSettings
@@ -68,7 +74,7 @@ export default function SettingsForm({organisation, initialData }: { initialData
             )}
 
             {activeTab === 'tax' && (
-            <TaxSettings />
+              <TaxSettings />
             )}
 
           </div>

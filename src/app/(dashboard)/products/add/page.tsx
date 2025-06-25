@@ -4,9 +4,41 @@
 import { useState, useEffect } from 'react';
 import  ProductForm  from '@/components/products/ProductForm';
 import React from 'react';  // Add this import
+import { Button } from '@headlessui/react';
+import { toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
 
 export default function AddProductPage() {
   const [categories, setCategories] = useState([]);
+  const router = useRouter();
+
+
+  const [isImporting, setIsImporting] = useState(false);
+    
+    const handleImport = async () => {
+      setIsImporting(true);
+      toast.info('Starting Shopify product import. This may take a moment...');
+  
+      try {
+        const response = await fetch('/api/products/import/shopify', {
+          method: 'POST',
+        });
+  
+        const data = await response.json();
+  
+        if (!response.ok) {
+          throw new Error(data.details || 'Failed to import products.');
+        }
+        
+        toast.success(data.message);
+        router.refresh(); // Refresh the product list to show new items
+  
+      } catch (error: any) {
+        toast.error(`Import failed: ${error.message}`);
+      } finally {
+        setIsImporting(false);
+      }
+    };
 
   useEffect(() => {
     // Fetch categories
@@ -24,6 +56,9 @@ export default function AddProductPage() {
         <h1 className="text-2xl hidden md:block sm:text-3xl font-bold text-center mb-6">
           Add New Product
         </h1>
+
+       
+         
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
           <ProductForm categories={categories} />
         </div>

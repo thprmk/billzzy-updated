@@ -44,6 +44,8 @@ model Organisation {
   razorpayState          String?   @map("razorpay_state")
   razorpayStateExpiresAt DateTime? @map("razorpay_state_expires_at")
   monthlyUsage           Int       @default(0)
+  shopifyToken           String?   @map("shopify_token")
+  shopifyDomain          String?   @map("shopify_domain")
 
   // Relations
   productCategories   ProductCategory[]

@@ -36,6 +36,33 @@ export default function ProductList({ products: initialProducts }: ProductListPr
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [isImporting, setIsImporting] = useState(false);
+  
+  const handleImport = async () => {
+    setIsImporting(true);
+    toast.info('Starting Shopify product import. This may take a moment...');
+
+    try {
+      const response = await fetch('/api/products/import/shopify', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.details || 'Failed to import products.');
+      }
+      
+      toast.success(data.message);
+      router.refresh(); // Refresh the product list to show new items
+
+    } catch (error: any) {
+      toast.error(`Import failed: ${error.message}`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const handleUpdate = async () => {
     try {
       const response = await fetch(`/api/products/${products.id}`, {
@@ -89,13 +116,27 @@ export default function ProductList({ products: initialProducts }: ProductListPr
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Products</h2>
+        <h2 className="text-2xl font-bold">Produ</h2>
+         <div className="flex space-x-2">
+            <Button
+              onClick={handleImport}
+              isLoading={isImporting}
+              disabled={isImporting}
+            >
+              {isImporting ? 'Importing...' : 'Import from Shopify'}
+            </Button>
+            {/* Your existing Add Product button */}
+            <Button onClick={() => router.push('/products/add')}>
+              Add Product
+            </Button>
+        </div>
         <Link href="/products/add">
           <Button>
             <PlusIcon className="h-5 w-5 mr-2" />
             Add Product
           </Button>
         </Link>
+
       </div>
 
       <div className="bg-white shadow-md rounded-lg ">
