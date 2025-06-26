@@ -3,11 +3,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import puppeteer from 'puppeteer';
 import ExcelJS from 'exceljs';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth-options';
 
 /**
  * Handles POST requests to fetch transaction records as JSON data.
  */
 export async function POST(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user || !session.user.id) {
+    return NextResponse.json(
+      { success: false, message: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   try {
     const { start, end } = await req.json();
 
@@ -20,6 +31,7 @@ export async function POST(req: NextRequest) {
 
     const records = await prisma.transactionRecord.findMany({
       where: {
+        organisationId: parseInt(session.user.id), // Filter by organisationId from session
         date: {
           gte: new Date(start),
           lte: new Date(end),
@@ -64,6 +76,15 @@ export async function POST(req: NextRequest) {
  * Handles GET requests to generate and download a report in PDF or XLSX format.
  */
 export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user || !session.user.id) {
+    return NextResponse.json(
+      { success: false, message: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const start = searchParams.get('start');
   const end = searchParams.get('end');
@@ -76,6 +97,7 @@ export async function GET(req: NextRequest) {
   try {
     const transactions = await prisma.transactionRecord.findMany({
       where: {
+        organisationId: parseInt(session.user.id), // Filter by organisationId from session
         date: {
           gte: new Date(start),
           lte: new Date(end),
@@ -125,7 +147,6 @@ export async function GET(req: NextRequest) {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'Content-Disposition': `attachment; filename="report-${start}-to-${end}.xlsx"`,
-          // THE FIX: Expose the Content-Disposition header to the client
           'Access-Control-Expose-Headers': 'Content-Disposition',
         },
       });
@@ -187,7 +208,6 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="report-${start}-to-${end}.pdf"`,
-        // THE FIX: Also expose the header for PDF downloads
         'Access-Control-Expose-Headers': 'Content-Disposition',
       },
     });
