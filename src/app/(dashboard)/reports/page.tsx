@@ -3,15 +3,22 @@ import React, { useState } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/Button";
 
+// Type definitions to match the API response
+type Customer = {
+  name: string;
+  phone: string | null;
+} | null;
+
 type TransactionRecord = {
-  id: number;
+  id?: number | string;
   date: string;
-  customerId: number;
+  customerId: number | string | null;
   billNo: string;
   paymentMethod: string;
   paymentStatus: string;
   totalPrice: number;
   amountPaid: number;
+  customer: Customer;
 };
 
 const DailyReport: React.FC = () => {
@@ -24,7 +31,7 @@ const DailyReport: React.FC = () => {
     const newStart = e.target.value;
     setStartDate(newStart);
     if (endDate && endDate < newStart) {
-      setEndDate(""); // Clear end date if it becomes invalid
+      setEndDate("");
     }
   };
 
@@ -49,43 +56,43 @@ const DailyReport: React.FC = () => {
     }
   };
 
-  const handleDownload = async () => {
+  // UPDATED handleDownload function with the fix
+  const handleDownload = async (format: 'pdf' | 'xlsx') => {
     if (!startDate || !endDate) return alert("Select both dates");
     try {
+      setLoading(true);
       const res = await axios.get("/api/reports", {
-        params: { start: startDate, end: endDate, format: "pdf" },
+        params: { start: startDate, end: endDate, format: format },
         responseType: "blob",
       });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `report.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (err) {
-      console.error(err);
-      alert("PDF download failed");
-    }
-  };
 
-  const handleDownloadExcel = async () => {
-    if (!startDate || !endDate) return alert("Select both dates");
-    try {
-      const res = await axios.get("/api/reports", {
-        params: { start: startDate, end: endDate, format: "xlsx" },
-        responseType: "blob",
-      });
+      const contentDisposition = res.headers['content-disposition'];
+      let filename = `report.${format}`; // Default fallback filename
+
+      if (contentDisposition) {
+        // THE FIX: This is a more robust regex to extract the filename.
+        // It specifically looks for the value inside double quotes.
+        const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+
+        if (filenameMatch && filenameMatch[1]) {
+          // Use the captured group which is guaranteed to be just the filename
+          filename = filenameMatch[1];
+        }
+      }
+
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `report.xlsx`);
+      link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      alert("Excel download failed");
+      alert(`${format.toUpperCase()} download failed`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,7 +109,6 @@ const DailyReport: React.FC = () => {
     <div className="container mx-auto p-4">
       <h1 className="text-xl md:text-2xl font-semibold mb-6 ">Report Details</h1>
 
-      {/* Filter + Button Section */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap md:items-center gap-3 md:gap-4">
         <input
           type="date"
@@ -117,58 +123,53 @@ const DailyReport: React.FC = () => {
           value={endDate}
           onChange={handleEndDateChange}
         />
-        <Button className="w-full sm:w-auto" onClick={fetchData}>
-          Fetch Report
+        <Button className="w-full sm:w-auto" onClick={fetchData} disabled={loading}>
+          {loading ? 'Fetching...' : 'Fetch Report'}
         </Button>
-        <Button className="w-full sm:w-auto" onClick={handleDownload}>
+        <Button className="w-full sm:w-auto" onClick={() => handleDownload('pdf')} disabled={loading}>
           Download PDF
         </Button>
-        <Button className="w-full sm:w-auto" onClick={handleDownloadExcel}>
+        <Button className="w-full sm:w-auto" onClick={() => handleDownload('xlsx')} disabled={loading}>
           Download Excel
         </Button>
       </div>
 
-      {loading && <p className="text-gray-600">Loading...</p>}
-
+      {/* The rest of the component remains the same... */}
+      {loading && <p className="text-gray-600 mt-4">Loading...</p>}
       {filteredData.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full mt-4 border text-sm text-left min-w-[650px]">
+        <div className="overflow-x-auto mt-6">
+          <table className="w-full border text-sm text-left min-w-[800px]">
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-2 border">Date</th>
-                <th className="p-2 border">Customer ID</th>
+                <th className="p-2 border">Customer Name</th>
+                <th className="p-2 border">Customer Phone</th>
                 <th className="p-2 border">Bill No</th>
                 <th className="p-2 border">Payment Method</th>
-                <th className="p-2 border">Payment Status</th>
                 <th className="p-2 border">Total Price</th>
               </tr>
             </thead>
             <tbody>
-              {filteredData.map((row) => (
-                <tr key={row.id}>
+              {filteredData.map((row, index) => (
+                <tr key={row.id || `row-${index}`}>
                   <td className="p-2 border">{row.date.split("T")[0]}</td>
-                  <td className="p-2 border">{row.customerId}</td>
+                  <td className="p-2 border">{row.customer?.name ?? 'N/A'}</td>
+                  <td className="p-2 border">{row.customer?.phone ?? 'N/A'}</td>
                   <td className="p-2 border">{row.billNo}</td>
                   <td className="p-2 border">{row.paymentMethod}</td>
-                  <td className="p-2 border">{row.paymentStatus}</td>
                   <td className="p-2 border">₹{row.totalPrice.toFixed(2)}</td>
                 </tr>
               ))}
               <tr className="bg-gray-100 font-semibold">
-                <td className="p-2 border" colSpan={5}>
-                  Total
-                </td>
+                <td className="p-2 border" colSpan={5}>Total</td>
                 <td className="p-2 border">₹{totalPriceSum.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
         </div>
       )}
-
       {!loading && data.length > 0 && filteredData.length === 0 && (
-        <p className="text-red-500">
-          No paid transactions found in this range.
-        </p>
+        <p className="mt-4 text-red-500">No paid transactions found in this date range.</p>
       )}
     </div>
   );

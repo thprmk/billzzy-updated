@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma';
 import puppeteer from 'puppeteer';
 import ExcelJS from 'exceljs';
 
+/**
+ * Handles POST requests to fetch transaction records as JSON data.
+ */
 export async function POST(req: NextRequest) {
   try {
     const { start, end } = await req.json();
@@ -15,7 +18,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch transaction records within the date range
     const records = await prisma.transactionRecord.findMany({
       where: {
         date: {
@@ -24,7 +26,6 @@ export async function POST(req: NextRequest) {
         },
       },
       select: {
-       // id: true,
         customerId: true,
         billNo: true,
         date: true,
@@ -33,6 +34,12 @@ export async function POST(req: NextRequest) {
         paymentStatus: true,
         totalPrice: true,
         amountPaid: true,
+        customer: {
+          select: {
+            name: true,
+            phone: true,
+          },
+        },
       },
       orderBy: {
         date: 'asc',
@@ -53,11 +60,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
+/**
+ * Handles GET requests to generate and download a report in PDF or XLSX format.
+ */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const start = searchParams.get('start');
   const end = searchParams.get('end');
-  const format = searchParams.get('format'); // pdf or xlsx
+  const format = searchParams.get('format'); // 'pdf' or 'xlsx'
 
   if (!start || !end) {
     return NextResponse.json({ error: 'Missing date range' }, { status: 400 });
@@ -65,80 +75,72 @@ export async function GET(req: NextRequest) {
 
   try {
     const transactions = await prisma.transactionRecord.findMany({
-  where: {
-    date: {
-      gte: new Date(start),
-      lte: new Date(end),
-    },
-    paymentStatus: 'PAID'
-  },
-  orderBy: {
-    date: 'asc',
-  },
-});
-
-   console.log(transactions.map(tx => tx.paymentStatus));
-
+      where: {
+        date: {
+          gte: new Date(start),
+          lte: new Date(end),
+        },
+        paymentStatus: 'PAID',
+      },
+      orderBy: {
+        date: 'asc',
+      },
+      include: {
+        customer: true,
+      },
+    });
 
     const total = transactions.reduce((sum, tx) => sum + tx.totalPrice, 0);
 
-    // Excel export
     if (format === 'xlsx') {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Report');
 
-      // Define columns
       worksheet.columns = [
         { header: 'Date', key: 'date', width: 15 },
-        { header: 'Customer ID', key: 'customerId', width: 15 },
+        { header: 'Customer Name', key: 'customerName', width: 25 },
+        { header: 'Customer Phone', key: 'customerPhone', width: 20 },
         { header: 'Bill No', key: 'billNo', width: 20 },
         { header: 'Payment Method', key: 'paymentMethod', width: 20 },
-        { header: 'Payment Status', key: 'paymentStatus', width: 15 },
         { header: 'Total Price', key: 'totalPrice', width: 15 },
       ];
 
-      // Add rows
-      transactions.forEach(tx => {
+      transactions.forEach((tx) => {
         worksheet.addRow({
           date: tx.date.toISOString().split('T')[0],
-         // id: tx.id,
-          customerId: tx.customerId ?? '-',
+          customerName: tx.customer?.name ?? 'N/A',
+          customerPhone: tx.customer?.phone ?? 'N/A',
           billNo: tx.billNo,
           paymentMethod: tx.paymentMethod,
-          paymentStatus: tx.paymentStatus,
           totalPrice: tx.totalPrice,
         });
       });
 
-      // Add total row
       worksheet.addRow([]);
-      const totalRow = worksheet.addRow([
-        null, null, null, null, 'Total', total,
-      ]);
+      const totalRow = worksheet.addRow([null, null, null, null, 'Total', total]);
       totalRow.font = { bold: true };
 
-      // Prepare Excel file buffer
       const buffer = await workbook.xlsx.writeBuffer();
-
       return new NextResponse(buffer, {
         headers: {
-          'Content-Type':
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': `attachment; filename="report.xlsx"`,
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="report-${start}-to-${end}.xlsx"`,
+          // THE FIX: Expose the Content-Disposition header to the client
+          'Access-Control-Expose-Headers': 'Content-Disposition',
         },
       });
     }
 
-    // PDF export (default)
     const html = `
       <html>
         <head>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
+            body { font-family: Arial, sans-serif; padding: 20px; font-size: 12px; }
             table { width: 100%; border-collapse: collapse; margin-top: 20px; }
             th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
             th { background-color: #f5f5f5; }
-            h2, h3 { margin-bottom: 10px; }
+            h2, h3 { margin-bottom: 10px; text-align: center; }
+            p { text-align: center; margin-bottom: 20px; }
           </style>
         </head>
         <body>
@@ -148,27 +150,23 @@ export async function GET(req: NextRequest) {
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Customer ID</th>
+                <th>Customer Name</th>
+                <th>Customer Phone</th>
                 <th>Bill No</th>
                 <th>Payment Method</th>
-                <th>Payment Status</th>
                 <th>Total Price</th>
               </tr>
             </thead>
             <tbody>
-              ${transactions
-                .map(
-                  (tx) => `
+              ${transactions.map((tx) => `
                 <tr>
                   <td>${tx.date.toISOString().split('T')[0]}</td>
-                  <td>${tx.customerId ?? '-'}</td>
+                  <td>${tx.customer?.name ?? 'N/A'}</td>
+                  <td>${tx.customer?.phone ?? 'N/A'}</td>
                   <td>${tx.billNo}</td>
                   <td>${tx.paymentMethod}</td>
-                  <td>${tx.paymentStatus}</td>
                   <td>₹${tx.totalPrice.toFixed(2)}</td>
-                </tr>`
-                )
-                .join('')}
+                </tr>`).join('')}
             </tbody>
           </table>
           <h3>Total Sales: ₹${total.toFixed(2)}</h3>
@@ -176,25 +174,28 @@ export async function GET(req: NextRequest) {
       </html>
     `;
 
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-    });
-
+    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
     await browser.close();
 
     return new NextResponse(pdfBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'attachment; filename="report.pdf"',
+        'Content-Disposition': `attachment; filename="report-${start}-to-${end}.pdf"`,
+        // THE FIX: Also expose the header for PDF downloads
+        'Access-Control-Expose-Headers': 'Content-Disposition',
       },
     });
   } catch (error: any) {
     console.error('Excel/PDF generation error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Internal server error', details: error.message },
+      { status: 500 }
+    );
   }
 }
