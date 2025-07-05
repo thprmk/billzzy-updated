@@ -1,6 +1,4 @@
-
 'use client';
-
 
 export interface CustomerDetails {
   id?: number;
@@ -27,7 +25,7 @@ export interface CustomerSuggestion {
 }
 
 // pages/billing/offline.tsx
-import React from 'react';  // Add this import
+import React from 'react';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -37,7 +35,6 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { toast } from 'react-toastify';
-// import type { CustomerDetails, BillItem, PaymentDetails, CustomerSuggestion } from '@/types/billing';
 import 'react-toastify/dist/ReactToastify.css';
 
 const PAYMENT_METHODS = [
@@ -57,7 +54,6 @@ const initialPaymentState: PaymentDetails = {
 };
 
 export default function OfflineBillingPage() {
-
   const router = useRouter();
   const [items, setItems] = useState<BillItem[]>([]);
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>(initialCustomerState);
@@ -67,6 +63,7 @@ export default function OfflineBillingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState<string>('');
+  const [autoDownloadEnabled, setAutoDownloadEnabled] = useState(true); // New state for auto-download toggle
 
   const productTableRef = useRef<ProductTableRef>(null);
   const debouncedPhone = useDebounce(customerDetails.phone, 300);
@@ -194,15 +191,20 @@ export default function OfflineBillingPage() {
       toast.success('Bill created successfully');
 
       // Reset form
-  
       setCustomerDetails(initialCustomerState);
       setPaymentDetails(initialPaymentState);
       setItems([]);
       setNotes('');
-      productTableRef.current?.resetTable(); // <--- Important
+      productTableRef.current?.resetTable();
 
       if (result.data) {
-        handlePrintBill(result.data);
+        if (autoDownloadEnabled) {
+          // Auto-download the bill
+          await handleDownloadBill(result.data);
+        } else {
+          // Just print the bill (existing functionality)
+          handlePrintBill(result.data);
+        }
       }
 
       router.push('/billing/offline');
@@ -234,15 +236,8 @@ export default function OfflineBillingPage() {
       day: 'numeric',
     });
 
-
     const amountPaid = parseFloat(paymentDetails.amountPaid);
     const balance = calculateBalance();
-
-    const totalProfit = items.reduce((sum: number, item: any) => {
-      const costPrice = item.product.costPrice ?? 0;
-      const sellingPrice = item.product.sellingPrice ?? 0;
-      return sum + (sellingPrice - costPrice) * item.quantity;
-    }, 0);
 
     return `
       <!DOCTYPE html>
@@ -296,8 +291,6 @@ export default function OfflineBillingPage() {
             background-color: #f8f8f8;
           }
           .totals {
-
-
             display:flex; 
             justify-content:space-between;
           }
@@ -305,10 +298,10 @@ export default function OfflineBillingPage() {
             text-align: center;
             margin-top: 15px;
           }
-            .t1,.t2{
+          .t1,.t2{
             margin:0;
             padding:0;
-            }
+          }
         </style>
       </head>
       <body>
@@ -354,26 +347,21 @@ export default function OfflineBillingPage() {
               `).join('')}
             </tbody>
             <tfoot>
-  <tr>
-    <td colspan="3" style="text-align: right; font-weight: bold;">Grand Total</td>
-    <td><strong>₹${totalPrice?.toFixed(2) ?? '0.00'}</strong></td>
-  </tr>
-</tfoot>
-
+              <tr>
+                <td colspan="3" style="text-align: right; font-weight: bold;">Grand Total</td>
+                <td><strong>₹${totalPrice?.toFixed(2) ?? '0.00'}</strong></td>
+              </tr>
+            </tfoot>
           </table>
 
-       
-
-               <div class="bill-info">
+          <div class="bill-info">
             <div>
               <strong>Total Quantity:</strong> ${totalQuantity}<br>
                <strong>Payment Method:</strong> ${paymentDetails.method}
-
             </div>
             <div>
               <strong>Amount Paid:</strong> ₹${amountPaid.toFixed(2)}<br>
               <strong>Balance:</strong> ₹${balance.toFixed(2)}
-
             </div>
           </div>
 
@@ -384,6 +372,33 @@ export default function OfflineBillingPage() {
       </body>
       </html>
     `;
+  };
+
+  // New function to handle bill download
+  const handleDownloadBill = async (billData: any) => {
+    try {
+      const billContent = generateBillContent(billData);
+      
+      // Create a blob with the HTML content
+      const blob = new Blob([billContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary link element and trigger download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Bill_${billData.billNo}_${billData.customer.name.replace(/\s+/g, '_')}.html`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Bill downloaded successfully');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download bill');
+    }
   };
 
   const handlePrintBill = (billData: any) => {
@@ -429,7 +444,7 @@ export default function OfflineBillingPage() {
                   phone: e.target.value,
                 }));
                 setShowSuggestions(true);
-                setSelectedIndex(-1); // Reset selection when typing
+                setSelectedIndex(-1);
               }}
               onKeyDown={handleKeyDown}
               pattern="[0-9]{10}"
@@ -526,6 +541,31 @@ export default function OfflineBillingPage() {
         />
       </div>
 
+      {/* New Auto-download toggle section */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-medium">Bill Options</h2>
+            <p className="text-sm text-gray-500">Choose how to handle the bill after creation.</p>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <span className="text-sm font-medium text-gray-700">
+              {autoDownloadEnabled ? 'Auto Download' : 'Print Only'}
+            </span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoDownloadEnabled}
+                onChange={(e) => setAutoDownloadEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-indigo-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+          </div>
+          
+        </div>
+      </div>
       {error && (
         <div className="bg-red-50 text-red-500 p-4 rounded-md">{error}</div>
       )}
