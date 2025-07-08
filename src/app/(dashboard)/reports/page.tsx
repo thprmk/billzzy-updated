@@ -3,12 +3,12 @@ import React, { useState } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/Button";
 
-// --- Type definitions are correct ---
+// Type definitions are correct 
 type ProductItem = { quantity: number; product: { name: string; }; };
 type Customer = { name: string; phone: string | null; } | null;
 type TransactionRecord = { id?: number | string; date: string; customerId: number | string | null; companyBillNo: string; billingMode: string; paymentMethod: string; paymentStatus: string; totalPrice: number; amountPaid: number; customer: Customer; items: ProductItem[]; };
 
-// --- A reusable component for the filter buttons for a better UI/UX ---
+// A reusable component for the filter buttons for a better UI/UX 
 const FilterButton = ({ label, value, activeValue, onClick }: { label: string, value: string, activeValue: string, onClick: (value: string) => void }) => {
   const isActive = value === activeValue;
   const baseClasses = "px-3 py-1.5 text-sm font-medium border rounded-md transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500";
@@ -25,7 +25,7 @@ const FilterButton = ({ label, value, activeValue, onClick }: { label: string, v
 const DailyReport: React.FC = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  // --- Separate states for each filter group ---
+  // --- Separate states for each filter group 
   const [modeFilter, setModeFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   
@@ -165,6 +165,7 @@ const DailyReport: React.FC = () => {
                     <th className="px-4 py-3">Mode</th>
                     <th className ="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Customer</th>
+                    <th className="px-4 py-3">Phone</th>
                     <th className="px-4 py-3">Product</th>
                     <th className="px-4 py-3 text-center">Qty</th>
                     <th className="px-4 py-3 text-right">Transaction Total</th>
@@ -197,6 +198,7 @@ const DailyReport: React.FC = () => {
                               )}
                             </td>
                             <td className="px-4 py-3" rowSpan={row.items.length || 1}>{row.customer?.name ?? 'N/A'}</td>
+                            <td className="px-4 py-3" rowSpan={row.items.length || 1}>{row.customer?.phone ?? 'N/A'}</td>
                           </>
                         ) : null}
                         <td className="px-4 py-3">{item.product.name}</td>
@@ -210,7 +212,7 @@ const DailyReport: React.FC = () => {
                 </tbody>
                 <tfoot className="bg-gray-100 font-semibold text-gray-900">
                   <tr>
-                    <td className="px-4 py-3 text-right" colSpan={7}>Grand Total</td>
+                    <td className="px-4 py-3 text-right" colSpan={8}>Grand Total</td>
                     <td className="px-4 py-3 text-right">₹{totalPriceSum.toFixed(2)}</td>
                   </tr>
                 </tfoot>

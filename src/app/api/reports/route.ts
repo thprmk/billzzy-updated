@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import puppeteer from 'puppeteer';
+
 import ExcelJS from 'exceljs';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
@@ -96,9 +97,11 @@ export async function GET(req: NextRequest) {
         { header: 'Mode', key: 'billingMode', width: 15 },
         { header: 'Payment Status', key: 'paymentStatus', width: 15 },
         { header: 'Customer', key: 'customerName', width: 25 },
+        { header: 'Phone Number', key: 'customerPhone', width: 20 },
         { header: 'Product', key: 'productName', width: 30 },
         { header: 'Qty', key: 'quantity', width: 10 },
         { header: 'Item Price', key: 'itemPrice', width: 15 },
+        { header: 'Transaction Total', key: 'transactionTotal', width: 20 },
     ];
 
     if (format === 'xlsx') {
@@ -115,17 +118,19 @@ export async function GET(req: NextRequest) {
                     billingMode: tx.billingMode ?? 'N/A',
                     paymentStatus: tx.paymentStatus ?? 'N/A',
                     customerName: tx.customer?.name ?? 'N/A',
+                    customerPhone: tx.customer?.phone ?? 'N/A',
                     productName: item.product?.name ?? 'N/A',
                     quantity: item.quantity ?? 0,
                     itemPrice: item.totalPrice ?? 0,
+                    transactionTotal: tx.totalPrice,
                 });
             });
         });
 
         worksheet.addRow([]);
-        const totalRow = worksheet.addRow({ itemPrice: total });
-        worksheet.getCell(`G${worksheet.rowCount}`).value = 'Grand Total:';
-        worksheet.getCell(`H${worksheet.rowCount}`).value = total;
+        const totalRow = worksheet.addRow({});
+        totalRow.getCell('I').value = 'Grand Total:'; // Moved to column I
+        totalRow.getCell('J').value = total;         // Moved to column J
         totalRow.font = { bold: true };
         
         const buffer = await workbook.xlsx.writeBuffer();
@@ -139,7 +144,7 @@ export async function GET(req: NextRequest) {
           <h2>Transaction Report</h2>
           <p>From: ${start} To: ${end}</p>
           <table>
-            <thead><tr><th>Date</th><th>Bill No</th><th>Mode</th><th>Payment Status</th><th>Customer</th><th>Product</th><th>Qty</th><th>Item Total</th></tr></thead>
+            <thead><tr><th>Date</th><th>Bill No</th><th>Mode</th><th>Payment Status</th><th>Customer</th><th>Phone Number</th><th>Product</th><th>Qty</th><th>Item Total</th><th>Transaction Total</th></tr></thead>
             <tbody>
               ${transactions.map((tx) => {
                 const itemsToDisplay = tx.items.length > 0 ? tx.items : [{ product: null, quantity: 1, totalPrice: tx.totalPrice }];
@@ -150,9 +155,11 @@ export async function GET(req: NextRequest) {
                     <td>${tx.billingMode ?? 'N/A'}</td>
                     <td>${tx.paymentStatus ?? 'N/A'}</td>
                     <td>${tx.customer?.name ?? 'N/A'}</td>
+                    <td>${tx.customer?.phone ?? 'N/A'}</td>
                     <td>${item.product?.name ?? 'N/A'}</td>
                     <td>${item.quantity ?? 0}</td>
                     <td>₹${(item.totalPrice ?? 0).toFixed(2)}</td>
+                    <td>₹${(tx.totalPrice).toFixed(2)}</td>
                   </tr>`).join('');
               }).join('')}
             </tbody>
