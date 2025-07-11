@@ -366,7 +366,7 @@ export default function OfflineBillingPage() {
           </div>
 
           <div class="footer">
-            <p>We value your trust in choosing our products!</p>
+            <p>We value your trust in choosing our products !</p>
           </div>
         </div>
       </body>
