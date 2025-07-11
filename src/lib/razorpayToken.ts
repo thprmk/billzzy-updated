@@ -105,6 +105,9 @@ export async function createRazorpayPaymentLink(accessToken: string, {
     accept_partial: false,
     reference_id,
     description: description,
+    customer: {                     // <<< THIS IS THE ONLY ADDITION
+      contact: customerPhone        // Use the phone number here
+    },
     notes: {
       bill_no: billNo.toString(),
       description: description
@@ -125,6 +128,7 @@ export async function createRazorpayPaymentLink(accessToken: string, {
 
   if (!response.ok) {
     const errorData = await response.text();
+    console.error("RAZORPAY API ERROR:", errorData); // Added for better logging
     throw new Error(`Failed to create payment link: ${errorData}`);
   }
 
