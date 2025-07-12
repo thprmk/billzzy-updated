@@ -16,6 +16,7 @@ interface Product {
 
 interface PackingBill {
   billNo: number;
+  companyBillNo: number; // <<< ADD THIS LINE
   products: Product[];
   allVerified: boolean;
 }
@@ -89,15 +90,17 @@ export default function PackingModule() {
       }
 
       const data = await response.json();
-      setCurrentBill({
-        billNo: data.billNo,
-        products: data.products.map((p: any) => ({ 
-          ...p, 
-          verified: false,
-          verifiedQuantity: 0 
-        })),
-        allVerified: false
-      });
+// --- REPLACE IT WITH THIS (ADD companyBillNo) ---
+setCurrentBill({
+  billNo: data.billNo,
+  companyBillNo: data.companyBillNo, // <<< ADD THIS LINE
+  products: data.products.map((p: any) => ({ 
+    ...p, 
+    verified: false,
+    verifiedQuantity: 0 
+  })),
+  allVerified: false
+});
       setBillNo('');
       setTimeout(focusSKUInput, 100);
 
@@ -112,13 +115,9 @@ export default function PackingModule() {
   };
 
   const handleSKUChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toUpperCase();
-    setSKU(value);
-
-    if (value.length >= 2 && !isManualMode) {
-      verifySKU(value);
-    }
-  };
+    // This function now ONLY updates the state. No verification happens here.
+    setSKU(e.target.value.toUpperCase());
+};
 
   const verifySKU = async (skuValue: string) => {
     if (!currentBill || !skuValue) return;
@@ -134,8 +133,8 @@ export default function PackingModule() {
       } else {
         setError('Invalid SKU or product not found in this bill');
       }
-      setSKU('');
-      focusSKUInput();
+      // setSKU('');
+      // focusSKUInput();
       return;
     }
 
@@ -172,7 +171,7 @@ export default function PackingModule() {
         allVerified
       });
 
-      setSKU('');
+      // setSKU('');
 
       if (allVerified) {
         const finalMessage: VerificationMessage = {
@@ -183,7 +182,7 @@ export default function PackingModule() {
         setVerificationHistory(prev => [...prev, finalMessage]);
 
         try {
-          const response = await fetch(`/api/packing/packingComplete/${currentBill.billNo}`, {
+          const response = await fetch(`/api/packing/packingComplete/${currentBill.companyBillNo}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -203,9 +202,9 @@ export default function PackingModule() {
           focusSKUInput();
         }
       } else {
-        setTimeout(() => {
-          focusSKUInput();
-        }, 100);
+        // setTimeout(() => {
+        //   focusSKUInput();
+        // }, 100);
       }
 
     } catch (error) {
@@ -243,20 +242,28 @@ export default function PackingModule() {
     }
   };
 
-  const handleSKUSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (SKU.length >= 2) {
-      verifySKU(SKU);
-    } else {
-      setError('SKU must be at least 2 characters.');
-      focusSKUInput();
-    }
-  };
+// <<< MAKE SURE this function is correct >>>
+const handleSKUSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
 
-  if (!isHydrated) {
-    return null;
+  // 1. Clean the input to remove hidden characters from the scanner
+  const cleanedSKU = SKU.trim();
+
+  // 2. Stop if the input is empty
+  if (!cleanedSKU) {
+    setError('Please enter or scan a valid SKU.');
+    return;
   }
+  
+  // 3. Perform the verification and WAIT for it to finish
+  await verifySKU(cleanedSKU);
 
+  // 4. THIS IS THE FIX:
+  // After verifySKU is completely done, ALWAYS clear the input and refocus.
+  // This solves the "not closing automatically" bug.
+  setSKU('');
+  focusSKUInput();
+};
   return (
     <div className="max-w-3xl mx-auto p-2 sm:p-6 space-y-6">
       <div className="bg-white rounded-lg shadow p-4 sm:p-6">
@@ -305,7 +312,7 @@ export default function PackingModule() {
         {/* SKU Input */}
         {currentBill && (
           <form
-            onSubmit={isManualMode ? handleSKUSubmit : undefined}
+          onSubmit={handleSKUSubmit}
             className="mb-6"
           >
             <Input

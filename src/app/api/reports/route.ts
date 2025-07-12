@@ -1,19 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import puppeteer from 'puppeteer';
-
 import ExcelJS from 'exceljs';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 
+// Helper function to get the end of a given day for correct date range filtering
 function getEndOfDay(dateString: string): Date {
     const date = new Date(dateString);
     date.setHours(23, 59, 59, 999);
     return date;
 }
 
-// --- Helper function to handle independent filters ---
+// Helper function to fetch transactions based on filters
 async function fetchFilteredTransactions(organisationId: number, startDate: string, endDate: string, filters: { mode: string, status: string }) {
   const whereClause: any = {
     organisationId: organisationId,
@@ -23,12 +22,10 @@ async function fetchFilteredTransactions(organisationId: number, startDate: stri
     },
   };
 
-  // Apply the mode filter if it's not 'ALL'
   if (filters.mode && filters.mode !== 'ALL') {
     whereClause.billingMode = filters.mode;
   }
 
-  // Apply the status filter if it's not 'ALL'
   if (filters.status && filters.status !== 'ALL') {
     whereClause.paymentStatus = filters.status;
   }
@@ -47,6 +44,7 @@ async function fetchFilteredTransactions(organisationId: number, startDate: stri
   });
 }
 
+// POST function to fetch data for the UI report table
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user || !session.user.id) {
@@ -64,11 +62,12 @@ export async function POST(req: NextRequest) {
     const records = await fetchFilteredTransactions(parseInt(session.user.id), start, end, safeFilters);
     return NextResponse.json({ success: true, data: records });
   } catch (error: any) {
-    console.error('Error fetching daily report:', error);
-    return NextResponse.json({ success: false, message: 'Failed to fetch daily report', error: error.message }, { status: 500 });
+    console.error('Error fetching report data:', error);
+    return NextResponse.json({ success: false, message: 'Failed to fetch report data', error: error.message }, { status: 500 });
   }
 }
 
+// GET function to download the report as an Excel file
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user || !session.user.id) {
@@ -86,96 +85,110 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing date range' }, { status: 400 });
   }
 
+  if (format !== 'xlsx') {
+    return NextResponse.json({ error: 'Unsupported format. Only xlsx is available.' }, { status: 400 });
+  }
+
   try {
+    // 1. Fetch the raw data from the database
     const transactions = await fetchFilteredTransactions(parseInt(session.user.id), start, end, { mode, status });
     
-    const total = transactions.reduce((sum, tx) => sum + tx.totalPrice, 0);
+    // 2. Prepare "flattened" data for the report
+    const reportRows = transactions.flatMap(tx => 
+        tx.items.length > 0 
+        ? tx.items.map(item => ({
+            date: tx.date ? tx.date.toISOString().split('T')[0] : 'N/A',
+            billNo: tx.companyBillNo ?? tx.billNo,
+            billingMode: tx.billingMode ?? 'N/A',
+            paymentStatus: tx.paymentStatus ?? 'N/A',
+            customerName: tx.customer?.name ?? 'N/A',
+            customerPhone: tx.customer?.phone ?? 'N/A',
+            shippingCost: tx.shippingCost ?? 0,
+            taxAmount: tx.taxAmount ?? 0,
+            productName: item.product?.name ?? 'N/A',
+            quantity: item.quantity ?? 0,
+            itemPrice: item.quantity > 0 ? (item.totalPrice / item.quantity) : 0,
+            lineTotal: item.totalPrice ?? 0,
+            billTotal: tx.totalPrice,
+          }))
+        : [{
+            date: tx.date ? tx.date.toISOString().split('T')[0] : 'N/A',
+            billNo: tx.companyBillNo ?? tx.billNo,
+            billingMode: tx.billingMode ?? 'N/A',
+            paymentStatus: tx.paymentStatus ?? 'N/A',
+            customerName: tx.customer?.name ?? 'N/A',
+            customerPhone: tx.customer?.phone ?? 'N/A',
+            shippingCost: tx.shippingCost ?? 0,
+            taxAmount: tx.taxAmount ?? 0,
+            productName: 'N/A',
+            quantity: 1,
+            itemPrice: tx.totalPrice,
+            lineTotal: tx.totalPrice,
+            billTotal: tx.totalPrice,
+          }]
+    );
 
+    // 3. Correctly calculate Grand Total from parent bills
+    const grandTotal = transactions.reduce((sum, tx) => sum + tx.totalPrice, 0);
+
+    // 4. --- UPDATED: Added new columns for the Excel sheet ---
     const columns = [
         { header: 'Date', key: 'date', width: 15 },
-        { header: 'Bill No', key: 'billNo', width: 20 },
+        { header: 'Bill No', key: 'billNo', width: 15 },
         { header: 'Mode', key: 'billingMode', width: 15 },
         { header: 'Payment Status', key: 'paymentStatus', width: 15 },
         { header: 'Customer', key: 'customerName', width: 25 },
         { header: 'Phone Number', key: 'customerPhone', width: 20 },
+        { header: 'Shipping Cost', key: 'shippingCost', width: 15 }, // <<< NEW COLUMN
+        { header: 'Tax Amount', key: 'taxAmount', width: 15 },    // <<< NEW COLUMN
         { header: 'Product', key: 'productName', width: 30 },
         { header: 'Qty', key: 'quantity', width: 10 },
         { header: 'Item Price', key: 'itemPrice', width: 15 },
-        { header: 'Transaction Total', key: 'transactionTotal', width: 20 },
+        { header: 'Line Total', key: 'lineTotal', width: 15 },
+        { header: 'Bill Total', key: 'billTotal', width: 15 },
     ];
 
-    if (format === 'xlsx') {
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Report');
-        worksheet.columns = columns;
+    // 5. Generate the Excel file
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sales Report');
+    worksheet.columns = columns;
 
-        transactions.forEach((tx) => {
-            const itemsToDisplay = tx.items.length > 0 ? tx.items : [{ product: null, quantity: 1, totalPrice: tx.totalPrice }];
-            itemsToDisplay.forEach((item) => {
-                worksheet.addRow({
-                    date: tx.date ? tx.date.toISOString().split('T')[0] : 'N/A',
-                    billNo: tx.companyBillNo ?? tx.billNo,
-                    billingMode: tx.billingMode ?? 'N/A',
-                    paymentStatus: tx.paymentStatus ?? 'N/A',
-                    customerName: tx.customer?.name ?? 'N/A',
-                    customerPhone: tx.customer?.phone ?? 'N/A',
-                    productName: item.product?.name ?? 'N/A',
-                    quantity: item.quantity ?? 0,
-                    itemPrice: item.totalPrice ?? 0,
-                    transactionTotal: tx.totalPrice,
-                });
-            });
-        });
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.eachCell((cell) => {
+        cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' }
+        };
+        cell.border = {
+            bottom: { style: 'thin' }
+        };
+    });
 
-        worksheet.addRow([]);
-        const totalRow = worksheet.addRow({});
-        totalRow.getCell('I').value = 'Grand Total:'; // Moved to column I
-        totalRow.getCell('J').value = total;         // Moved to column J
-        totalRow.font = { bold: true };
-        
-        const buffer = await workbook.xlsx.writeBuffer();
-        return new NextResponse(buffer, { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="report-${start}-to-${end}.xlsx"`, 'Access-Control-Expose-Headers': 'Content-Disposition', } });
-    }
+    worksheet.addRows(reportRows);
 
-    const html = `
-      <html>
-        <head><style>body { font-family: Arial, sans-serif; padding: 20px; font-size: 10px; } table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #ccc; padding: 6px; text-align: left; } th { background-color: #f5f5f5; } h2, h3 { margin-bottom: 10px; text-align: center; } p { text-align: center; margin-bottom: 20px; } .total { font-weight: bold; margin-top: 20px; text-align: right; font-size: 12px; }</style></head>
-        <body>
-          <h2>Transaction Report</h2>
-          <p>From: ${start} To: ${end}</p>
-          <table>
-            <thead><tr><th>Date</th><th>Bill No</th><th>Mode</th><th>Payment Status</th><th>Customer</th><th>Phone Number</th><th>Product</th><th>Qty</th><th>Item Total</th><th>Transaction Total</th></tr></thead>
-            <tbody>
-              ${transactions.map((tx) => {
-                const itemsToDisplay = tx.items.length > 0 ? tx.items : [{ product: null, quantity: 1, totalPrice: tx.totalPrice }];
-                return itemsToDisplay.map(item => `
-                  <tr>
-                    <td>${tx.date ? tx.date.toISOString().split('T')[0] : 'N/A'}</td>
-                    <td>${tx.companyBillNo ?? tx.billNo}</td>
-                    <td>${tx.billingMode ?? 'N/A'}</td>
-                    <td>${tx.paymentStatus ?? 'N/A'}</td>
-                    <td>${tx.customer?.name ?? 'N/A'}</td>
-                    <td>${tx.customer?.phone ?? 'N/A'}</td>
-                    <td>${item.product?.name ?? 'N/A'}</td>
-                    <td>${item.quantity ?? 0}</td>
-                    <td>₹${(item.totalPrice ?? 0).toFixed(2)}</td>
-                    <td>₹${(tx.totalPrice).toFixed(2)}</td>
-                  </tr>`).join('');
-              }).join('')}
-            </tbody>
-          </table>
-          <h3 class="total">Total Billed Amount: ₹${total.toFixed(2)}</h3>
-        </body>
-      </html>`;
+    // --- UPDATED: Adjusted position for the Grand Total row ---
+    worksheet.addRow([]);
+    const totalRow = worksheet.addRow({});
+    totalRow.getCell('L').value = 'Grand Total:'; // Moved to Column K
+    totalRow.getCell('M').value = grandTotal;    // Moved to Column L
+    totalRow.getCell('L').font = { bold: true };
+    totalRow.getCell('M').font = { bold: true };
+    totalRow.getCell('M').numFmt = '#,##0.00';
     
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' } });
-    await browser.close();
-    return new NextResponse(pdfBuffer, { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="report-${start}-to-${end}.pdf"`, 'Access-Control-Expose-Headers': 'Content-Disposition' } });
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    return new NextResponse(buffer, { 
+      headers: { 
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+        'Content-Disposition': `attachment; filename="sales-report-${start}-to-${end}.xlsx"`, 
+        'Access-Control-Expose-Headers': 'Content-Disposition', 
+      } 
+    });
+
   } catch (error: any) {
-    console.error('Excel/PDF generation error:', error);
+    console.error('Excel generation error:', error);
     return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
   }
 }

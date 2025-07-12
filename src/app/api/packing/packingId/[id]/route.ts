@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,24 +14,27 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Await for the params and ensure it exists
-    const { id } = await context.params;
+    const { id } = params;
     if (!id) {
       return NextResponse.json({ error: 'Bill number is required' }, { status: 400 });
     }
 
-    const companyBillNo = parseInt(id);
+    // The variable 'companyBillNo' holds the number from the URL (e.g., 57).
+    // This is just a variable name, that is okay.
+    const companyBillNo = parseInt(id, 10);
     if (isNaN(companyBillNo)) {
       return NextResponse.json({ error: 'Invalid bill number' }, { status: 400 });
     }
 
-    const organisationId = parseInt(session.user.id);
+    const organisationId = parseInt(session.user.id, 10);
 
     const bill = await prisma.transactionRecord.findFirst({
       where: {
-        companyBillNo,
-        organisationId,
-        // status: 'printed'
+        // === THIS IS THE CORRECT LOGIC ===
+        // We are searching the 'companyBillNo' column. Your testing
+        // proved this is the number being entered in the UI.
+        companyBillNo: companyBillNo,
+        organisationId: organisationId,
       },
       include: {
         items: {
@@ -43,7 +46,9 @@ export async function GET(
     });
 
     if (!bill) {
-      return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
+      // This 404 is now a REAL "not found" if the number truly doesn't exist.
+      return NextResponse.json({ error: `Bill with Company Bill No. ${companyBillNo} not found` }, { status: 404 });
+    
     }
 
     const products = bill.items.map(item => ({
@@ -58,6 +63,7 @@ export async function GET(
     
     return NextResponse.json({
       billNo: bill.billNo,
+      companyBillNo: bill.companyBillNo,
       products
     });
 
