@@ -84,7 +84,7 @@ export function ProductSearch({ onSelect }: ProductSearchProps) {
                     <p className="text-sm text-gray-500">SKU: {product.SKU}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">₹{product.sellingPrice}</p>
+                    <p className="font-medium">₹{(product.sellingPrice || 0).toFixed(2)}</p>
                     <p className="text-sm text-gray-500">Stock: {product.quantity}</p>
                   </div>
                 </div>

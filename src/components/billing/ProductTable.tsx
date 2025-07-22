@@ -77,7 +77,7 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
     const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     const totalAmount = useMemo(() => {
-      return rows.reduce((sum, row) => sum + row.total, 0);
+      return rows.reduce((sum, row) => sum + (row.total || 0),0);
     }, [rows]);
 
     // Initialize with initialItems
@@ -92,9 +92,9 @@ useEffect(() => {
       productId: item.productId,
       productName: item.name || '',
       availableQuantity: item.availableQuantity || 0,
-      sellingPrice: item.price,
+      sellingPrice: item.price || 0,
       quantity: item.quantity,
-      total: item.total,
+      total: item.total || 0,
       productOptions: [],
       SKU: item.SKU || '',
     }));
@@ -140,11 +140,11 @@ useEffect(() => {
             row.id === rowId
               ? { 
                   ...row, 
-                  productOptions: products.map((p: Product) => ({
+                  productOptions: products.map((p: any) => ({
                     ...p,
                     name: p.name || p.productName,
                     SKU: p.SKU || p.sku,
-                    sellingPrice: p.sellingPrice || p.price
+                    sellingPrice: p.sellingPrice || p.price || 0
                   }))
                 }
               : row
@@ -171,6 +171,7 @@ useEffect(() => {
 
     const handleProductSelect = useCallback((rowId: string, product: Product) => {
       setRows((prevRows) => {
+        const productPrice = product.sellingPrice || 0;
         const updatedRows = prevRows.map((row) =>
           row.id === rowId
             ? {
@@ -178,9 +179,9 @@ useEffect(() => {
                 productId: product.id,
                 productName: product.name,
                 availableQuantity: product.quantity,
-                sellingPrice: product.sellingPrice,
+                sellingPrice: productPrice,
                 quantity: 1,
-                total: product.sellingPrice,
+                total: productPrice,
                 productOptions: [],
                 SKU: product.SKU,
               }
@@ -228,7 +229,7 @@ useEffect(() => {
           return {
             ...row,
             quantity: finalQuantity,
-            total: row.sellingPrice * finalQuantity,
+            total: (row.sellingPrice || 0) * finalQuantity,
           };
         })
       );
@@ -290,8 +291,8 @@ useEffect(() => {
           productId: row.productId!,
           name: row.productName,
           quantity: row.quantity,
-          price: row.sellingPrice,
-          total: row.total,
+          price: row.sellingPrice || 0,
+          total: row.total || 0,
           SKU: row.SKU,
           availableQuantity: row.availableQuantity
         }));
@@ -367,7 +368,7 @@ useEffect(() => {
                       >
                         <div className="flex justify-between">
                           <span>{product.name}</span>
-                          <span>₹{product.sellingPrice.toFixed(2)}</span>
+                          <span>₹{(product.sellingPrice || 0).toFixed(2)}</span>
                         </div>
                         <div className="text-sm text-gray-500">
                           SKU: {product.SKU} | Stock: {product.quantity}
@@ -391,10 +392,10 @@ useEffect(() => {
                 />
               </td>
               <td className="px-4 py-2 border text-right">
-                ₹{row.sellingPrice.toFixed(2)}
+                ₹{(row.sellingPrice || 0).toFixed(2)}
               </td>
               <td className="px-4 py-2 border text-right">
-                ₹{row.total.toFixed(2)}
+                ₹{(row.total || 0).toFixed(2)}
               </td>
               <td className="px-4 py-2 border text-center">
                 {rows.length > 1 && (
@@ -416,7 +417,7 @@ useEffect(() => {
               Total Amount:
             </td>
             <td className="px-4 py-2 border text-right font-bold">
-              ₹{totalAmount.toFixed(2)}
+              ₹{(totalAmount || 0).toFixed(2)}
             </td>
             <td className="px-4 py-2 border"></td>
           </tr>
@@ -462,7 +463,7 @@ useEffect(() => {
                 >
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{product.name}</span>
-                    <span className="text-blue-600">₹{product.sellingPrice.toFixed(2)}</span>
+                    <span className="text-blue-600">₹{(product.sellingPrice || 0).toFixed(2)}</span>
                   </div>
                   <div className="text-sm text-gray-500 mt-1">
                     SKU: {product.SKU} • Stock: {product.quantity}
@@ -499,13 +500,13 @@ useEffect(() => {
             {/* Price */}
             <div className="bg-gray-50 p-3 rounded-md">
               <label className="text-sm text-gray-500 block mb-1">Price</label>
-              <span className="font-medium">₹{row.sellingPrice.toFixed(2)}</span>
+              <span className="font-medium">₹{(row.sellingPrice || 0).toFixed(2)}</span>
             </div>
 
             {/* Total */}
             <div className="bg-gray-50 p-3 rounded-md">
               <label className="text-sm text-gray-500 block mb-1">Total</label>
-              <span className="font-medium">₹{row.total.toFixed(2)}</span>
+              <span className="font-medium">₹{(row.total || 0).toFixed(2)}</span>
             </div>
           </div>
 
@@ -530,7 +531,7 @@ useEffect(() => {
     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
       <div className="flex justify-between items-center">
         <span className="font-semibold text-gray-700">Total Amount</span>
-        <span className="text-lg font-bold text-blue-600">₹{totalAmount.toFixed(2)}</span>
+        <span className="text-lg font-bold text-blue-600">₹{(totalAmount || 0).toFixed(2)}</span>
       </div>
     </div>
   </div>
