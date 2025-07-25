@@ -52,6 +52,7 @@ export default function OnlineBillPage() {
   const [taxRate, setTaxRate] = useState<{ name: string; type: "Percentage" | "Fixed"; value: number } | null>(null)
   const [taxAmount, setTaxAmount] = useState<number>(0)
   const [showCustomShippingModal, setShowCustomShippingModal] = useState(false)
+  const [salesSource, setSalesSource] = useState<string>("");
 
   const handleUpgradeClick = () => setShowModal(true)
   const handleClose = () => setShowModal(false)
@@ -98,9 +99,9 @@ export default function OnlineBillPage() {
     const subtotal = items.reduce((sum, item) => sum + item.total, 0)
     const freeShippingMethod = shippingMethods.find((m) => m.type === "FREE_SHIPPING")
     if (freeShippingMethod) {
-      if (freeShippingMethod.minAmount && subtotal >= freeShippingMethod.minAmount) {
+      if (freeShippingMethod.minAmount && subtotal >= freeShippingMethod.minAmount) { // This line is correct
         setSelectedShippingId(freeShippingMethod.id)
-      } else if (!freeShippingMethod.minAmount) {
+      } else if (!freeShippingMethod.minAmount) { // This line is also correct
         setSelectedShippingId(freeShippingMethod.id)
       }
     }
@@ -153,6 +154,7 @@ export default function OnlineBillPage() {
     setShippingCost(0)
     setCustomShipping({ name: "Custom Shipping", price: 0 })
     setUseCustomShipping(false)
+    setSalesSource("");
     if (customerFormRef.current) customerFormRef.current.resetForm()
     if (productTableRef.current) productTableRef.current.resetTable()
   }
@@ -200,6 +202,7 @@ export default function OnlineBillPage() {
               }
             : null,
           taxAmount,
+          salesSource: salesSource || null,
         }),
       })
 
@@ -224,8 +227,7 @@ export default function OnlineBillPage() {
   const subtotal = items.reduce((sum, item) => sum + item.total, 0)
   const totalAmount = subtotal + (useCustomShipping ? customShipping.price : shippingCost) + taxAmount
   const freeShippingMethod = shippingMethods.find((m) => m.type === "FREE_SHIPPING" && m.minAmount)
-  const showMinAmountMessage = freeShippingMethod && subtotal < freeShippingMethod.minAmount
-
+  const showMinAmountMessage = freeShippingMethod && freeShippingMethod.minAmount && subtotal < freeShippingMethod.minAmount
   return (
     <div className="space-y-6 md:p-4 p-0 ">
       <div className="bg-white shadow-sm rounded-lg p-6">
@@ -244,6 +246,26 @@ export default function OnlineBillPage() {
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h2 className="text-lg font-medium mb-4">Add Products</h2>
         <ProductTable ref={productTableRef} onChange={setItems} onCreateBill={handleSubmit} />
+      </div>
+
+{/* Sales Source Section - NEW */}
+      <div className="bg-white shadow-sm rounded-lg p-6">
+        <h2 className="text-lg font-medium mb-4">
+          Sales Channel <span className="text-sm text-gray-500">(Optional)</span>
+        </h2>
+        <Select
+          label="Where did this sale come from?"
+          value={salesSource}
+          onChange={(e) => setSalesSource(e.target.value)}
+        >
+          <option value="">Select a source</option>
+          <option value="Instagram">Instagram</option>
+          <option value="Facebook">Facebook</option>
+          <option value="YouTube">YouTube</option>
+          <option value="Walk-in">Walk-in</option>
+          <option value="Referral">Referral</option>
+          <option value="Other">Other</option>
+        </Select>
       </div>
 
       <div className="bg-white shadow-sm rounded-lg p-6">
@@ -317,7 +339,7 @@ export default function OnlineBillPage() {
             </div>
             {showMinAmountMessage && !useCustomShipping && (
               <div className="mt-2 text-amber-600 text-xs">
-                Your order hasn't reached the minimum amount (₹{freeShippingMethod!.minAmount}) for free shipping.
+                Your order hasn't reached the minimum amount (₹{freeShippingMethod.minAmount}) for free shipping.
                 Please select a courier partner method or add more items.
               </div>
             )}
@@ -402,7 +424,7 @@ export default function OnlineBillPage() {
                     value={customShipping.price}
                     onChange={(e) => setCustomShipping({ 
                       ...customShipping, 
-                      price: e.target.value === '' ? '' : Number(e.target.value) 
+                      price: Number(e.target.value) || 0
                     })}
                     placeholder="Enter price"
                     className="w-full p-2.5 border border-gray-200 rounded-md focus:border-gray-400 focus:ring-0 transition-colors placeholder-gray-300"

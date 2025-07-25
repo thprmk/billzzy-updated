@@ -163,6 +163,8 @@ model TransactionRecord {
   // shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], name: "TransactionShippingMethod")
   taxAmount        Float? // Assumes DB column name is 'taxAmount'
 
+  salesSource     String? @map("sales_source")
+
   organisation        Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   customer            Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
   items               TransactionItem[]

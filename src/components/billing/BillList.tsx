@@ -1,4 +1,4 @@
-// components/billing/BillList.tsx
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,8 +9,15 @@ import { Select } from '@/components/ui/Select';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-toastify';
 import { Modal } from '@/components/ui/Modal';
-import React from 'react';  // Add this import
+import React from 'react';  
 import { EditBillModal } from './EditBillModal';
+
+
+// <--- ADD THIS INTERFACE
+interface BillItem {
+  productId: number;
+  quantity: number;
+}
 
 interface Bill {
   id: number;
@@ -31,13 +38,23 @@ interface Bill {
     productName: string;
     quantity: number;
     totalPrice: number;
+    SKU: string; 
   }>;
   paymentMethod?: string;
   amountPaid?: number;
   balance?: number;
   trackingNumber?: string | null;
   weight?: number | null;
+  paymentStatus: string;     // <-- FIX
+  isEdited: boolean;         // <-- FIX
+  notes: string | null;      // <-- FIX
+  salesSource?: string | null; // <-- Our new field
+  shipping?: {               // <-- FIX
+    methodName: string;
+    totalCost: number;
+  } | null;
 }
+
 
 interface BillListProps {
   initialBills: Bill[];
@@ -51,6 +68,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
   const [dateFilter, setDateFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [hasTrackingFilter, setHasTrackingFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
   const [billToDelete, setBillToDelete] = useState<number | null>(null);
@@ -88,6 +106,12 @@ export function BillList({ initialBills, mode }: BillListProps) {
         params.append('hasTracking', hasTrackingFilter);
       }
   
+
+      if (sourceFilter !== 'all') {
+        params.append('source', sourceFilter);
+      }
+
+
       const response = await fetch(`/api/billing/search?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch bills');
@@ -111,8 +135,8 @@ export function BillList({ initialBills, mode }: BillListProps) {
   
   // Call this function when component mounts or filters change
   useEffect(() => {
-    fetchBills(currentPage);
-  }, [searchQuery, dateFilter, statusFilter, hasTrackingFilter]);
+    fetchBills(1);
+  }, [searchQuery, dateFilter, statusFilter, hasTrackingFilter, sourceFilter]);
   
   // Update bill function for editing
   const handleUpdateBill = async (items: BillItem[]) => {
@@ -181,6 +205,13 @@ export function BillList({ initialBills, mode }: BillListProps) {
     setHasTrackingFilter(e.target.value);
     setCurrentPage(1);
   };
+
+
+  const handleSourceFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSourceFilter(e.target.value);
+    setCurrentPage(1);
+  };
+
 
   const handlePageChange = (page: number) => {
     fetchBills(page);
@@ -432,9 +463,25 @@ export function BillList({ initialBills, mode }: BillListProps) {
                   <option value="true">With Tracking</option>
                   <option value="false">Without Tracking</option>
                 </Select>
+
+                <Select
+                  value={sourceFilter}
+                  onChange={handleSourceFilterChange}
+                  className="w-40"
+                >
+                  <option value="all">All Sources</option>
+                  <option value="Instagram">Instagram</option>
+                  <option value="Facebook">Facebook</option>
+                  <option value="YouTube">YouTube</option>
+                  <option value="Walk-in">Walk-in</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Other">Other</option>
+                </Select>
+
               </>
             )}
           </div>
+
           <Button
             variant="destructive"
             onClick={() => setIsDeleteAllModalOpen(true)}
@@ -488,6 +535,21 @@ export function BillList({ initialBills, mode }: BillListProps) {
                   <option value="true">With Tracking</option>
                   <option value="false">Without Tracking</option>
                 </Select>
+
+                <Select
+                  value={sourceFilter}
+                  onChange={handleSourceFilterChange}
+                  className="w-40"
+                >
+                  <option value="all">All Sources</option>
+                  <option value="Instagram">Instagram</option>
+                  <option value="Facebook">Facebook</option>
+                  <option value="YouTube">YouTube</option>
+                  <option value="Walk-in">Walk-in</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Other">Other</option>
+                </Select>
+
               </>
             )}
           </div>
@@ -519,6 +581,10 @@ export function BillList({ initialBills, mode }: BillListProps) {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   Customer Details
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                Source
+                   </th>
+
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                   Order Details
                 </th>
@@ -580,6 +646,11 @@ export function BillList({ initialBills, mode }: BillListProps) {
                       </div>
                     )}
                   </td>
+
+                  {/* Sales Source - NEW */}
+              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                    {bill.salesSource || '-'}
+              </td>
 
                   {/* Order Details */}
                   <td className="px-4 py-3 text-sm text-gray-700">
@@ -768,6 +839,12 @@ export function BillList({ initialBills, mode }: BillListProps) {
                   )}
                 </div>
               </div>
+
+              {/* Sales Source (Mobile) - NEW */}
+<div className="flex justify-between py-1">
+  <span className="text-gray-600 font-medium">Source:</span>
+  <span className="text-gray-800">{bill.salesSource || 'N/A'}</span>
+</div>
 
               {/* Order Details */}
               <div className="border-t my-2 py-2">

@@ -41,6 +41,7 @@ const createBillSchema = z.object({
     })
     .nullable()
     .optional(),
+    salesSource: z.string().nullable().optional(),
 });
 
 interface TransactionOptions {
@@ -163,7 +164,8 @@ async function createTransactionRecord(
   notes: string | null,
   taxAmount: number,
   companyBillNo: number, // <-- ADD THIS PARAMETER
-  shippingCost: number
+  shippingCost: number,
+  salesSource: string | null | undefined
 ) {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
@@ -197,6 +199,7 @@ async function createTransactionRecord(
       notes: notes,
       taxAmount: taxAmount,
       shippingCost: shippingCost,
+      salesSource: salesSource,
     },
   });
 }
@@ -220,7 +223,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { customerId, items, billingMode, notes, shippingMethodId, taxAmount, customShipping } = parsedData.data;
+    const { customerId, items, billingMode, notes, shippingMethodId, taxAmount, customShipping, salesSource } = parsedData.data;
     const organisationId = parseInt(session.user.id, 10);
 
     const organisation = await prisma.organisation.findUnique({ // Make organisation mutable
@@ -399,11 +402,9 @@ export async function POST(request: Request) {
           notes || null,
           parsedTaxAmount,
           newCompanyBillNo,
-          roundedShippingCost
+          roundedShippingCost,
+          salesSource
         );
-
-
-
 
         await tx.transactionItem.createMany({
           data: transactionItemsData.map((item) => ({
@@ -485,57 +486,46 @@ export async function POST(request: Request) {
       tax_amount: finalTaxAmount || 0
     };
 
-    try {
-      if (customer.phone) {
-        const productsString = productDetails
-          .map((item) => `${item.productName} x ${item.quantity}`)
-          .join(', ');
+    // try {
+    //   if (customer.phone) {
+    //     const productsString = productDetails
+    //       .map((item) => `${item.productName} x ${item.quantity}`)
+    //       .join(', ');
 
-        const fullAddress = [
-          customer.flatNo,
-          customer.street,
-          customer.district,
-          customer.state,
-          customer.pincode,
-        ].filter(Boolean).join(', ');
+    //     const fullAddress = [
+    //       customer.flatNo,
+    //       customer.street,
+    //       customer.district,
+    //       customer.state,
+    //       customer.pincode,
+    //     ].filter(Boolean).join(', ');
 
-        let message: string;
+    //     let message: string;
 
-        if (shippingDetails && shippingDetails.name) {
-          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${calculatedShippingCost}).`;
-        } else {
-          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
-        }
+    //     if (shippingDetails && shippingDetails.name) {
+    //       message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${calculatedShippingCost}).`;
+    //     } else {
+    //       message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
+    //     }
 
-        await sendBillingSMS({
-          phone: customer.phone,
-          companyName: organisation.shopName,
-          products: productsString,
-          amount: newBill.totalPrice,
-          address: fullAddress,
-          organisationId: organisation.id,
-          billNo: newBill.billNo,
-          shippingMethod: shippingDetails && shippingDetails.name ? {
-            name: shippingDetails.name,
-            type: shippingDetails.type,
-            cost: calculatedShippingCost || 0 // Use calculatedShippingCost
-          } : null
-        });
-      }
-    } catch (smsError) {
-      console.error('SMS sending failed:', smsError);
-      // Consider not failing the whole request if SMS fails, maybe just log it
-      // For now, keeping original behavior:
-      // return NextResponse.json(
-      //   {
-      //     success: false,
-      //     message: "Bill created, but SMS sending failed.",
-      //     bill_id: newBill.id, // still return bill id
-      //     smsError: (smsError as Error).message
-      //   },
-      //   { status: 207 } // Multi-Status
-      // );
-    }
+    //     await sendBillingSMS({
+    //       phone: customer.phone,
+    //       companyName: organisation.shopName,
+    //       products: productsString,
+    //       amount: newBill.totalPrice,
+    //       address: fullAddress,
+    //       organisationId: organisation.id,
+    //       billNo: newBill.billNo,
+    //       shippingMethod: shippingDetails && shippingDetails.name ? {
+    //         name: shippingDetails.name,
+    //         type: shippingDetails.type,
+    //         cost: calculatedShippingCost || 0 // Use calculatedShippingCost
+    //       } : null
+    //     });
+    //   }
+    // } catch (smsError) {
+    //   console.error('SMS sending failed:', smsError);
+    // }
 
     return NextResponse.json(responseData, { status: 200 });
   } catch (error: any) {

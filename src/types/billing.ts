@@ -3,6 +3,7 @@ export interface BillItem {
     quantity: number;
     price: number;
     total: number;
+    productWeight?: number; 
   }
   
   export interface CustomerDetails {
@@ -31,8 +32,5 @@ export interface BillItem {
     balance?: number;
     status: 'pending' | 'confirmed' | 'cancelled';
     billingMode: 'online' | 'offline';
+    salesSource?: string;
   }
-
-  
-
-  // types/billing.ts

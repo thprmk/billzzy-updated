@@ -29,6 +29,7 @@ export interface Bill {
   isEdited: boolean;
   paymentStatus: string;
   notes: string | null;
+  salesSource?: string | null;
   items: Array<{
     id: number;
     productId: number;
@@ -62,6 +63,7 @@ export async function GET(request: Request) {
     const dateFilter = searchParams.get('date') || 'all';
     const statusFilter = searchParams.get('status') || 'all';
     const hasTracking = searchParams.get('hasTracking') || 'all';
+    const sourceFilter = searchParams.get('source');
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const pageSize = Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') || '10')));
 
@@ -120,6 +122,10 @@ export async function GET(request: Request) {
       whereClause.trackingNumber = null;
     }
 
+    if (sourceFilter && sourceFilter !== 'all') {
+      whereClause.salesSource = sourceFilter;
+    }
+    
     const totalCount = await prisma.transactionRecord.count({
       where: whereClause,
     });
@@ -168,6 +174,7 @@ export async function GET(request: Request) {
       isEdited: bill.isEdited,
       paymentStatus: bill.paymentStatus,
       notes: bill.notes,
+      salesSource: bill.salesSource,
       items: bill.items.map((item) => ({
         id: item.id,
         productId: item.productId,
