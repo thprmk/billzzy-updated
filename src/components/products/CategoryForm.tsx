@@ -82,6 +82,7 @@ export default function CategoryForm({ initialData,setChange,change }: CategoryF
         <Button
           type="submit"
           isLoading={isLoading}
+          
         >
           {initialData?.id ? 'Update' : 'Create'} Category
         </Button>

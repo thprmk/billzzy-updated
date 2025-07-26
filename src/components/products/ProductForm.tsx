@@ -5,9 +5,17 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
+
 import { toast } from 'react-toastify';
-import React from 'react';  // Add this import
+import React from 'react';  
 
 interface Category {
   id: number;
@@ -187,21 +195,30 @@ const handleChange = (
           className="w-full"
         />
 
-        <Select
-          label="Category"
-          name="categoryId"
-          value={formData.categoryId}
-          onChange={handleChange}
-          
-          className="w-full"
-        >
-          <option value="">Select Category</option>
-          {categories.map(category => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </Select>
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+  <Select
+    value={String(formData.categoryId)}
+    // The new component uses onValueChange
+    onValueChange={(value) => {
+      // We check for 'none' to handle the placeholder selection
+      const newCategoryId = value === 'none' ? '' : value;
+      setFormData(prev => ({ ...prev, categoryId: newCategoryId }));
+    }}
+  >
+    <SelectTrigger className="w-full">
+      <SelectValue placeholder="Select Category" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="none">Select Category</SelectItem>
+      {categories.map(category => (
+        <SelectItem key={category.id} value={String(category.id)}>
+          {category.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
       </div>
 
       {/* Action Buttons */}

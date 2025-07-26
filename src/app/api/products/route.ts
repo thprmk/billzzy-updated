@@ -3,51 +3,52 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 
+// src/app/api/products/route.ts
 
-// Modified GET handler in /api/products/route.ts
+// --- REPLACE your existing GET function with this ---
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    const organisationId = parseInt(session.user.id, 10);
+    
     const { searchParams } = new URL(request.url);
-    const searchTerm = searchParams.get('sku') || '';
-    const categoryId = searchParams.get('category') || '';
+    const categoryId = searchParams.get('category');
+    const searchTerm = searchParams.get('search'); // <-- Get the new search term from the URL
 
-    // Limit query results and optimize fields
+    // Build the dynamic 'where' clause for the Prisma query
+    const whereClause: any = {
+      organisationId: organisationId,
+    };
+
+    // If a category is provided, add it to the filter
+    if (categoryId) {
+      whereClause.categoryId = parseInt(categoryId);
+    }
+
+    // If a search term is provided, add an 'OR' condition
+    // to search in both the name and the SKU fields.
+    if (searchTerm) {
+      whereClause.OR = [
+        { name: { contains: searchTerm } }, // mode: 'insensitive' makes the search case-insensitive
+        { SKU: { contains: searchTerm} },
+      ];
+    }
+
     const products = await prisma.product.findMany({
-      where: {
-        organisationId: parseInt(session.user.id),
-        ...(searchTerm && {
-          OR: [
-            { SKU: { contains: searchTerm } },
-            { name: { contains: searchTerm } }
-          ]
-        }),
-        ...(categoryId && { categoryId: parseInt(categoryId) })
+      where: whereClause,
+      include: {
+        category: true, // Include category information
       },
-      select: {
-        id: true,
-        name: true, 
-        SKU: true,
-        sellingPrice: true,
-        quantity: true,
-        inventory: {
-          where: { organisationId: parseInt(session.user.id) },
-          select: { quantity: true },
-          take: 1
-        }
-      },
-      // take: 10, // Limit results
       orderBy: { name: 'asc' }
     });
 
     return NextResponse.json(products);
 
   } catch (error) {
-    console.error('Product search error:', error);
+    console.error('Failed to fetch products:', error);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
   }
 }

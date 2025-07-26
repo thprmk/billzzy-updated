@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/Button"
 import type { CustomerDetails, BillItem } from "@/types/billing"
 import { useRouter } from "next/navigation"
 import { toast } from "react-toastify"
-import { Select } from "@/components/ui/Select"
+import { Select, SelectContent, SelectItem, SelectTrigger,SelectValue } from "@/components/ui/Select";
 import { MandateModal } from "@/components/mandate/MandateModal"
 import React from 'react';
 
-interface ShippingMethod {
+interface ShippingMethod {  
   id: number
   name: string
   type: "FREE_SHIPPING" | "COURIER_PARTNER"
@@ -250,21 +250,20 @@ export default function OnlineBillPage() {
 
 {/* Sales Source Section - NEW */}
       <div className="bg-white shadow-sm rounded-lg p-6">
-        <h2 className="text-lg font-medium mb-4">
-          Sales Channel <span className="text-sm text-gray-500">(Optional)</span>
-        </h2>
-        <Select
-          label="Where did this sale come from?"
-          value={salesSource}
-          onChange={(e) => setSalesSource(e.target.value)}
-        >
-          <option value="">Select a source</option>
-          <option value="Instagram">Instagram</option>
-          <option value="Facebook">Facebook</option>
-          <option value="YouTube">YouTube</option>
-          <option value="Walk-in">Walk-in</option>
-          <option value="Referral">Referral</option>
-          <option value="Other">Other</option>
+        <h2 className="text-lg font-medium mb-4"> Sales Channel <span className="text-sm text-gray-500">(Optional)</span> </h2>
+
+        <Select value={salesSource} onValueChange={setSalesSource}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Instagram">Instagram</SelectItem>
+            <SelectItem value="Facebook">Facebook</SelectItem>
+            <SelectItem value="YouTube">YouTube</SelectItem>
+            <SelectItem value="Walk-in">Walk-in</SelectItem>
+            <SelectItem value="Referral">Referral</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 
@@ -280,24 +279,26 @@ export default function OnlineBillPage() {
               <div className="flex-grow">
                 {!useCustomShipping ? (
                   <Select
-                    label="Selected Shipping Method"
-                    value={selectedShippingId?.toString() || ""}
-                    onChange={(e) => {
-                      const value = e.target.value
+                    value={selectedShippingId ? String(selectedShippingId) : ""}
+                    onValueChange={(value) => {
                       if (value === "custom") {
-                        setShowCustomShippingModal(true)
+                        setShowCustomShippingModal(true);
                       } else {
-                        setSelectedShippingId(value ? Number.parseInt(value) : null)
+                        setSelectedShippingId(value ? Number(value) : null);
                       }
                     }}
                   >
-                    <option value="">Select a method</option>
-                    {shippingMethods.map((method) => (
-                      <option key={method.id} value={method.id}>
-                        {method.name}
-                      </option>
-                    ))}
-                    <option value="custom">Custom Shipping</option>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {shippingMethods.map((method) => (
+                        <SelectItem key={method.id} value={String(method.id)}>
+                          {method.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">Custom Shipping</SelectItem>
+                    </SelectContent>
                   </Select>
                 ) : (
                   <div className="flex items-center gap-2 py-2 px-1 border-b border-gray-200">

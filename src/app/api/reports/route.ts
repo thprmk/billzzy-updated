@@ -13,7 +13,7 @@ function getEndOfDay(dateString: string): Date {
 }
 
 // Helper function to fetch transactions based on filters
-async function fetchFilteredTransactions(organisationId: number, startDate: string, endDate: string, filters: { mode: string, status: string }) {
+async function fetchFilteredTransactions(organisationId: number, startDate: string, endDate: string, filters: { mode: string, status: string, source: string }) {
   const whereClause: any = {
     organisationId: organisationId,
     date: {
@@ -29,6 +29,11 @@ async function fetchFilteredTransactions(organisationId: number, startDate: stri
   if (filters.status && filters.status !== 'ALL') {
     whereClause.paymentStatus = filters.status;
   }
+
+  if (filters.source && filters.source !== 'ALL') {
+    whereClause.salesSource = filters.source;
+  }
+
 
   return prisma.transactionRecord.findMany({
     where: whereClause,
@@ -53,13 +58,15 @@ export async function POST(req: NextRequest) {
 
   try {
     const { start, end, filters } = await req.json();
+   
+
     if (!start || !end) {
       return NextResponse.json({ success: false, message: 'Start and end dates are required' }, { status: 400 });
     }
     
-    const safeFilters = filters || { mode: 'ALL', status: 'ALL' };
-
+    const safeFilters = filters || { mode: 'ALL', status: 'ALL', source: 'ALL' };
     const records = await fetchFilteredTransactions(parseInt(session.user.id), start, end, safeFilters);
+
     return NextResponse.json({ success: true, data: records });
   } catch (error: any) {
     console.error('Error fetching report data:', error);
@@ -80,6 +87,7 @@ export async function GET(req: NextRequest) {
   const format = searchParams.get('format');
   const mode = searchParams.get('mode') || 'ALL';
   const status = searchParams.get('status') || 'ALL';
+  const source = searchParams.get('source') || 'ALL'; 
 
   if (!start || !end) {
     return NextResponse.json({ error: 'Missing date range' }, { status: 400 });
@@ -91,7 +99,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // 1. Fetch the raw data from the database
-    const transactions = await fetchFilteredTransactions(parseInt(session.user.id), start, end, { mode, status });
+    const transactions = await fetchFilteredTransactions(parseInt(session.user.id), start, end, { mode, status, source });
     
     // 2. Prepare "flattened" data for the report
     const reportRows = transactions.flatMap(tx => 
@@ -100,9 +108,11 @@ export async function GET(req: NextRequest) {
             date: tx.date ? tx.date.toISOString().split('T')[0] : 'N/A',
             billNo: tx.companyBillNo ?? tx.billNo,
             billingMode: tx.billingMode ?? 'N/A',
+            salesSource: tx.salesSource ?? 'N/A',
             paymentStatus: tx.paymentStatus ?? 'N/A',
             customerName: tx.customer?.name ?? 'N/A',
             customerPhone: tx.customer?.phone ?? 'N/A',
+            salesSource: tx.salesSource ?? 'N/A',
             shippingCost: tx.shippingCost ?? 0,
             taxAmount: tx.taxAmount ?? 0,
             productName: item.product?.name ?? 'N/A',
@@ -137,8 +147,10 @@ export async function GET(req: NextRequest) {
         { header: 'Bill No', key: 'billNo', width: 15 },
         { header: 'Mode', key: 'billingMode', width: 15 },
         { header: 'Payment Status', key: 'paymentStatus', width: 15 },
+        { header: 'Sales Channel', key: 'salesSource', width: 15 },
         { header: 'Customer', key: 'customerName', width: 25 },
         { header: 'Phone Number', key: 'customerPhone', width: 20 },
+        { header: 'Sales Channel', key: 'salesSource', width: 15 },
         { header: 'Shipping Cost', key: 'shippingCost', width: 15 }, // <<< NEW COLUMN
         { header: 'Tax Amount', key: 'taxAmount', width: 15 },    // <<< NEW COLUMN
         { header: 'Product', key: 'productName', width: 30 },
@@ -171,9 +183,9 @@ export async function GET(req: NextRequest) {
     // --- UPDATED: Adjusted position for the Grand Total row ---
     worksheet.addRow([]);
     const totalRow = worksheet.addRow({});
-    totalRow.getCell('L').value = 'Grand Total:'; // Moved to Column K
-    totalRow.getCell('M').value = grandTotal;    // Moved to Column L
-    totalRow.getCell('L').font = { bold: true };
+    totalRow.getCell('M').value = 'Grand Total:'; // Moved to Column K
+    totalRow.getCell('N').value = grandTotal;    // Moved to Column L
+    totalRow.getCell('M').font = { bold: true };
     totalRow.getCell('M').font = { bold: true };
     totalRow.getCell('M').numFmt = '#,##0.00';
     

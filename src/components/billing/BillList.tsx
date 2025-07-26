@@ -1,11 +1,18 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
+
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-toastify';
 import { Modal } from '@/components/ui/Modal';
@@ -13,7 +20,6 @@ import React from 'react';
 import { EditBillModal } from './EditBillModal';
 
 
-// <--- ADD THIS INTERFACE
 interface BillItem {
   productId: number;
   quantity: number;
@@ -414,558 +420,143 @@ export function BillList({ initialBills, mode }: BillListProps) {
   
 
   return (
-
-
-
     <>
-      {/* Search and Filters - Responsive */}
-      <div className="space-y-4 md:space-y-0">
-        {/* Mobile View Filters */}
-        <div className="flex flex-col space-y-3 md:hidden">
-          <Input
-            type="search"
-            placeholder="Search bills..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            className="w-full"
-          />
-          <div className="grid grid-cols-3 gap-3">
-            <Select
-              value={dateFilter}
-              onChange={handleDateFilterChange}
-              className="w-full"
-            >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-            </Select>
-            {mode === "online" && (
-              <>
-                <Select
-                  value={statusFilter}
-                  onChange={handleStatusFilterChange}
-                  className="w-full"
-                >
-                  <option value="all">All Status</option>
-                  <option value="paymentPending">Payment Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="printed">Printed</option>
-                  <option value="packed">Packed</option>
-                  <option value="shipped">Shipped</option>
-                </Select>
-                <Select
-                  value={hasTrackingFilter}
-                  onChange={handleHasTrackingFilterChange}
-                  className="w-full col-span-2"
-                >
-                  <option value="all">All Tracking</option>
-                  <option value="true">With Tracking</option>
-                  <option value="false">Without Tracking</option>
-                </Select>
-
-                <Select
-                  value={sourceFilter}
-                  onChange={handleSourceFilterChange}
-                  className="w-40"
-                >
-                  <option value="all">All Sources</option>
-                  <option value="Instagram">Instagram</option>
-                  <option value="Facebook">Facebook</option>
-                  <option value="YouTube">YouTube</option>
-                  <option value="Walk-in">Walk-in</option>
-                  <option value="Referral">Referral</option>
-                  <option value="Other">Other</option>
-                </Select>
-
-              </>
-            )}
-          </div>
-
-          <Button
-            variant="destructive"
-            onClick={() => setIsDeleteAllModalOpen(true)}
-            disabled={bills.length === 0}
-            className="w-full"
-          >
-            Delete All Bills
-          </Button>
-        </div>
-
-        {/* Desktop View Filters */}
-        <div className="hidden md:flex md:flex-wrap md:justify-between md:items-center  md:gap-4">
-          <div className="flex gap-4 flex-1">
-            <Input
-              type="search"
-              placeholder="Search bills..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="max-w-xs"
-            />
-            <Select
-              value={dateFilter}
-              onChange={handleDateFilterChange}
-              className="w-40"
-            >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-            </Select>
-            {mode === "online" && (
-              <>
-                <Select
-                  value={statusFilter}
-                  onChange={handleStatusFilterChange}
-                  className="w-40"
-                >
-                  <option value="all">All Status</option>
-                  <option value="paymentPending">Payment Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="printed">Printed</option>
-                  <option value="packed">Packed</option>
-                  <option value="shipped">Shipped</option>
-                </Select>
-                <Select
-                  value={hasTrackingFilter}
-                  onChange={handleHasTrackingFilterChange}
-                  className="w-40"
-                >
-                  <option value="all">All Tracking</option>
-                  <option value="true">With Tracking</option>
-                  <option value="false">Without Tracking</option>
-                </Select>
-
-                <Select
-                  value={sourceFilter}
-                  onChange={handleSourceFilterChange}
-                  className="w-40"
-                >
-                  <option value="all">All Sources</option>
-                  <option value="Instagram">Instagram</option>
-                  <option value="Facebook">Facebook</option>
-                  <option value="YouTube">YouTube</option>
-                  <option value="Walk-in">Walk-in</option>
-                  <option value="Referral">Referral</option>
-                  <option value="Other">Other</option>
-                </Select>
-
-              </>
-            )}
-          </div>
-          <Button
-            variant="destructive"
-            onClick={() => setIsDeleteAllModalOpen(true)}
-            disabled={bills.length === 0}
-          >
-            Delete All Bills
+      {/* --- FINAL, CORRECTED FILTER BAR --- */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+        <Input
+          type="search"
+          placeholder="Search bills..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full md:w-auto md:max-w-xs"
+        />
+        <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-full md:w-auto"><SelectValue placeholder="All Time" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">This Week</SelectItem>
+              <SelectItem value="month">This Month</SelectItem>
+            </SelectContent>
+          </Select>
+          {mode === "online" && (
+            <>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-auto"><SelectValue placeholder="All Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="paymentPending">Payment Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="printed">Printed</SelectItem>
+                  <SelectItem value="packed">Packed</SelectItem>
+                  <SelectItem value="shipped">Shipped</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={hasTrackingFilter} onValueChange={setHasTrackingFilter}>
+                <SelectTrigger className="w-full md:w-auto"><SelectValue placeholder="All Tracking" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Tracking</SelectItem>
+                  <SelectItem value="true">With Tracking</SelectItem>
+                  <SelectItem value="false">Without Tracking</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-full md:w-auto"><SelectValue placeholder="All Sources" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sources</SelectItem>
+                  <SelectItem value="Instagram">Instagram</SelectItem>
+                  <SelectItem value="Facebook">Facebook</SelectItem>
+                  <SelectItem value="YouTube">YouTube</SelectItem>
+                  <SelectItem value="Walk-in">Walk-in</SelectItem>
+                  <SelectItem value="Referral">Referral</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
+          <Button variant="destructive" onClick={() => setIsDeleteAllModalOpen(true)} disabled={bills.length === 0}>
+              Delete All Bills
           </Button>
         </div>
       </div>
 
-      
-
-      {/* Bills Display */}
-      <div className="bg-white shadow-lg mt-[1rem] rounded-lg overflow-hidden">
-        {/* Desktop Table View */}
-        <div className="overflow-x-auto hidden  sm:block">
-          <table className="min-w-full divide-y divide-gray-200 table-auto">
+      {/* --- FINAL, CORRECTED BILLS TABLE --- */}
+      <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Bill No
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Date & Time
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Customer Details
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                Source
-                   </th>
-
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Order Details
-                </th>
-                {mode === 'offline' && (
-                  <>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      Payment
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      Amount Paid
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      Balance
-                    </th>
-                  </>
-                )}
-                {mode === 'online' && (
-                  <>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                      Tracking Info
-                    </th>
-                  </>
-                )}
-
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Notes
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bill No</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order Details</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tracking Info</th>
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th> */}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y  divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200">
               {bills.map((bill) => (
-                <tr key={bill.id} className="hover:bg-gray-50">
-                  {/* Bill No */}
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                    {bill.billNo}
-                  </td>
-
-                  {/* Date & Time */}
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                <tr key={bill.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{bill.billNo}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div>{formatDate(bill.date)}</div>
-                    <div className="text-xs text-gray-500">{bill.time}</div>
-                    {bill.isEdited ? <span className="text-xs text-gray-500">Edited</span> : null}
-
+                    <div className="text-xs">{bill.time}</div>
                   </td>
-
-                  {/* Customer Details */}
-                  <td className="px-4 py-3 text-sm text-gray-700">
-                    <div className="font-medium">{bill.customer.name}</div>
-                    <div className="text-gray-500">{bill.customer.phone}</div>
-                    {mode === 'online' && bill.customer.district && bill.customer.state && (
-                      <div className="text-xs text-gray-500">
-                        {bill.customer.district}, {bill.customer.state}
-                      </div>
-                    )}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                     <div className="font-medium text-gray-900">{bill.customer.name}</div>
+                     <div>{bill.customer.phone}</div>
                   </td>
-
-                  {/* Sales Source - NEW */}
-              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                    {bill.salesSource || '-'}
-              </td>
-
-                  {/* Order Details */}
-                  <td className="px-4 py-3 text-sm text-gray-700">
-                    <div className="space-y-1">
-                      {bill.items.map((item) => (
-                        <div key={item.id} className="text-sm">
-                          <span className="cursor-default" title={item.productName}>
-                            {item.SKU} × {item.quantity} = ₹{item.totalPrice}
-                          </span>
-                        </div>
-                      ))}
-                      {
-                        bill.shipping ? <div className="font-semibold">Shipping: {bill?.shipping.methodName} (₹{bill?.shipping.totalCost})</div> : <>null</>
-
-                      }
-                      <div className="font-semibold">Total: ₹{bill.totalPrice}</div>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.salesSource || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {bill.items.map(item => <div key={item.id}>{item.productName} ({item.SKU}) x {item.quantity}</div>)}
+                    {bill.shipping && <div className="font-semibold mt-1">Shipping: {bill.shipping.methodName} (₹{bill.shipping.totalCost.toFixed(2)})</div>}
+                    <div className="font-bold text-gray-800 mt-1">Total: ₹{bill.totalPrice.toFixed(2)}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-600">Payment:</span>
+                        {(bill.paymentStatus === 'PAID' || bill.paymentStatus === 'FAILED') ? (
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${bill.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{bill.paymentStatus}</span>
+                        ) : (
+                            <Select
+                                value={undefined} // Force placeholder to show
+                                onValueChange={(newStatus: string) => handlePaymentStatusChange(bill.id, newStatus)}
+                                disabled={isLoading}
+                            >
+                                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="Select Status" /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="PAID">Paid</SelectItem>
+                                    <SelectItem value="FAILED">Failed</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                        <span className="font-medium text-gray-600">Order:</span>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full uppercase ${
+                            bill.status === 'paymentPending' ? 'bg-orange-100 text-orange-800' :
+                            bill.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                            bill.status === 'shipped' ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-800'
+                        }`}>{bill.status}</span>
                     </div>
                   </td>
-
-                  {/* Offline Specific Columns */}
-                  {mode === 'offline' && (
-                    <>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {bill.paymentMethod}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        ₹{bill.amountPaid}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        ₹{bill.balance}
-                      </td>
-                    </>
-                  )}
-
-                  {/* Online Specific Columns */}
-                  {mode === 'online' && (
-                    <>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 w-[150px]">
-                        <section className="flex justify-between items-center mb-2">
-                          <div className="text-[13px] text-gray-600">Payment:</div>
-                          {bill.paymentStatus === 'processing' ? (
-                            <div className='w-[120px] ml-4'>
-                              <div
-                                className={`
-                          text-[12px]   px-3 py-[2px] rounded-full font-medium inline-block
-                          ${bill.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' : ''}
-                          ${bill.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800' : ''}
-                          ${bill.paymentStatus === 'PENDING' ? 'bg-orange-100 text-orange-800' : ''}
-                          ${bill.paymentStatus === 'EXPIRED' ? 'bg-gray-100 text-gray-800' : ''}
-                        `}
-                              >
-                                {bill.paymentStatus}
-                              </div>
-
-                            </div>
-                          ) : (
-                            <div className='w-[120px]'>
-                              <select
-                                value={bill.paymentStatus || ''}
-                                onChange={(e) => handlePaymentStatusChange(bill.id, e.target.value)}
-                                className=" text-sm border rounded-full px-2  py-1"
-                                disabled={isLoading}
-                              >
-                                <option value="">Select Status</option>
-                                <option value="PAID">Paid</option>
-                                <option value="FAILED">Failed</option>
-                              </select>
-                            </div>
-                          )}
-                        </section>
-                        <section className="flex justify-between items-center">
-                          <div className="text-[13px] text-gray-600">Order:</div>
-                          <section className='w-[120px] '>
-                            <div
-                              className={`
-                        text-[12px] px-3 py-[2px] rounded-full font-medium inline-block uppercase
-                        ${bill.status === 'paymentPending' ? 'bg-orange-100 text-orange-800' : ''}
-                        ${bill.status === 'processing' ? 'bg-yellow-100 text-yellow-800' : ''}
-                        ${bill.status === 'printed' ? 'bg-blue-100 text-blue-800' : ''}
-                        ${bill.status === 'packed' ? 'bg-violet-100 text-violet-800' : ''}
-                        ${bill.status === 'shipped' ? 'bg-green-100 text-green-800' : ''}
-                      `}
-                            >
-                              {bill.status}
-                            </div>
-                          </section>
-
-
-                        </section>
-
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                        {bill.trackingNumber ? (
-                          <div>
-                            <div>{bill.trackingNumber}</div>
-                            {bill.weight && (
-                              <div className="text-xs text-gray-500">
-                                Weight: {bill.weight} kg
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          '-'
-                        )}
-
-
-                      </td>
-
-
-
-                      {/* Add Edit button in your bill actions */}
-
-                    </>
-                  )}
-
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                    {bill.notes ? bill.notes : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => {
-                          setBillToDelete(bill.id);
-                          setIsDeleteModalOpen(true);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                      {(bill.status === 'processing' || bill.status === 'paymentPending') && (
-                        <Button
-                          variant="outline"
-
-                          onClick={() => {
-                            setBillToEdit(bill);
-                            setIsEditModalOpen(true);
-                          }}
-                        >
-                          Edit
-                        </Button>
-                      )}
-
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.trackingNumber || '-'}</td>
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.notes || '-'}</td> */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <div className="flex items-center space-x-2">
+                      <Button size="sm" variant="destructive" onClick={() => { setBillToDelete(bill.id); setIsDeleteModalOpen(true); }}>Delete</Button>
+                      <Button size="sm" variant="outline" onClick={() => { setBillToEdit(bill); setIsEditModalOpen(true); }}>Edit</Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-
-        {/* Mobile List View */}
-        <div className="block sm:hidden p-4  space-y-4">
-          {bills.map((bill) => (
-            <div
-              key={bill.id}
-              className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm"
-            >
-              {/* Bill No */}
-              <div className="flex justify-between py-1">
-                <span className="text-gray-600 font-medium">Bill No:</span>
-                <span className="text-gray-800">{bill.billNo}</span>
-              </div>
-
-              {/* Date & Time */}
-              <div className="flex justify-between py-1">
-                <span className="text-gray-600 font-medium">Date & Time:</span>
-                <div className="text-right">
-                  <div className="text-gray-800">{formatDate(bill.date)}</div>
-                  <div className="text-xs text-gray-500">{bill.time}</div>
-                  {bill.isEdited ? <span className="text-xs text-gray-500">Edited</span> : null}
-
-                </div>
-              </div>
-
-              {/* Customer Details */}
-              <div className="flex justify-between py-1">
-                <span className="text-gray-600 font-medium">Customer:</span>
-                <div className="text-right">
-                  <div className="text-gray-800">{bill.customer.name}</div>
-                  <div className="text-gray-500 text-sm">{bill.customer.phone}</div>
-                  {mode === 'online' && bill.customer.district && bill.customer.state && (
-                    <div className="text-xs text-gray-500">
-                      {bill.customer.district}, {bill.customer.state}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Sales Source (Mobile) - NEW */}
-<div className="flex justify-between py-1">
-  <span className="text-gray-600 font-medium">Source:</span>
-  <span className="text-gray-800">{bill.salesSource || 'N/A'}</span>
-</div>
-
-              {/* Order Details */}
-              <div className="border-t my-2 py-2">
-                <div className="text-gray-600 font-medium mb-1">Order Details:</div>
-                <div className="space-y-1 text-sm text-gray-800">
-                  {bill.items.map((item) => (
-                    <div key={item.id}>
-                      {item.SKU} × {item.quantity} = ₹{item.totalPrice}
-                    </div>
-                  ))}
-                  {
-                    bill.shipping ? <div className="font-semibold">Shipping: ₹{bill?.shipping.methodName}</div> : <>null</>
-
-                  }
-                  <div className="font-semibold">Total: ₹{bill.totalPrice}</div>
-                </div>
-              </div>
-
-              {mode === 'offline' && (
-                <>
-                  {/* Payment Method */}
-                  <div className="flex justify-between py-1">
-                    <span className="text-gray-600 font-medium">Payment:</span>
-                    <span className="text-gray-800">{bill.paymentMethod}</span>
-                  </div>
-
-                  {/* Amount Paid & Balance */}
-                  <div className="flex justify-between py-1">
-                    <span className="text-gray-600 font-medium">Amount Paid:</span>
-                    <span className="text-gray-800">₹{bill.amountPaid}</span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-gray-600 font-medium">Balance:</span>
-                    <span className="text-gray-800">₹{bill.balance}</span>
-                  </div>
-                </>
-              )}
-
-              {mode === 'online' && (
-                <>
-                  {/* Online Payment & Order Status */}
-                  <div className="border-t my-2 py-2">
-                    <div className="flex justify-between py-1">
-                      <span className="text-gray-600 font-medium">Payment Status:</span>
-                      {bill.paymentMethod === 'razorpay_link' ? (
-                        <div
-                          className={`
-                      text-[12px] px-3 py-1 rounded-full font-medium  inline-block
-                      ${bill.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' : ''}
-                      ${bill.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800' : ''}
-                      ${bill.paymentStatus === 'PENDING' ? 'bg-orange-100 text-orange-800' : ''}
-                      ${bill.paymentStatus === 'EXPIRED' ? 'bg-gray-100 text-gray-800' : ''}
-                    `}
-                        >
-                          {bill.paymentStatus}
-                        </div>
-                      ) : (
-                        <select
-                          value={bill.paymentStatus || ''}
-                          onChange={(e) => handlePaymentStatusChange(bill.id, e.target.value)}
-                          className="text-sm border rounded px-2 py-1"
-                          disabled={isLoading}
-                        >
-                          <option value="">Select Status</option>
-                          <option value="PAID">Paid</option>
-                          <option value="FAILED">Failed</option>
-                        </select>
-                      )}
-                    </div>
-
-                    <div className="flex justify-between py-1">
-                      <span className="text-gray-600 font-medium">Order Status:</span>
-                      <div
-                        className={`
-                    text-[12px] px-3 py-1 rounded-full text-left font-medium inline-block uppercase
-                    ${bill.status === 'paymentPending' ? 'bg-orange-100 text-orange-800' : ''}
-                    ${bill.status === 'processing' ? 'bg-yellow-100 text-yellow-800' : ''}
-                    ${bill.status === 'printed' ? 'bg-blue-100 text-blue-800' : ''}
-                    ${bill.status === 'packed' ? 'bg-violet-100 text-violet-800' : ''}
-                    ${bill.status === 'shipped' ? 'bg-green-100 text-green-800' : ''}
-                  `}
-                      >
-                        {bill.status}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tracking Info */}
-                  <div className="flex justify-between py-1">
-                    <span className="text-gray-600 font-medium">Tracking Info:</span>
-                    <span className="text-gray-800">
-                      {bill.trackingNumber ? (
-                        <>
-                          <div>{bill.trackingNumber}</div>
-                          {bill.weight && (
-                            <div className="text-xs text-gray-500">
-                              Weight: {bill.weight} kg
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        '-'
-                      )}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              {/* Notes */}
-              <div className="border-t my-2 pt-2">
-                <div className="text-gray-600 font-medium">Notes:</div>
-                <div className="text-gray-800 text-sm">
-                  {bill.notes ? bill.notes : '-'}
-                  {bill.status}
-
-                </div>
-              </div>
-
-
-            </div>
-          ))}
         </div>
       </div>
 
@@ -1038,7 +629,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
             </div>
           </Modal>
         )}
-
+        
         {/* Delete all confirmation modal */}
         {isDeleteAllModalOpen && (
           <Modal
@@ -1070,5 +661,3 @@ export function BillList({ initialBills, mode }: BillListProps) {
     </>
   );
 }
-
-
