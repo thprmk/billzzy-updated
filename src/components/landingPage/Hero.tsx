@@ -1,5 +1,11 @@
+'use client';
+
 import { ArrowRight, CheckCircle, Link } from "lucide-react";
-import LottieAnimation from "./LottieAnimation";
+import dynamic from 'next/dynamic';
+
+const LottieAnimation = dynamic(() => import('./LottieAnimation'), {
+  ssr: false, // This is the most important part: disable Server-Side Rendering
+});
 
 export default function Hero() {
   return (

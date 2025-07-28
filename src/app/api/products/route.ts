@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 
-
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -55,8 +54,6 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-
-
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -72,8 +69,6 @@ export async function POST(request: Request) {
       size,  
       color,
     } = body;
-
-
 
     // Check if SKU exists
     const existingProduct = await prisma.product.findFirst({
@@ -118,8 +113,6 @@ export async function POST(request: Request) {
         quantity: product.quantity,
       },
     });
-
-
 
     return NextResponse.json({
       success: true,
