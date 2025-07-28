@@ -107,6 +107,9 @@ model Product {
   organisationId Int    @map("organisation_id")
   categoryId     Int?   @map("category_id")
 
+  size           String?
+  color          String?
+
   organisation     Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   category         ProductCategory?  @relation(fields: [categoryId], references: [id])
   inventory        Inventory[]

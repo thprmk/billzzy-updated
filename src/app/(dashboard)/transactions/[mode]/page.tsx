@@ -84,10 +84,10 @@ export default async function BillsPage({ params }: PageProps) {
         status: bill.status || 'pending',
         billingMode: bill.billingMode,
         customer: bill.customer ? {
-          name: bill.customer.name || 'Walk-in Customer',
+          name: bill.customer.name || 'Website Customer',
           phone: bill.customer.phone || '-'
         } : {
-          name: 'Walk-in Customer',
+          name: 'Website Customer',
           phone: '-'
         },
         paymentMethod: bill.paymentMethod || '-',

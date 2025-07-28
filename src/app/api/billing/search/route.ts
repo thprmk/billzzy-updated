@@ -165,7 +165,7 @@ export async function GET(request: Request) {
       totalPrice: bill.totalPrice,
       status: bill.status,
       billingMode: bill.billingMode,
-      customer: bill.customer || { name: 'Walk-in Customer', phone: '-' },
+      customer: bill.customer || { name: 'Website Customer', phone: '-' },
       paymentMethod: bill.paymentMethod,
       amountPaid: bill.amountPaid,
       balance: bill.balance,

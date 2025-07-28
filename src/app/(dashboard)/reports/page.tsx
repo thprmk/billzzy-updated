@@ -65,7 +65,7 @@ const DailyReport: React.FC = () => {
   const statusOptions = [{ label: "All", value: "ALL" }, { label: "Paid", value: "PAID" }, { label: "Pending", value: "PENDING" }, { label: "Failed", value: "FAILED" }];
   const sourceOptions = [
     { value: 'ALL', label: 'All Sources' }, { value: 'Instagram', label: 'Instagram' }, { value: 'Facebook', label: 'Facebook' },
-    { value: 'YouTube', label: 'YouTube' }, { value: 'Walk-in', label: 'Walk-in' }, { value: 'Referral', label: 'Referral' }, { value: 'Other', label: 'Other' },
+    { value: 'YouTube', label: 'YouTube' }, { value: 'Website', label: 'Website' }, { value: 'Referral', label: 'Referral' }, { value: 'Other', label: 'Other' },
   ];
 
   // --- API Call Functions ---

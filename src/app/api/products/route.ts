@@ -3,9 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 
-// src/app/api/products/route.ts
 
-// --- REPLACE your existing GET function with this ---
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -71,6 +69,8 @@ export async function POST(request: Request) {
       sellingPrice,
       quantity,
       categoryId,
+      size,  
+      color,
     } = body;
 
 
@@ -99,7 +99,9 @@ export async function POST(request: Request) {
         quantity,
         categoryId,
         organisationId: parseInt(session.user.id),
-        seller: "", // Add this required field
+        seller: "", 
+        size,  
+        color, 
 
       },
       include: {

@@ -260,7 +260,7 @@ export default function OnlineBillPage() {
             <SelectItem value="Instagram">Instagram</SelectItem>
             <SelectItem value="Facebook">Facebook</SelectItem>
             <SelectItem value="YouTube">YouTube</SelectItem>
-            <SelectItem value="Walk-in">Walk-in</SelectItem>
+            <SelectItem value="Website">Website</SelectItem>
             <SelectItem value="Referral">Referral</SelectItem>
             <SelectItem value="Other">Other</SelectItem>
           </SelectContent>

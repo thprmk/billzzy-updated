@@ -150,7 +150,7 @@ export async function POST(request: Request) {
         : null,
       customer: {
         id: bill.customer?.id,
-        name: bill.customer?.name || 'Walk-in Customer',
+        name: bill.customer?.name || 'Website Customer',
         phone: bill.customer?.phone || '-',
       },
       items: bill.items.map((item) => ({
