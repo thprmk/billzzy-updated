@@ -2,7 +2,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
 import { toast } from 'react-toastify';
 import React from 'react';
@@ -112,52 +118,68 @@ export function ShippingSettings() {
             <div key={index} className="p-4 md:p-6">
               {isEditing === index ? (
                 <div className="space-y-4">
-                  <Input
-                    label="Method Name"
-                    value={method.name}
-                    onChange={(e) => {
-                      const updated = [...methods];
-                      updated[index] = { ...method, name: e.target.value };
-                      setMethods(updated);
-                    }}
-                  />
-
-                  <Select
-                    label="Shipping Type"
-                    value={method.type}
-                    onChange={(e) => {
-                      const updated = [...methods];
-                      updated[index] = { 
-                        ...method, 
-                        type: e.target.value as ShippingMethod['type'],
-                        useWeight: false,
-                        ratePerKg: undefined,
-                        fixedRate: undefined,
-                        customRate: e.target.value === 'CUSTOM_SHIPPING' ? 0 : undefined // Initialize custom rate when 'CUSTOM_SHIPPING' is selected
-                      };
-                      setMethods(updated);
-                    }}
-                    className="w-full"
-                  >
-                    <option value="FREE_SHIPPING">Free Shipping</option>
-                    <option value="COURIER_PARTNER">Courier Partner</option>
-                    <option value="CUSTOM_SHIPPING">Custom Shipping</option>
-                  </Select>
-
-                  {method.type === 'FREE_SHIPPING' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Method Name
+                    </label>
                     <Input
-                      type="number"
-                      label="Minimum Order Amount (optional)"
-                      value={method.minAmount || ''}
+                      value={method.name}
                       onChange={(e) => {
                         const updated = [...methods];
-                        updated[index] = { 
-                          ...method, 
-                          minAmount: e.target.value ? parseFloat(e.target.value) : undefined 
-                        };
+                        updated[index] = { ...method, name: e.target.value };
                         setMethods(updated);
                       }}
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Shipping Type
+                    </label>
+                    <Select
+                      value={method.type}
+                      onValueChange={(value: ShippingMethod['type']) => {
+                        const updated = [...methods];
+                        updated[index] = { 
+                          ...method, 
+                          type: value,
+                          useWeight: false,
+                          ratePerKg: undefined,
+                          fixedRate: undefined,
+                          customRate: value === 'CUSTOM_SHIPPING' ? 0 : undefined // Initialize custom rate when 'CUSTOM_SHIPPING' is selected
+                        };
+                        setMethods(updated);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select shipping type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FREE_SHIPPING">Free Shipping</SelectItem>
+                        <SelectItem value="COURIER_PARTNER">Courier Partner</SelectItem>
+                        <SelectItem value="CUSTOM_SHIPPING">Custom Shipping</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {method.type === 'FREE_SHIPPING' && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Minimum Order Amount (optional)
+                      </label>
+                      <Input
+                        type="number"
+                        value={method.minAmount || ''}
+                        onChange={(e) => {
+                          const updated = [...methods];
+                          updated[index] = { 
+                            ...method, 
+                            minAmount: e.target.value ? parseFloat(e.target.value) : undefined 
+                          };
+                          setMethods(updated);
+                        }}
+                      />
+                    </div>
                   )}
 
                   {method.type === 'COURIER_PARTNER' && (
@@ -180,51 +202,63 @@ export function ShippingSettings() {
                       </div>
 
                       {method.useWeight ? (
-                        <Input
-                          type="number"
-                          label="Rate per KG"
-                          value={method.ratePerKg || ''}
-                          onChange={(e) => {
-                            const updated = [...methods];
-                            updated[index] = { 
-                              ...method, 
-                              ratePerKg: e.target.value ? parseFloat(e.target.value) : undefined
-                            };
-                            setMethods(updated);
-                          }}
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Rate per KG
+                          </label>
+                          <Input
+                            type="number"
+                            value={method.ratePerKg || ''}
+                            onChange={(e) => {
+                              const updated = [...methods];
+                              updated[index] = { 
+                                ...method, 
+                                ratePerKg: e.target.value ? parseFloat(e.target.value) : undefined
+                              };
+                              setMethods(updated);
+                            }}
+                          />
+                        </div>
                       ) : (
-                        <Input
-                          type="number"
-                          label="Fixed Shipping Rate"
-                          value={method.fixedRate || ''}
-                          onChange={(e) => {
-                            const updated = [...methods];
-                            updated[index] = { 
-                              ...method, 
-                              fixedRate: e.target.value ? parseFloat(e.target.value) : undefined
-                            };
-                            setMethods(updated);
-                          }}
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Fixed Shipping Rate
+                          </label>
+                          <Input
+                            type="number"
+                            value={method.fixedRate || ''}
+                            onChange={(e) => {
+                              const updated = [...methods];
+                              updated[index] = { 
+                                ...method, 
+                                fixedRate: e.target.value ? parseFloat(e.target.value) : undefined
+                              };
+                              setMethods(updated);
+                            }}
+                          />
+                        </div>
                       )}
                     </>
                   )}
 
                   {method.type === 'CUSTOM_SHIPPING' && (
-                    <Input
-                      type="number"
-                      label="Custom Shipping Rate"
-                      value={method.customRate || ''}
-                      onChange={(e) => {
-                        const updated = [...methods];
-                        updated[index] = { 
-                          ...method, 
-                          customRate: e.target.value ? parseFloat(e.target.value) : undefined 
-                        };
-                        setMethods(updated);
-                      }}
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Custom Shipping Rate
+                      </label>
+                      <Input
+                        type="number"
+                        value={method.customRate || ''}
+                        onChange={(e) => {
+                          const updated = [...methods];
+                          updated[index] = { 
+                            ...method, 
+                            customRate: e.target.value ? parseFloat(e.target.value) : undefined 
+                          };
+                          setMethods(updated);
+                        }}
+                      />
+                    </div>
                   )}
 
                   <div className="flex items-center space-x-2">
@@ -249,10 +283,10 @@ export function ShippingSettings() {
                     </Button>
                     <Button
                       onClick={() => handleMethodSave(method, index)}
-                      isLoading={isLoading}
+                      disabled={isLoading}
                       className="w-full md:w-auto"
                     >
-                      Save Method
+                      {isLoading ? 'Saving...' : 'Save Method'}
                     </Button>
                   </div>
                 </div>

@@ -137,5 +137,3 @@ export default async function BillsPage({ params }: PageProps) {
     );
   }
 }
-
-// export const dynamic = 'force-dynamic';

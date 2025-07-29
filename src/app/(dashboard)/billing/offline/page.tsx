@@ -1,5 +1,8 @@
 'use client';
 
+
+
+
 export interface CustomerDetails {
   id?: number;
   name: string;
@@ -33,7 +36,14 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { ProductTable, ProductTableRef } from '@/components/billing/ProductTable';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
+
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -498,16 +508,25 @@ export default function OfflineBillingPage() {
       <div className="bg-white shadow-sm rounded-lg p-6">
         <h2 className="text-lg font-medium mb-4">Payment Details</h2>
         <div className="grid grid-cols-2 gap-4">
-          <Select
-            label="Payment Method"
-            value={paymentDetails.method}
-            onChange={(e) => setPaymentDetails(prev => ({
-              ...prev,
-              method: e.target.value,
-            }))}
-            options={PAYMENT_METHODS}
-            required
-          />
+
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+  <Select
+    value={paymentDetails.method}
+    onValueChange={(value) => setPaymentDetails(prev => ({ ...prev, method: value }))}
+  >
+    <SelectTrigger className="w-full">
+      <SelectValue placeholder="Select a method" />
+    </SelectTrigger>
+    <SelectContent>
+      {PAYMENT_METHODS.map(method => (
+        <SelectItem key={method.value} value={method.value}>
+          {method.label}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
           <Input
             label="Amount Paid"
             type="number"

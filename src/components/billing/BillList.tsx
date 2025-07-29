@@ -19,7 +19,6 @@ import { Modal } from '@/components/ui/Modal';
 import React from 'react';  
 import { EditBillModal } from './EditBillModal';
 
-
 interface BillItem {
   productId: number;
   quantity: number;
@@ -93,8 +92,6 @@ export function BillList({ initialBills, mode }: BillListProps) {
   useEffect(() => {
     fetchBills(currentPage);
   }, [searchQuery, dateFilter, statusFilter, hasTrackingFilter]);
-
-
 
   const fetchBills = async (page: number) => {
     setIsLoading(true);
@@ -331,8 +328,6 @@ export function BillList({ initialBills, mode }: BillListProps) {
     }
   };
 
-
-
   const handleDelete = async (billId: number) => {
     setIsLoading(true);
     try {
@@ -440,6 +435,9 @@ export function BillList({ initialBills, mode }: BillListProps) {
               <SelectItem value="month">This Month</SelectItem>
             </SelectContent>
           </Select>
+
+            {/* Conditional filters for ONLINE mode */}
+            
           {mode === "online" && (
             <>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -490,11 +488,24 @@ export function BillList({ initialBills, mode }: BillListProps) {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bill No</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                {mode === 'online' && (
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
+              )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order Details</th>
+                {mode === 'offline' ? (
+                  <>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount Paid</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                  </>
+                  ) : (
+                <>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tracking Info</th>
-                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th> */}
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                </>
+                  )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
@@ -507,50 +518,73 @@ export function BillList({ initialBills, mode }: BillListProps) {
                     <div className="text-xs">{bill.time}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                     <div className="font-medium text-gray-900">{bill.customer.name}</div>
-                     <div>{bill.customer.phone}</div>
+                    <div className="font-medium text-gray-900">{bill.customer.name}</div>
+                    <div>{bill.customer.phone}</div>
                   </td>
+                  {mode === 'online' && (
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.salesSource || '-'}</td>
+                )}
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {bill.items.map(item => <div key={item.id}>{item.productName} ({item.SKU}) x {item.quantity}</div>)}
+                    {bill.items.map(item => <div key={item.id}>{item.SKU} × {item.quantity} = ₹{item.totalPrice.toFixed(2)}</div>)}
                     {bill.shipping && <div className="font-semibold mt-1">Shipping: {bill.shipping.methodName} (₹{bill.shipping.totalCost.toFixed(2)})</div>}
                     <div className="font-bold text-gray-800 mt-1">Total: ₹{bill.totalPrice.toFixed(2)}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-600">Payment:</span>
-                        {(bill.paymentStatus === 'PAID' || bill.paymentStatus === 'FAILED') ? (
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${bill.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{bill.paymentStatus}</span>
-                        ) : (
-                            <Select
-                                value={undefined} // Force placeholder to show
-                                onValueChange={(newStatus: string) => handlePaymentStatusChange(bill.id, newStatus)}
-                                disabled={isLoading}
-                            >
-                                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="Select Status" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="PAID">Paid</SelectItem>
-                                    <SelectItem value="FAILED">Failed</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2 mt-2">
-                        <span className="font-medium text-gray-600">Order:</span>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full uppercase ${
-                            bill.status === 'paymentPending' ? 'bg-orange-100 text-orange-800' :
-                            bill.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                            bill.status === 'shipped' ? 'bg-green-100 text-green-800' :
-                            'bg-gray-100 text-gray-800'
-                        }`}>{bill.status}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.trackingNumber || '-'}</td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.notes || '-'}</td> */}
+
+                  {/* --- FIXED: The conditional rendering for columns --- */}
+                  {mode === 'offline' ? (
+                    <>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">{bill.paymentMethod}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">₹{bill.amountPaid?.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">₹{bill.balance?.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.notes || '-'}</td>
+                    </>
+                  ) : (
+                    <>
+                      {/* This is the online status cell */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-600">Payment:</span>
+                          <Select
+                            value={bill.paymentStatus}
+                            onValueChange={(newStatus: string) => { if (newStatus) { handlePaymentStatusChange(bill.id, newStatus); }}}
+                            disabled={isLoading}
+                          >
+                            <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="Select Status" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="PENDING">Pending</SelectItem>
+                              <SelectItem value="PAID">Paid</SelectItem>
+                              <SelectItem value="FAILED">Failed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className="font-medium text-gray-600">Order:</span>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full uppercase ${
+                              bill.status === 'paymentPending' ? 'bg-orange-100 text-orange-800' :
+                              bill.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                              bill.status === 'shipped' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>{bill.status}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.trackingNumber || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.notes || '-'}</td>
+                    </>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center space-x-2">
                       <Button size="sm" variant="destructive" onClick={() => { setBillToDelete(bill.id); setIsDeleteModalOpen(true); }}>Delete</Button>
-                      <Button size="sm" variant="outline" onClick={() => { setBillToEdit(bill); setIsEditModalOpen(true); }}>Edit</Button>
+                      {mode === 'online' && (bill.status === 'processing' || bill.status === 'paymentPending') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setBillToEdit(bill);
+                          setIsEditModalOpen(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    )}
                     </div>
                   </td>
                 </tr>
