@@ -99,10 +99,11 @@ model ProductCategory {
 model Product {
   id             Int    @id @default(autoincrement())
   name           String
-  SKU            String
-  netPrice       Float  @map("net_price")
-  sellingPrice   Float  @map("selling_price")
-  quantity       Int
+  productType    ProductType @default(STANDARD)
+  SKU            String?
+  netPrice       Float?  @map("net_price")
+  sellingPrice   Float?  @map("selling_price")
+  quantity       Int?
   seller         String
   organisationId Int    @map("organisation_id")
   categoryId     Int?   @map("category_id")
@@ -114,8 +115,35 @@ model Product {
   category         ProductCategory?  @relation(fields: [categoryId], references: [id])
   inventory        Inventory[]
   transactionItems TransactionItem[]
-
+  variants         ProductVariant[]
   @@map("products")
+}
+
+
+enum ProductType {
+  STANDARD
+  BOUTIQUE
+}
+
+model ProductVariant {
+  id           Int      @id @default(autoincrement())
+  
+  // --- Variant-specific data ---
+  SKU          String   @unique
+  netPrice     Float    @map("net_price")
+  sellingPrice Float    @map("selling_price")
+  quantity     Int      // Stock for THIS variant
+  size         String?  // e.g., "M", "L"
+  color        String?  // e.g., "Red", "Blue"
+  
+  // --- Link back to the parent "Folder" product ---
+  productId    Int      @map("product_id")
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // --- Link to sales records ---
+  transactionItems TransactionItem[]
+
+  @@map("product_variants")
 }
 
 model Seller {
@@ -179,12 +207,17 @@ model TransactionRecord {
 model TransactionItem {
   id            Int   @id @default(autoincrement())
   transactionId Int   @map("transaction_id")
-  productId     Int   @map("product_id")
   quantity      Int
   totalPrice    Float @map("total_price")
 
-  transaction TransactionRecord @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  product     Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  // --- MODIFIED FIELDS: Now links to EITHER a standard product OR a variant ---
+  productId        Int? @map("product_id")
+  productVariantId Int? @map("product_variant_id")
+
+  // --- RELATIONS ---
+  transaction    TransactionRecord @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  product        Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant?   @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
 
   @@map("transaction_items")
 }
@@ -352,7 +385,7 @@ model Tax {
   name           String
   type           String
   value          Float
-  autoApply      Boolean      @map("autoApply") // Assuming DB column is 'autoApply'
+  autoApply      Boolean      @map("autoApply")   
   organisation   Organisation @relation(fields: [organisationId], references: [id]) // onDelete: RESTRICT by default
 
   @@index([organisationId])

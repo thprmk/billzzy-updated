@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+
 import {
   Select,
   SelectContent,
@@ -10,16 +11,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/Select';
+
 import Link from 'next/link';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'react-toastify';
 import React from 'react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import ShopifyImportButton from '@/components/products/ShopifyImportButton'; // <-- Import the new component
+import ShopifyImportButton from '@/components/products/ShopifyImportButton'; 
 
 interface Product {
   id: number;
   name: string;
+  productType: 'STANDARD' | 'BOUTIQUE';
   SKU: string;
   netPrice: number;
   sellingPrice: number;
@@ -68,7 +71,6 @@ export default function ViewProductsPage() {
       setIsLoading(false);
     }
   };
-
 
   const fetchCategories = async () => {
     try {
@@ -227,14 +229,45 @@ export default function ViewProductsPage() {
             <tbody className="divide-y divide-gray-200">
               {products.map((product) => (
                 <tr key={product.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{product.SKU}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">₹{product.sellingPrice.toFixed(2)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">{product.quantity}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.name}
+                    {product.productType === 'BOUTIQUE' && (
+                      <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                        Boutique
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {product.productType === 'BOUTIQUE' 
+                      ? <span className="text-gray-400">Multiple</span> 
+                      : product.SKU
+                    }
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    {product.productType === 'BOUTIQUE' 
+                      ? <span className="text-gray-400">See Variants</span> 
+                      : `₹${product.sellingPrice?.toFixed(2) ?? '0.00'}`
+                    }
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right">
+                    {product.productType === 'BOUTIQUE' 
+                      ? <span className="text-gray-400">Multiple</span> 
+                      : product.quantity
+                    }
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">{product.category?.name || '-'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <div className="flex justify-center space-x-2">
-                      <Button size="sm" variant="secondary" onClick={() => handleEdit(product)}>Edit</Button>
+                       {/* --- STEP 3: DISABLE EDIT BUTTON FOR BOUTIQUE --- */}
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        onClick={() => handleEdit(product)}
+                        disabled={product.productType === 'BOUTIQUE'}
+                        title={product.productType === 'BOUTIQUE' ? "Variant editing coming soon" : "Edit product"}
+                      >
+                        Edit
+                      </Button>
                       <Button size="sm" variant="destructive" onClick={() => handleDelete(product.id)}>Delete</Button>
                     </div>
                   </td>

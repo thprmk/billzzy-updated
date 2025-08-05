@@ -373,7 +373,7 @@ const handleProductSelect = useCallback((rowId: string, product: Product) => {
                   max={row.availableQuantity}
                   value={row.quantity}
                   onChange={(e) => handleQuantityChange(row.id, e.target.value)}
-                  disabled={!row.productId}
+                  disabled={!row.productId && !row.productVariantId}
                 />
               </td>
               <td className="px-4 py-2 border text-right">

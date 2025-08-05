@@ -1,5 +1,3 @@
-// app/api/create_online_bill/route.ts - Updated (with monthly usage tracking)
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
@@ -23,13 +21,14 @@ const createBillSchema = z.object({
   customerId: z.number().int().positive(),
   items: z.array(
     z.object({
-      productId: z.number().int().positive(),
+      productId: z.number().int().positive().nullable(),
+      productVariantId: z.number().int().positive().nullable(),
       quantity: z.number().int().positive(),
       price: z.number().nonnegative(),
       total: z.number().nonnegative(),
       productWeight: z.number().optional(),
     })
-  ),
+  ).min(1),
   billingMode: z.string().optional().default('online'),
   notes: z.string().nullable().optional().default(null),
   shippingMethodId: z.number().int().positive().nullable().default(null),
@@ -94,67 +93,85 @@ async function executeWithRetry<T>(
   throw new Error('Maximum retry attempts reached');
 }
 
+type BillItemInput = {
+  productId: number | null;
+  productVariantId: number | null;
+  quantity: number;
+  price: number;
+  total: number;
+};
+
+
 async function processItems(
   tx: any,
-  items: any[],
+  items: BillItemInput[], // Use our new type here
   organisationId: number
-): Promise<{ productDetails: ProcessedItem[]; totalPrice: number; transactionItemsData: TransactionItemData[] }> {
-  const productIds = items.map((item) => item.productId);
-  const dbProducts = await tx.product.findMany({
-    where: { id: { in: productIds }, organisationId },
-  });
+): Promise<{ productDetails: ProcessedItem[]; totalPrice: number; transactionItemsData: any[] }> {
+  
+  const standardItems = items.filter(item => item.productId && !item.productVariantId);
+  const variantItems = items.filter(item => item.productVariantId);
 
-  const productMap = new Map<number, any>();
-  dbProducts.forEach((product) => productMap.set(product.id, product));
-
-  const processedItems: ProcessedItem[] = [];
+  const productDetails: ProcessedItem[] = [];
   let totalPrice = 0;
-  const transactionItemsData: TransactionItemData[] = [];
-
-  for (const item of items) {
-    const { productId, quantity, price, total } = item;
-    const dbProduct = productMap.get(productId) as Product;
-
-    if (!dbProduct) {
-      throw new Error(`Product not found with ID: ${productId}`);
-    }
-
-    if (dbProduct.quantity < quantity) {
-      throw new Error(
-        `Not enough inventory for ${dbProduct.name} (SKU: ${dbProduct.SKU}). Available: ${dbProduct.quantity}, Requested: ${quantity}`
-      );
-    }
-
-    const itemTotal = Math.round(total);
-    totalPrice += itemTotal;
-
-    transactionItemsData.push({
-      productId,
-      quantity,
-      totalPrice: itemTotal,
+  const transactionItemsData: any[] = [];
+  
+  // --- Process Standard Products ---
+  if (standardItems.length > 0) {
+    const productIds = standardItems.map(item => item.productId as number); // Assert as number
+    const dbProducts = await tx.product.findMany({
+      where: { id: { in: productIds }, organisationId },
     });
+    // Tell TypeScript the shape of our map's value
+    const productMap = new Map<number, { id: number; name: string; SKU: string | null; quantity: number | null }>(
+      dbProducts.map((p: any) => [p.id, p])
+    );
 
-    processedItems.push({
-      productName: dbProduct.name,
-      SKU: dbProduct.SKU,
-      quantity,
-      unitPrice: Math.round(price || dbProduct.sellingPrice),
-      amount: itemTotal,
-    });
-  }
-
-  const updatePromises = items.map((item) =>
-    tx.product.update({
+    for (const item of standardItems) {
+      const dbProduct = productMap.get(item.productId!); // Use non-null assertion
+      if (!dbProduct) throw new Error(`Product not found with ID: ${item.productId}`);
+      if ((dbProduct.quantity || 0) < item.quantity) throw new Error(`Not enough stock for ${dbProduct.name}.`);
+      
+      const itemTotal = Math.round(item.total);
+      totalPrice += itemTotal;
+      transactionItemsData.push({ productId: item.productId, quantity: item.quantity, totalPrice: itemTotal });
+      productDetails.push({ productName: dbProduct.name, SKU: dbProduct.SKU || '', quantity: item.quantity, unitPrice: Math.round(item.price), amount: itemTotal });
+    }
+    await Promise.all(standardItems.map(item => tx.product.update({
       where: { id: item.productId },
       data: { quantity: { decrement: item.quantity } },
-    })
-  );
+    })));
+  }
 
-  await Promise.all(updatePromises);
+  // --- Process Product Variants ---
+  if (variantItems.length > 0) {
+    const variantIds = variantItems.map(item => item.productVariantId as number); // Assert as number
+    const dbVariants = await tx.productVariant.findMany({
+      where: { id: { in: variantIds } },
+      include: { product: true }
+    });
+    // Tell TypeScript the shape of our map's value, including the nested product
+    const variantMap = new Map<number, { id: number; quantity: number; SKU: string; size: string | null; color: string | null; product: { name: string; organisationId: number } }>(
+      dbVariants.map((v: any) => [v.id, v])
+    );
 
-  return { productDetails: processedItems, totalPrice, transactionItemsData };
+    for (const item of variantItems) {
+      const dbVariant = variantMap.get(item.productVariantId!); // Use non-null assertion
+      if (!dbVariant || dbVariant.product.organisationId !== organisationId) throw new Error(`Product variant not found with ID: ${item.productVariantId}`);
+      if (dbVariant.quantity < item.quantity) throw new Error(`Not enough stock for ${dbVariant.product.name} (${dbVariant.size || ''}/${dbVariant.color || ''}).`);
+      
+      const itemTotal = Math.round(item.total);
+      totalPrice += itemTotal;
+      transactionItemsData.push({ productVariantId: item.productVariantId, quantity: item.quantity, totalPrice: itemTotal });
+      productDetails.push({ productName: `${dbVariant.product.name} (${dbVariant.size || ''}/${dbVariant.color || ''})`, SKU: dbVariant.SKU, quantity: item.quantity, unitPrice: Math.round(item.price), amount: itemTotal });
+    }
+    await Promise.all(variantItems.map(item => tx.productVariant.update({
+      where: { id: item.productVariantId },
+      data: { quantity: { decrement: item.quantity } },
+    })));
+  }
+
+  return { productDetails, totalPrice, transactionItemsData };
 }
-
 async function createTransactionRecord(
   tx: any,
   organisationId: number,
@@ -409,7 +426,8 @@ export async function POST(request: Request) {
         await tx.transactionItem.createMany({
           data: transactionItemsData.map((item) => ({
             transactionId: newBill.id,
-            productId: item.productId,
+            productId: item.productId, // This will be null for variants
+            productVariantId: item.productVariantId, // This will be null for standard products
             quantity: item.quantity,
             totalPrice: item.totalPrice,
           })),
