@@ -21,17 +21,22 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const bill = await prisma.transactionRecord.findFirst({
       where: {
-        companyBillNo: companyBillId, // <-- CHANGE THIS
+        companyBillNo: companyBillId, 
         organisationId,
       },
       include: {
         customer: true,
         items: {
           include: {
-            product: true,
+            product: true,        // For standard items
+            productVariant: {   // Add this for variant items
+              include: {
+                product: true,  // Also include the parent for the name
+              },
+            },
           },
         },
-        TransactionShipping: true, // Use transactionShipping instead of shipping
+        TransactionShipping: true,
       },
     });
 
@@ -86,12 +91,35 @@ export async function GET(request: Request, { params }: { params: { id: string }
         pincode: bill.customer?.pincode,
       },
       organisation_details: organisation,
-      product_details: bill.items.map(item => ({
-        productName: item.product.name,
-        quantity: item.quantity,
-        unitPrice: item.product.sellingPrice,
-        amount: item.totalPrice,
-      })),
+
+      product_details: bill.items.map((item: any) => {
+        // If it's a variant, use variant details
+        if (item.productVariant) {
+          return {
+            productName: `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || ''})`.trim(),
+            quantity: item.quantity,
+            unitPrice: item.productVariant.sellingPrice,
+            amount: item.totalPrice,
+          };
+        }
+        // If it's a standard product, use product details
+        if (item.product) {
+          return {
+            productName: item.product.name,
+            quantity: item.quantity,
+            unitPrice: item.product.sellingPrice,
+            amount: item.totalPrice,
+          };
+        }
+        // Fallback in case of bad data
+        return {
+            productName: 'Product Not Found',
+            quantity: item.quantity,
+            unitPrice: 0,
+            amount: item.totalPrice,
+        };
+      }),
+
       shipping_details: bill.TransactionShipping.length!=0 ? {
         method_name: bill.TransactionShipping[0].methodName,
         method_type: bill.TransactionShipping[0].methodType,
@@ -115,7 +143,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
     console.log(printData);
     
 
-    const products = bill.items.map((item) => item.product.name);
+    const products = bill.items.map((item: any) => {
+      if (item.productVariant) {
+        return `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || ''})`.trim();
+      }
+      if (item.product) {
+        return item.product.name;
+      }
+      return 'Unknown Product';
+    });
     const productList = products.join(', ');
     const [productsPart1, productsPart2] = splitProducts(productList);
 

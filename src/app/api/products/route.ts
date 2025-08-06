@@ -38,6 +38,7 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         category: true, // Include category information
+        variants: true, 
       },
       orderBy: { name: 'asc' }
     });

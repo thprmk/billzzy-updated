@@ -491,7 +491,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
                 {mode === 'online' && (
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
               )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order Details</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">Order Details</th>
                 {mode === 'offline' ? (
                   <>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
@@ -524,11 +524,12 @@ export function BillList({ initialBills, mode }: BillListProps) {
                   {mode === 'online' && (
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.salesSource || '-'}</td>
                 )}
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {bill.items.map(item => <div key={item.id}>{item.SKU} × {item.quantity} = ₹{item.totalPrice.toFixed(2)}</div>)}
+                
+                <td className="px-6 py-4 text-sm text-gray-500">
+                    {bill.items.map(item => <div key={item.id}>{item.SKU || 'N/A'} × {item.quantity} = ₹{item.totalPrice.toFixed(2)}</div>)}
                     {bill.shipping && <div className="font-semibold mt-1">Shipping: {bill.shipping.methodName} (₹{bill.shipping.totalCost.toFixed(2)})</div>}
                     <div className="font-bold text-gray-800 mt-1">Total: ₹{bill.totalPrice.toFixed(2)}</div>
-                  </td>
+                </td>
 
                   {/* --- FIXED: The conditional rendering for columns --- */}
                   {mode === 'offline' ? (

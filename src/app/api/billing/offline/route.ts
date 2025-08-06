@@ -8,12 +8,15 @@ import { processTransaction } from '@/lib/transaction';
 import moment from 'moment-timezone';
 
 interface BillItem {
-  productId: number;
+  productId: number | null; // Make productId optional (nullable)
+  productVariantId: number | null; // Add the new field for variants
   quantity: number;
+  price: number;
   total: number;
 }
 
 interface CustomerDetails {
+  id?: number; 
   name: string;
   phone: string;
 }
@@ -28,6 +31,7 @@ interface BillRequest {
   customerDetails: CustomerDetails;
   paymentDetails: PaymentDetails;
   total: number;
+  notes?: string | null;
 }
 
 function serializeDecimal(value: any): number {
@@ -99,83 +103,114 @@ export async function POST(request: Request) {
 
     const organisationId = parseInt(session.user.id, 10);
 
-    // Get current Indian date and time
-    const { date, time } = getCurrentIndianDateTime();
+    const { items, customerDetails, paymentDetails, total, notes } = data;
 
-    // Add date and time to the transaction data
-    const transactionData = {
-      ...data,
-      date,
-      time
-    };
-
-    const transactionId = await processTransaction(transactionData, organisationId);
-
-    const bill = await prisma.transactionRecord.findUnique({
-      where: { id: transactionId },
-      include: {
-        organisation: true,
-        customer: true,
-        items: {
-          include: {
-            product: true,
+    // --- NEW VARIANT-AWARE TRANSACTION LOGIC STARTS HERE ---
+    const newBill = await prisma.$transaction(async (tx) => {
+      // 1. Find or Create Customer
+      let customer;
+      if (customerDetails.id) {
+        customer = await tx.customer.findUnique({ where: { id: customerDetails.id } });
+        if (!customer || customer.organisationId !== organisationId) {
+          throw new Error('Customer not found for this organisation.');
+        }
+      } else {
+        customer = await tx.customer.create({
+          data: {
+            name: customerDetails.name,
+            phone: customerDetails.phone,
+            organisationId: organisationId,
           },
+        });
+      }
+
+      // 2. Process Items and Decrement Stock
+      const standardItems = items.filter(item => item.productId && !item.productVariantId);
+      const variantItems = items.filter(item => item.productVariantId);
+
+      // Process standard products
+      for (const item of standardItems) {
+        const product = await tx.product.findUnique({ where: { id: item.productId! } });
+        if (!product || (product.quantity || 0) < item.quantity) {
+          throw new Error(`Not enough stock for ${product?.name || 'product'}.`);
+        }
+        await tx.product.update({
+          where: { id: item.productId! },
+          data: { quantity: { decrement: item.quantity } },
+        });
+        await tx.inventory.updateMany({
+          where: { productId: item.productId!, organisationId },
+          data: { quantity: { decrement: item.quantity } },
+        });
+      }
+
+      // Process product variants
+      for (const item of variantItems) {
+        const variant = await tx.productVariant.findUnique({ where: { id: item.productVariantId! } });
+        if (!variant || variant.quantity < item.quantity) {
+          throw new Error(`Not enough stock for variant ${variant?.SKU || 'variant'}.`);
+        }
+        await tx.productVariant.update({
+          where: { id: item.productVariantId! },
+          data: { quantity: { decrement: item.quantity } },
+        });
+      }
+
+      // 3. Create the Transaction Record
+      const indianDateTime = moment().tz('Asia/Kolkata');
+      const indianDate = indianDateTime.format('YYYY-MM-DD');
+      const indianTime = indianDateTime.format('HH:mm:ss');
+      
+      const org = await tx.organisation.update({
+        where: { id: organisationId },
+        data: { billCounter: { increment: 1 } },
+        select: { billCounter: true }
+      });
+      const newCompanyBillNo = org.billCounter;
+
+      const transactionRecord = await tx.transactionRecord.create({
+        data: {
+          companyBillNo: newCompanyBillNo,
+          billNo: newCompanyBillNo, // Keeping both in sync
+          totalPrice: total,
+          paymentMethod: paymentDetails.method,
+          amountPaid: paymentDetails.amountPaid,
+          balance: total - paymentDetails.amountPaid,
+          billingMode: 'offline',
+          organisationId: organisationId,
+          customerId: customer.id,
+          date: new Date(indianDate),
+          time: new Date(`1970-01-01T${indianTime}Z`),
+          status: (total - paymentDetails.amountPaid) <= 0 ? 'completed' : 'partial',
+          paymentStatus: (total - paymentDetails.amountPaid) <= 0 ? 'PAID' : 'PENDING',
+          notes: notes,
         },
-      },
+      });
+
+      // 4. Create the Transaction Items with variant awareness
+      await tx.transactionItem.createMany({
+        data: items.map(item => ({
+          transactionId: transactionRecord.id,
+          productId: item.productId,
+          productVariantId: item.productVariantId,
+          quantity: item.quantity,
+          totalPrice: item.total,
+        })),
+      });
+
+      return transactionRecord;
     });
-
-    if (!bill) {
-      throw new Error('Failed to retrieve bill details');
-    }
-
-    const response = {
-      id: bill.id,
-      billNo: bill.billNo,
-      totalPrice: serializeDecimal(bill.totalPrice),
-      date: serializeDate(bill.date),
-      time: serializeTime(bill.time), // Using the new time serializer
-      status: bill.status,
-      organisation: bill.organisation
-        ? {
-            name: bill.organisation.name || '',
-            shopName: bill.organisation.shopName || '',
-            flatNo: bill.organisation.flatNo || '',
-            street: bill.organisation.street || '',
-            district: bill.organisation.district || '',
-            state: bill.organisation.state || '',
-            pincode: bill.organisation.pincode || '',
-            phone: bill.organisation.mobileNumber || '',
-            websiteAddress: bill.organisation.websiteAddress || '',
-          }
-        : null,
-      customer: {
-        id: bill.customer?.id,
-        name: bill.customer?.name || 'Website Customer',
-        phone: bill.customer?.phone || '-',
-      },
-      items: bill.items.map((item) => ({
-        id: item.id,
-        quantity: serializeDecimal(item.quantity),
-        totalPrice: serializeDecimal(item.totalPrice),
-        product: {
-          id: item.product.id,
-          name: item.product.name || '',
-          SKU: item.product.SKU || '',
-          sellingPrice: serializeDecimal(item.product.sellingPrice),
-        },
-      })),
-    };
-
-
-    const serializableResponse = JSON.parse(JSON.stringify(response));
 
     return NextResponse.json(
       {
         success: true,
-        data: serializableResponse,
+        message: 'Offline bill created successfully!',
+        data: { billId: newBill.id, billNo: newBill.companyBillNo },
       },
       { status: 201 }
     );
+
+    
   } catch (error: any) {
     console.error('API Error:', {
       message: error.message,

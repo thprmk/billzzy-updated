@@ -143,9 +143,14 @@ export async function GET(request: Request) {
         },
         items: {
           include: {
-            product: true,
+            product: true,        // Keep this for standard items
+            productVariant: {   // Add this block for variant items
+              include: {
+                product: true,  // Also include the parent product for the name
+            }, 
           },
         },
+      },
         TransactionShipping: true,
       },
       orderBy: { companyBillNo: 'desc' },
@@ -175,16 +180,42 @@ export async function GET(request: Request) {
       paymentStatus: bill.paymentStatus,
       notes: bill.notes,
       salesSource: bill.salesSource,
-      items: bill.items.map((item) => ({
-        id: item.id,
-        productId: item.productId,
-        productName: item.product.name,
-        quantity: item.quantity,
-        totalPrice: item.totalPrice,
-        SKU: item.product.SKU,
-        price: item.product.sellingPrice,
-        availableQuantity: item.product.quantity,
-      })),
+
+      items: bill.items.map((item: any) => { // Add 'any' type to handle the complex include
+        // If it's a variant, use variant details
+        if (item.productVariant) {
+          return {
+            id: item.id,
+            productId: item.productId,
+            productName: `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || ''})`.trim(),
+            quantity: item.quantity,
+            totalPrice: item.totalPrice,
+            SKU: item.productVariant.SKU,
+            price: item.productVariant.sellingPrice,
+            availableQuantity: item.productVariant.quantity,
+          };
+        }
+        // If it's a standard product, use product details
+        if (item.product) {
+          return {
+            id: item.id,
+            productId: item.productId,
+            productName: item.product.name,
+            quantity: item.quantity,
+            totalPrice: item.totalPrice,
+            SKU: item.product.SKU,
+            price: item.product.sellingPrice,
+            availableQuantity: item.product.quantity,
+          };
+        }
+        // Fallback in case of bad data (e.g., deleted product)
+        return {
+            id: item.id, productId: item.productId, productName: 'Product Not Found',
+            quantity: item.quantity, totalPrice: item.totalPrice,
+            SKU: 'N/A', price: 0, availableQuantity: 0
+        };
+      }),
+
       shipping: bill.TransactionShipping?.[0] ? {
         methodName: bill.TransactionShipping[0].methodName,
         methodType: bill.TransactionShipping[0].methodType,

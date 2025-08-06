@@ -1,8 +1,5 @@
 'use client';
 
-
-
-
 export interface CustomerDetails {
   id?: number;
   name: string;
@@ -10,7 +7,10 @@ export interface CustomerDetails {
 }
 
 export interface BillItem {
-  productId: number;
+  productId: number | null;
+  productVariantId: number | null;
+  name?: string; 
+  SKU?: string;
   quantity: number;
   price: number;
   total: number;
@@ -207,17 +207,46 @@ export default function OfflineBillingPage() {
       setNotes('');
       productTableRef.current?.resetTable();
 
-      if (result.data) {
+      if (result.data && result.data.billNo) {
+        // Create ONE object with all the parts needed for printing.
+               // Fetch organisation details FIRST and check for success.
+                      // Fetch organisation details FIRST and check for success.
+        const orgResponse = await fetch('/api/organisation');
+        if (!orgResponse.ok) {
+          toast.error("Could not fetch shop details for printing.");
+          throw new Error('Failed to fetch organisation details.');
+        }
+        const orgResult = await orgResponse.json();
+
+        // --- THIS IS THE FINAL FIX ---
+        // We now correctly access the nested 'organisation' object
+        const organisationDetailsForPrint = orgResult.organisation;
+
+        // Check the nested object for the shopName
+        if (!organisationDetailsForPrint || !organisationDetailsForPrint.shopName) {
+            toast.error("Shop details are invalid or missing from API response.");
+            throw new Error("Invalid organisation data structure.");
+        }
+        
+        // Now, build the object for printing with the CORRECT, unwrapped details
+        const billDataForPrinting = {
+          billNo: result.data.billNo,
+          date: new Date().toISOString(),
+          totalPrice: calculateTotal(),
+          organisation: organisationDetailsForPrint, // Use the correct, nested object
+          customer: customerDetails,
+          items: items,
+          paymentDetails: paymentDetails
+        };
+
         if (autoDownloadEnabled) {
-          // Auto-download the bill
-          await handleDownloadBill(result.data);
+          await handleDownloadBill(billDataForPrinting);
         } else {
-          // Just print the bill (existing functionality)
-          handlePrintBill(result.data);
+          handlePrintBill(billDataForPrinting);
         }
       }
 
-      router.push('/billing/offline');
+      router.refresh();
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create bill';
@@ -229,7 +258,8 @@ export default function OfflineBillingPage() {
   };
 
   const generateBillContent = (billData: any) => {
-    const { organisation, customer, items, billNo, date, totalPrice } = billData;
+
+    const { organisation, customer, items, billNo, date, totalPrice, paymentDetails } = billData;
 
     if (!organisation) {
       throw new Error('Organisation details missing');
@@ -247,7 +277,7 @@ export default function OfflineBillingPage() {
     });
 
     const amountPaid = parseFloat(paymentDetails.amountPaid);
-    const balance = calculateBalance();
+    const balance = totalPrice - (parseFloat(paymentDetails.amountPaid) || 0);
 
     return `
       <!DOCTYPE html>
@@ -346,13 +376,13 @@ export default function OfflineBillingPage() {
                 <th>Total</th>
               </tr>
             </thead>
-            <tbody>
+                      <tbody>
               ${items.map((item: any) => `
                 <tr>
-                  <td>${item.product.name}</td>
+                  <td>${item.name || 'N/A'}</td>
                   <td>${item.quantity}</td>
-                  <td>₹${item.product.sellingPrice.toFixed(2)}</td>
-                  <td>₹${item.totalPrice.toFixed(2)}</td>
+                  <td>₹${(item.price || 0).toFixed(2)}</td>
+                  <td>₹${(item.total || 0).toFixed(2)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -387,20 +417,18 @@ export default function OfflineBillingPage() {
   // New function to handle bill download
   const handleDownloadBill = async (billData: any) => {
     try {
+      // Pass the single object directly to the generator
       const billContent = generateBillContent(billData);
       
-      // Create a blob with the HTML content
       const blob = new Blob([billContent], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       
-      // Create a temporary link element and trigger download
       const link = document.createElement('a');
       link.href = url;
       link.download = `Bill_${billData.billNo}_${billData.customer.name.replace(/\s+/g, '_')}.html`;
       document.body.appendChild(link);
       link.click();
       
-      // Clean up
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
@@ -417,7 +445,7 @@ export default function OfflineBillingPage() {
       if (!printWindow) {
         throw new Error('Failed to open print window');
       }
-
+      // Pass the single object directly to the generator
       const billContent = generateBillContent(billData);
       printWindow.document.write(billContent);
       printWindow.document.close();
@@ -468,7 +496,7 @@ export default function OfflineBillingPage() {
               >
                 {suggestions.map((suggestion, index) => (
                   <div
-                    key={suggestion.phone}
+                    key={suggestion.id} 
                     className={`p-2 cursor-pointer ${index === selectedIndex
                         ? 'bg-indigo-100'
                         : 'hover:bg-gray-100'

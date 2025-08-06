@@ -19,18 +19,26 @@ import React from 'react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import ShopifyImportButton from '@/components/products/ShopifyImportButton'; 
 
+
+interface ProductVariant {
+  id: number;
+  SKU: string;
+  sellingPrice: number;
+  quantity: number;
+  size: string | null;
+  color: string | null;
+}
+
 interface Product {
   id: number;
   name: string;
   productType: 'STANDARD' | 'BOUTIQUE';
-  SKU: string;
-  netPrice: number;
-  sellingPrice: number;
-  quantity: number;
-  category?: {
-    name: string;
-    id: number;
-  };
+  SKU: string | null; // Can be null for boutique
+  netPrice: number | null; // Can be null for boutique
+  sellingPrice: number | null; // Can be null for boutique
+  quantity: number | null; // Can be null for boutique
+  category?: { name: string; id: number; };
+  variants?: ProductVariant[]; // Add this
 }
 
 interface Category {
@@ -46,7 +54,11 @@ export default function ViewProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-
+  const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
+  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
+  const [showVariantEditModal, setShowVariantEditModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   useEffect(() => {
     fetchProducts();
     fetchCategories();
@@ -117,6 +129,8 @@ export default function ViewProductsPage() {
       }
     } catch (error) {
       toast.error('Failed to delete product');
+    } finally {
+      setProductToDelete(null); // Close the modal on completion
     }
   };
 
@@ -152,6 +166,33 @@ export default function ViewProductsPage() {
     }
   };
 
+  const handleVariantUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingVariant) return;
+
+    try {
+      const response = await fetch(`/api/products/variants/${editingVariant.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingVariant),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update variant');
+      }
+
+      toast.success('Variant updated successfully');
+      setShowVariantEditModal(false);
+      setEditingVariant(null);
+      // Refresh the product list to show the new data
+      fetchProducts(selectedCategory, searchTerm);
+
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
   // Callback for the import button to refresh the list
   const handleImportComplete = () => {
     fetchProducts(selectedCategory);
@@ -171,7 +212,7 @@ export default function ViewProductsPage() {
            {/* --- NEW IMPORT BUTTON AND ADD BUTTON --- */}
           <ShopifyImportButton onImportComplete={handleImportComplete} />
           <Link href="/products/add">
-            <Button variant="primary">Add Product</Button>
+          <Button variant="default">Add Product</Button>
           </Link>
         </div>
       </div>
@@ -226,52 +267,107 @@ export default function ViewProductsPage() {
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200">
               {products.map((product) => (
-                <tr key={product.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {product.name}
-                    {product.productType === 'BOUTIQUE' && (
-                      <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
-                        Boutique
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {product.productType === 'BOUTIQUE' 
-                      ? <span className="text-gray-400">Multiple</span> 
-                      : product.SKU
-                    }
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    {product.productType === 'BOUTIQUE' 
-                      ? <span className="text-gray-400">See Variants</span> 
-                      : `₹${product.sellingPrice?.toFixed(2) ?? '0.00'}`
-                    }
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    {product.productType === 'BOUTIQUE' 
-                      ? <span className="text-gray-400">Multiple</span> 
-                      : product.quantity
-                    }
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{product.category?.name || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex justify-center space-x-2">
-                       {/* --- STEP 3: DISABLE EDIT BUTTON FOR BOUTIQUE --- */}
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
-                        onClick={() => handleEdit(product)}
-                        disabled={product.productType === 'BOUTIQUE'}
-                        title={product.productType === 'BOUTIQUE' ? "Variant editing coming soon" : "Edit product"}
-                      >
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(product.id)}>Delete</Button>
-                    </div>
-                  </td>
-                </tr>
+                <React.Fragment key={product.id}>
+
+                  {/* --- MAIN PRODUCT ROW --- */}
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {product.name}
+                      {product.productType === 'BOUTIQUE' && (
+                        <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                          Boutique
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {product.productType === 'BOUTIQUE' 
+                        ? <span className="text-gray-400">Multiple</span> 
+                        : product.SKU
+                      }
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      {product.productType === 'BOUTIQUE' 
+                        ? <span className="text-gray-400"></span> 
+                        : `₹${product.sellingPrice?.toFixed(2) ?? '0.00'}`
+                      }
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      {product.productType === 'BOUTIQUE' 
+                        ? <span className="text-gray-400"></span> 
+                        : product.quantity
+                      }
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{product.category?.name || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex justify-center space-x-2">
+                        {product.productType === 'BOUTIQUE' ? (
+                          <Button size="sm" variant="outline" onClick={() => setExpandedProductId(expandedProductId === product.id ? null : product.id)}>
+                            {expandedProductId === product.id ? 'Hide' : 'View'} Variants
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="secondary" onClick={() => handleEdit(product)}>Edit</Button>
+                        )}
+                        <Button size="sm" variant="destructive"onClick={() => setProductToDelete(product)}>Delete</Button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  {/* --- EXPANDED VARIANTS SUB-TABLE --- */}
+                  {product.productType === 'BOUTIQUE' && expandedProductId === product.id && (
+                    <tr>
+                     <td colSpan={6} className="p-0 border-l-4 border-indigo-200 bg-slate-50">
+                        <div className="px-6 py-4">
+                          <h4 className="text-sm font-semibold mb-2 text-gray-700">Variants for {product.name}</h4>
+                          <table className="min-w-full bg-white border rounded shadow-sm">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">SKU</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Size</th>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Color</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-600 uppercase">Price</th>
+                                <th className="px-4 py-2 text-right text-xs font-medium text-gray-600 uppercase">Stock</th>
+                                <th className="px-4 py-2 text-center text-xs font-medium text-gray-600 uppercase">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+  {product.variants && product.variants.length > 0 ? (
+    product.variants.map(variant => ( // <-- NO extra braces or optional chaining needed
+      <tr key={variant.id} className="border-t">
+        <td className="px-4 py-2 whitespace-nowrap">{variant.SKU}</td>
+        <td className="px-4 py-2 whitespace-nowrap">{variant.size || '-'}</td>
+        <td className="px-4 py-2 whitespace-nowrap">{variant.color || '-'}</td>
+        <td className="px-4 py-2 whitespace-nowrap text-right">₹{variant.sellingPrice.toFixed(2)}</td>
+        <td className="px-4 py-2 whitespace-nowrap text-right">{variant.quantity}</td>
+        <td className="px-4 py-2 text-center">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setEditingVariant(variant);
+              setShowVariantEditModal(true);
+            }}
+          >
+            Edit
+          </Button>
+        </td>
+      </tr>
+    ))
+  ) : (
+    <tr>
+      <td colSpan={6} className="px-4 py-4 text-center text-sm text-gray-500">
+        No variants found for this product.
+      </td>
+    </tr>
+  )}
+</tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
@@ -280,51 +376,75 @@ export default function ViewProductsPage() {
 
       <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Product">
         {editingProduct && (
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            {/* Input fields for product editing */}
+          <form onSubmit={handleEditSubmit} className="space-y-4 p-4">
             <input type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} className="w-full p-2 border rounded" placeholder="Product Name" />
-            <input type="text" value={editingProduct.SKU} onChange={(e) => setEditingProduct({ ...editingProduct, SKU: e.target.value })} className="w-full p-2 border rounded" placeholder="SKU" />
-            <input type="number" value={editingProduct.netPrice} onChange={(e) => setEditingProduct({ ...editingProduct, netPrice: parseFloat(e.target.value) })} className="w-full p-2 border rounded" placeholder="Net Price" />
-            <input type="number" value={editingProduct.sellingPrice} onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: parseFloat(e.target.value) })} className="w-full p-2 border rounded" placeholder="Selling Price" />
-            <input type="number" value={editingProduct.quantity} onChange={(e) => setEditingProduct({ ...editingProduct, quantity: parseInt(e.target.value) })} className="w-full p-2 border rounded" placeholder="Quantity" />
-           {/* --- THIS IS THE NEW, UPGRADED DROPDOWN FOR THE MODAL --- */}
-<Select
-  value={editingProduct.category ? String(editingProduct.category.id) : "none"}
-  onValueChange={(value) => {
-    const catId = value === "none" ? undefined : parseInt(value);
-    if (catId) {
-      const catName = categories.find(c => c.id === catId)?.name || '';
-      setEditingProduct({
-        ...editingProduct,
-        category: { id: catId, name: catName }
-      });
-    } else {
-      setEditingProduct({
-        ...editingProduct,
-        category: undefined
-      });
-    }
-  }}
->
-  <SelectTrigger className="w-full">
-    <SelectValue placeholder="Select Category" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="none">Select Category</SelectItem>
-    {categories.map((cat) => (
-      <SelectItem key={cat.id} value={String(cat.id)}>
-        {cat.name}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
+            <input type="text" value={editingProduct.SKU || ''} onChange={(e) => setEditingProduct({ ...editingProduct, SKU: e.target.value })} className="w-full p-2 border rounded" placeholder="SKU" />
+            <input type="number" value={editingProduct.netPrice || 0} onChange={(e) => setEditingProduct({ ...editingProduct, netPrice: parseFloat(e.target.value) })} className="w-full p-2 border rounded" placeholder="Net Price" />
+            <input type="number" value={editingProduct.sellingPrice || 0} onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: parseFloat(e.target.value) })} className="w-full p-2 border rounded" placeholder="Selling Price" />
+            <input type="number" value={editingProduct.quantity || 0} onChange={(e) => setEditingProduct({ ...editingProduct, quantity: parseInt(e.target.value) })} className="w-full p-2 border rounded" placeholder="Quantity" />
+            <Select
+              value={editingProduct.category ? String(editingProduct.category.id) : "none"}
+              onValueChange={(value) => {
+                const catId = value === "none" ? undefined : parseInt(value);
+                const category = catId ? categories.find(c => c.id === catId) : undefined;
+                setEditingProduct({ ...editingProduct, category });
+              }}
+            >
+              <SelectTrigger className="w-full"><SelectValue placeholder="Select Category" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Select Category</SelectItem>
+                {categories.map((cat) => ( <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem> ))}
+              </SelectContent>
+            </Select>
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="secondary" onClick={() => setShowEditModal(false)}>Cancel</Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" isLoading={isSubmitting}>Save Changes</Button>
             </div>
           </form>
         )}
       </Modal>
+
+      <Modal isOpen={showVariantEditModal} onClose={() => setShowVariantEditModal(false)} title="Edit Variant">
+        {editingVariant && (
+        <form onSubmit={handleVariantUpdate} className="space-y-4 p-6">
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">SKU</label>
+          <Input value={editingVariant.SKU} onChange={(e) => setEditingVariant({ ...editingVariant, SKU: e.target.value.toUpperCase() })} required />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Selling Price</label>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
+            <Input type="number" value={editingVariant.sellingPrice} onChange={(e) => setEditingVariant({ ...editingVariant, sellingPrice: parseFloat(e.target.value) || 0 })} required className="pl-7" />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700">Stock Quantity</label>
+          <Input type="number" value={editingVariant.quantity} onChange={(e) => setEditingVariant({ ...editingVariant, quantity: parseInt(e.target.value) || 0 })} required />
+        </div>
+        <div className="flex justify-end space-x-2 pt-4 border-t mt-6">
+          <Button type="button" variant="secondary" onClick={() => setShowVariantEditModal(false)}>Cancel</Button>
+          <Button type="submit" isLoading={isSubmitting}>Save Changes</Button>
+        </div>
+      </form>     
+    )}
+      </Modal>
+
+      {/* --- ADD THIS DELETE CONFIRMATION MODAL --- */}
+<Modal isOpen={!!productToDelete} onClose={() => setProductToDelete(null)} title="Confirm Deletion">
+  <div className="p-6">
+    <p className="text-sm text-gray-700">
+      Are you sure you want to delete the product "<strong>{productToDelete?.name}</strong>"?
+      This action cannot be undone.
+    </p>
+    <div className="flex justify-end space-x-2 mt-6">
+      <Button variant="secondary" onClick={() => setProductToDelete(null)}>Cancel</Button>
+      <Button variant="destructive" onClick={() => { if (productToDelete) handleDelete(productToDelete.id); }}>
+        Delete Product
+      </Button>
+    </div>
+  </div>
+</Modal>
     </div>
   );
 }

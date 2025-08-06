@@ -23,10 +23,31 @@ export async function GET(request: Request) {
     const products = await prisma.product.findMany({
       where: {
         organisationId: organisationId,
-        // We only need to search by the parent product name
-        name: {
-          contains: searchQuery,
-        },
+        // --- THIS IS THE NEW, SMARTER SEARCH LOGIC ---
+        OR: [
+          // 1. Search by parent product NAME (for both types)
+          {
+            name: {
+              contains: searchQuery,
+            },
+          },
+          // 2. Search by parent product SKU (for STANDARD products)
+          {
+            SKU: {
+              contains: searchQuery,
+            },
+          },
+          // 3. Search by the SKU of any of its VARIANTS (for BOUTIQUE products)
+          {
+            variants: {
+              some: {
+                SKU: {
+                  contains: searchQuery,
+                },
+              },
+            },
+          },
+        ],
       },
       // --- THIS IS THE CORRECTED PART ---
       // We use 'include' instead of 'select' to get all product fields

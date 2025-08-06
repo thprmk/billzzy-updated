@@ -20,16 +20,25 @@ export async function GET(request: NextRequest) {
 
     const organisation = await prisma.organisation.findUnique({
       where: { id: Number(orgId) },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        shopName: true,
-        endDate: true,
-        subscriptionType: true,
-        smsCount: true,
-        monthlyUsage:true
-      },
+      // select: {
+      //   id: true,
+      //   email: true,
+      //   name: true,
+      //   shopName: true,
+      //   endDate: true,
+      //   subscriptionType: true,
+      //   smsCount: true,
+      //   monthlyUsage:true,
+
+        // // --- ADD THESE LINES FOR THE PRINTOUT ---
+        // flatNo: true,
+        // street: true,
+        // district: true,
+        // state: true,
+        // pincode: true,
+        // phone: true, // Use the 'phone' field from your schema
+        // websiteAddress: true
+      // },
     });
 
     if (!organisation) {

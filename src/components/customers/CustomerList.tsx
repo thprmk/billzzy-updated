@@ -9,6 +9,7 @@ import {Input} from '../ui/Input';
 import {Modal} from '../ui/Modal';
 import { toast } from 'react-toastify';
 import React from 'react';  // Add this import
+import { CustomerImportModal } from './CustomerImportModal';
 
 interface Customer {
   id: number;
@@ -29,19 +30,27 @@ export default function CustomerList({ initialCustomers }: CustomerListProps) {
   const [customers, setCustomers] = useState(initialCustomers);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
-    if (!query) {
-      setCustomers(initialCustomers);
-      return;
-    }
-
+    //
+    // NO "if" CHECK HERE. We will always fetch from the API.
+    //
     const response = await fetch(`/api/customers?search=${encodeURIComponent(query)}`);
     const data = await response.json();
     setCustomers(data);
   };
+
+  const onImportComplete = () => {
+    // This will refresh the customer list with the new data.
+    // It works by re-fetching all customers.
+    handleSearch(''); // Calling search with an empty query resets to the initial full list
+    toast.info("Customer list has been updated.");
+    handleSearch('');
+  };
+
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -73,7 +82,7 @@ export default function CustomerList({ initialCustomers }: CustomerListProps) {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+         <div className="flex justify-between items-center mb-6">
         <div className="w-1/3">
           <Input
             type="search"
@@ -82,9 +91,14 @@ export default function CustomerList({ initialCustomers }: CustomerListProps) {
             onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
-        <Link href="/customers/add">
-          <Button>Add Customer</Button>
-        </Link>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
+            Import Customers
+          </Button>
+          <Link href="/customers/add">
+            <Button>Add Customer</Button>
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -174,6 +188,13 @@ export default function CustomerList({ initialCustomers }: CustomerListProps) {
           </Button>
         </div>
       </Modal>
+
+      <CustomerImportModal 
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportComplete={onImportComplete}
+      />
+      
     </div>
   );
 }
