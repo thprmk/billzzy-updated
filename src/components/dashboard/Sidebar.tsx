@@ -339,7 +339,7 @@ export default function Sidebar({
       {/* The actual sidebar panel */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg
+          fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           md:translate-x-0 flex flex-col justify-between

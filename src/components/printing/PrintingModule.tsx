@@ -437,7 +437,7 @@ export default function PrintingModule() {
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-black bg-opacity-60" />
+           <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-md" />
           </Transition.Child>
 
           <div className="fixed inset-0 overflow-y-auto">

@@ -95,7 +95,7 @@ export default function Header({
   const pendingCount = submissionsData?.submissions?.length || 0;
 
   return (
-    <header className="sticky top-0 md:mb-0 mb-4 z-10  flex h-16 bg-white shadow items-center md:hidden">
+    <header className="sticky top-0 z-10 md:mb-0 mb-4 flex h-16 bg-white shadow items-center md:hidden">
       {/** 
        * If the sidebar is CLOSED, show the hamburger. 
        * If the sidebar is OPEN, show the close (X) icon. 

@@ -416,8 +416,8 @@ const SelectVariantModal: React.FC<SelectVariantModalProps> = ({ isOpen, onClose
   if (!isOpen || !product) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+<div className="fixed inset-0 z-[999] flex items-center justify-center bg-gray-900/20 backdrop-blur-md">    
+<div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
         <div className="p-4 border-b flex justify-between items-center">
           <h3 className="text-lg font-semibold">Select Variant for {product.name}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl font-bold">×</button>

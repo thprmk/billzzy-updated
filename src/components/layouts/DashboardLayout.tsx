@@ -37,11 +37,11 @@ export default function DashboardLayout({ user, children }: DashboardLayoutProps
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
       {/* Right side (Header + main content) */}
-      <div className="relative flex-1 overflow-auto focus:outline-none">
-        {/* The header sits at the top of the right content area */}
+      <div className=" relative flex-1 overflow-auto focus:outline-none">
+      {/* The header sits at the top of the right content area */}
         <Header openSidebar={() => setIsSidebarOpen(true)} user={user} />
 
-        <main className="md:ml-[15rem] relative z-0 md:overflow-y-auto pb-6 px-2 sm:px-6 lg:px-8">
+       <main className="md:ml-[15rem] md:overflow-y-auto pb-6 px-2 sm:px-6 lg:px-8">
           {children}
         </main>
       </div>
