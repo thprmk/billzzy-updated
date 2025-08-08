@@ -1,8 +1,6 @@
-// src/components/ui/Modal.tsx
-
 'use client';
 
-import { useEffect, useState } from 'react'; // <-- Make sure useState is imported
+import { useEffect, useState } from 'react'; 
 import ReactDOM from 'react-dom';
 import { cn } from '@/lib/utils';
 import React from 'react';
@@ -60,12 +58,24 @@ export function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         {title && (
-          <div className="p-4 border-b">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">
-              {title}
-            </h3>
-          </div>
-        )}
+  // 1. Add `relative` to make this div a positioning container.
+  <div className="relative p-4 border-b">
+    <h3 className="text-lg font-medium leading-6 text-gray-900 pr-8">
+      {title}
+    </h3>
+    
+    {/* 2. Position the button absolutely within the relative container. */}
+    <button
+      onClick={onClose}
+      className="absolute top-1/2 right-4 -translate-y-1/2 p-1 text-gray-400 rounded-md hover:bg-gray-100 hover:text-gray-600 focus:outline-none"
+      aria-label="Close modal"
+    >
+      <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+)}
         <div className="p-6">
           {children}
         </div>
