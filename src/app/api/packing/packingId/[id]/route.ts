@@ -39,10 +39,15 @@ export async function GET(
       include: {
         items: {
           include: {
-            product: true
+            product: true,
+            productVariant: {   // Add this for variant items
+              include: {
+                product: true, 
           }
         }
       }
+    }
+  }
     });
 
     if (!bill) {
@@ -51,12 +56,28 @@ export async function GET(
     
     }
 
-    const products = bill.items.map(item => ({
-      id: item.product.id,
-      SKU: item.product.SKU,
-      name: item.product.name,
-      quantity: item.quantity
-    }));
+       const products = bill.items.map((item: any) => {
+      // If the item is a variant, use its details
+      if (item.productVariant) {
+        return {
+          id: item.productVariant.id, // Use the variant's ID
+          SKU: item.productVariant.SKU,
+          name: `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || ''})`.trim(),
+          quantity: item.quantity,
+        };
+      }
+      // If it's a standard product, use its details
+      if (item.product) {
+        return {
+          id: item.product.id,
+          SKU: item.product.SKU,
+          name: item.product.name,
+          quantity: item.quantity,
+        };
+      }
+      // Fallback for any orphaned data
+      return null;
+    }).filter(Boolean); // This will remove any null items from the final array
 
     revalidatePath('/transactions/online');
     revalidatePath('/dashboard');

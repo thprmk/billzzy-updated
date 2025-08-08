@@ -26,9 +26,8 @@ import EnhancedLogoutButton from '../ui/LogoutBtn';
 import RazorpayConnect from '../ui/RazorpayConnect';
 import { MandateModal } from '../mandate/MandateModal';
 
-// ---------------------------------
+
 // Types
-// ---------------------------------
 
 
 interface Organisation {
@@ -58,18 +57,18 @@ interface CustomerSubmission {
   };
 }
 
-// ---------------------------------
+
 // Fetcher
-// ---------------------------------
+
 const fetcher = (url: string) =>
   fetch(url).then((res) => {
     if (!res.ok) throw new Error('Failed to fetch');
     return res.json();
   });
 
-// ---------------------------------
+
 // Navigation
-// ---------------------------------
+
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   {
@@ -112,9 +111,9 @@ const navigation = [
   },
 ];
 
-// ---------------------------------
+
 // Share Popup
-// ---------------------------------
+
 function SharePopup({
   isOpen,
   onClose,
@@ -159,7 +158,7 @@ function SharePopup({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 backdrop-blur-md p-4">
       <div className="w-full max-w-sm md:max-w-md lg:max-w-lg bg-white rounded-md shadow-md p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Share Link</h2>
@@ -199,9 +198,9 @@ function SharePopup({
   );
 }
 
-// ---------------------------------
+
 // Sidebar Component
-// ---------------------------------
+
 export default function Sidebar({
   isOpen,
   setIsOpen,
@@ -352,13 +351,13 @@ export default function Sidebar({
 
             {/* <h1 className="text-indigo-600 text-2xl font-bold">Billzzy</h1> */}
             
-            <div className="flex justify-start pl-0 mt-1">
+            <div className="flex justify-start pl-2 mt-1">
               <Image
-              src="/assets/billzzylog.png"
+              src="/assets/billzzy-logo.png"
               alt="Billzzy Logo"
-              width={120}  // Reduced width
-              height={120}  // Much smaller height
-              className="w-auto h-18 -ml-2 mt-1"  // Control size with Tailwind classes
+              width={110}  // Reduced width
+              height={110}  // Much smaller height
+              className="w-auto h-18 -mr-8 mt-1"  // Control size with Tailwind classes
               />
             </div>
 

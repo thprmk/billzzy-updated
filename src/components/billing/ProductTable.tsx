@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { useDebounce } from '@/hooks/useDebounce';
 import { toast } from 'react-toastify';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { Modal } from '@/components/ui/Modal'; 
 
 // --- INTERFACES ---
 interface ProductVariant {
@@ -390,67 +391,52 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
             </div>
           </div>
         </div>
-
-        <SelectVariantModal
-          isOpen={isVariantModalOpen}
-          onClose={() => setIsVariantModalOpen(false)}
-          product={selectedBoutiqueProduct}
-          onSelectVariant={handleVariantSelect}
-        />
+        
+        <Modal
+  isOpen={isVariantModalOpen}
+  onClose={() => setIsVariantModalOpen(false)}
+  title={`Select Variant for ${selectedBoutiqueProduct?.name}`}
+  className="max-w-2xl" // Control width here
+>
+  {/* Now, we put the content of the old modal inside here */}
+  <div className="max-h-[60vh] overflow-y-auto">
+    {selectedBoutiqueProduct && (
+      <table className="w-full text-sm text-left">
+        <thead className="bg-gray-50 sticky top-0">
+          <tr>
+            <th className="px-4 py-2">SKU</th>
+            <th className="px-4 py-2">Size</th>
+            <th className="px-4 py-2">Color</th>
+            <th className="px-4 py-2 text-right">Price</th>
+            <th className="px-4 py-2 text-right">Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          {selectedBoutiqueProduct.variants && selectedBoutiqueProduct.variants.length > 0 ? (
+            selectedBoutiqueProduct.variants.map((variant) => (
+              <tr key={variant.id} onClick={() => handleVariantSelect(variant)} className="cursor-pointer hover:bg-gray-100 border-b">
+                <td className="px-4 py-2 font-medium">{variant.SKU}</td>
+                <td className="px-4 py-2">{variant.size || '-'}</td>
+                <td className="px-4 py-2">{variant.color || '-'}</td>
+                <td className="px-4 py-2 text-right">₹{variant.sellingPrice.toFixed(2)}</td>
+                <td className="px-4 py-2 text-right">{variant.quantity}</td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={5} className="text-center p-4 text-gray-500">
+                No variants found for this product.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    )}
+  </div>
+</Modal>
       </div>
     );
   }
 );
 
 ProductTable.displayName = 'ProductTable';
-
-// --- MODAL COMPONENT (Correctly placed outside the main component) ---
-interface SelectVariantModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  product: Product | null;
-  onSelectVariant: (variant: ProductVariant) => void;
-}
-
-const SelectVariantModal: React.FC<SelectVariantModalProps> = ({ isOpen, onClose, product, onSelectVariant }) => {
-  if (!isOpen || !product) return null;
-
-  return (
-<div className="fixed inset-0 z-[999] flex items-center justify-center bg-gray-900/20 backdrop-blur-md">    
-<div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Select Variant for {product.name}</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl font-bold">×</button>
-        </div>
-        <div className="p-4 max-h-[60vh] overflow-y-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2">SKU</th><th className="px-4 py-2">Size</th>
-                <th className="px-4 py-2">Color</th><th className="px-4 py-2 text-right">Price</th>
-                <th className="px-4 py-2 text-right">Stock</th>
-              </tr>
-            </thead>
-            <tbody>
-              {product.variants && product.variants.length > 0 ? (
-                product.variants.map((variant) => (
-                  <tr key={variant.id} onClick={() => onSelectVariant(variant)} className="cursor-pointer hover:bg-gray-100 border-b">
-                    <td className="px-4 py-2 font-medium">{variant.SKU}</td>
-                    <td className="px-4 py-2">{variant.size || '-'}</td>
-                    <td className="px-4 py-2">{variant.color || '-'}</td>
-                    <td className="px-4 py-2 text-right">₹{variant.sellingPrice.toFixed(2)}</td>
-                    <td className="px-4 py-2 text-right">{variant.quantity}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="text-center p-4 text-gray-500">No variants found for this product.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-};

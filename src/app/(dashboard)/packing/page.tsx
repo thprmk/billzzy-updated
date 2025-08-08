@@ -67,12 +67,31 @@ export default function PackingModule() {
     focusBillInput();
   }, [isHydrated]);
 
-  const handleBillNoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setBillNo(value);
+  // const handleBillNoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const value = e.target.value;
+  //   setBillNo(value);
 
-    if (value.length >= 2 && !isManualMode) {
-      fetchBillDetails(value);
+  //   if (value.length >= 2 && !isManualMode) {
+  //     fetchBillDetails(value);
+  //   }
+  // };
+
+  const handleBillNoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBillNo(e.target.value);
+  };
+
+    const handleBillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // If the key is not "Enter" or we are in manual mode, do nothing.
+    if (e.key !== 'Enter' || isManualMode) {
+      return;
+    }
+    
+    // Prevent the default form submission behavior of the Enter key
+    e.preventDefault();
+
+    // Now, fetch the bill details.
+    if (billNo) {
+      fetchBillDetails(billNo);
     }
   };
 
@@ -295,6 +314,7 @@ const handleSKUSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
             }
             value={billNo}
             onChange={handleBillNoChange}
+            onKeyDown={handleBillKeyDown}
             className="flex-1"
             disabled={isLoading || (!isManualMode && currentBill !== null)}
           />
