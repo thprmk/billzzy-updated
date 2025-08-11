@@ -383,7 +383,6 @@ export default function Sidebar({
               </button>
             </div>
           </div>
-
           {/* Navigation menu */}
           <nav className="mt-5 px-2">
             {navigation.map((item) => {

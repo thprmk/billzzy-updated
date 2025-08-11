@@ -22,87 +22,62 @@ export default async function BillsPage({ params }: PageProps) {
   }
 
   try {
-    const bills = await prisma.transactionRecord.findMany({
+      const bills = await prisma.transactionRecord.findMany({
       where: {
         organisationId: parseInt(session.user.id),
-        billingMode: mode  // Use mode instead of params.mode
+        billingMode: mode
       },
       include: {
-        
-        customer: {
-          select: {
-            name: true,
-            phone: true
-          }
-        },
+        customer: true, // Fetch the full customer
         items: {
           include: {
-            product: {
-              select: {
-                id: true,
-                name: true
+            product: true, // Fetch the full product
+            productVariant: { // Also fetch the variant
+              include: {
+                product: true, // And the variant's parent product
               }
             }
-          },
-
+          }
         },
+        TransactionShipping: true, // Fetch shipping info
       },
-      
       orderBy: {
         companyBillNo: 'desc'
       }
     });
 
     console.log('bills: main', bills);
-    
 
-    const formattedBills = bills.map((bill) => {
-      let formattedDate = '';
-      let formattedTime = '';
-      
-      try {
-        formattedDate = bill.date ? format(new Date(bill.date), 'dd/MM/yyyy') : '';
-        
-        if (bill.time) {
-          const time = new Date(bill.time);
-          formattedTime = time.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          });
-        }
-      } catch (error) {
-        console.error('Date formatting error:', error);
-      }
 
-      return {
-        id: bill.id,
-        billNo: bill.companyBillNo,
-        date: formattedDate,
-        time: formattedTime,
+     const serializableBills = bills.map((bill) => {
+      // Create a safe, serializable version of the bill to pass to the client
+      const safeBill = {
+        ...bill,
+        date: bill.date.toISOString(), // Convert Date to a string
+        time: new Date(bill.time).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+}),
+        // Convert any Decimal fields to plain numbers
         totalPrice: Number(bill.totalPrice),
-        status: bill.status || 'pending',
-        billingMode: bill.billingMode,
-        customer: bill.customer ? {
-          name: bill.customer.name || 'Website Customer',
-          phone: bill.customer.phone || '-'
-        } : {
-          name: 'Website Customer',
-          phone: '-'
-        },
-        paymentMethod: bill.paymentMethod || '-',
-        amountPaid: Number(bill.amountPaid || 0),
-        balance: Number(bill.balance || 0),
-        trackingNumber: bill.trackingNumber || null,
+        amountPaid: Number(bill.amountPaid),
+        balance: Number(bill.balance),
+        taxAmount: bill.taxAmount ? Number(bill.taxAmount) : null,
         weight: bill.weight ? Number(bill.weight) : null,
-        items: bill.items.map((item) => ({
-          id: item.id,
-          productName: item.product?.name || 'Unknown Product',
-          quantity: Number(item.quantity),
+        items: bill.items.map(item => ({
+          ...item,
           totalPrice: Number(item.totalPrice),
-        }))
+        })),
+        shipping: bill.TransactionShipping?.[0] ? {
+          ...bill.TransactionShipping[0],
+          totalCost: Number(bill.TransactionShipping[0].totalCost)
+        } : null,
       };
+      delete (safeBill as any).TransactionShipping;
+      return safeBill;
     });
+    
 
     return (
       <div className="container mx-auto px-0 md:py-8">
@@ -118,10 +93,10 @@ export default async function BillsPage({ params }: PageProps) {
               </div>
         </div>
 
-        <BillList
-          initialBills={formattedBills}
-          mode={mode}
-        />
+ <BillList
+  initialBills={serializableBills}
+  mode={mode}
+/>
       </div>
     );
   } catch (error) {

@@ -11,6 +11,8 @@ interface DateFilterProps {
     onReset: () => void;
     onAllTime: () => void;  // New prop for All Time
     isLoading: boolean;
+     data?: any; 
+    session?: any; 
   }
 
 export default function DateFilter({
@@ -22,7 +24,8 @@ export default function DateFilter({
   onReset,
   onAllTime,  // Add this prop
   data,
-  isLoading
+  isLoading,
+   session 
 }: DateFilterProps) {
     console.log(data);
     
@@ -66,8 +69,8 @@ export default function DateFilter({
         </button>
       </div>
       <div className="flex justify-center   items-center mb-4">
-          <h2 className="text-xl font-semibold">{data?.session.user?.name} </h2><h1> - </h1>
-          <p className="text-gray-500 text-[14px]"> ({data?.session.user?.shopName})</p>
+          <h2 className="text-xl font-semibold">{session?.user?.name} </h2><h1> - </h1>
+          <p className="text-gray-500 text-[14px]"> ({session?.user?.shopName})</p>
       
         {/* Rest of the header content */}
       </div>

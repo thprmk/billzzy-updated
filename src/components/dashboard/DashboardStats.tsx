@@ -40,6 +40,7 @@ interface DashboardStatsProps {
     };
     totalProducts: number;
     lowStockProducts: Product[];
+    lowStockCount: number; 
     recentTransactions: any[];
     smsCount: number;
     totalCustomers: number;
@@ -48,6 +49,7 @@ interface DashboardStatsProps {
     printedOrdersCount: number;
     organisationId: string;
   };
+  session: any;
 }
 
 export default function DashboardStats({ data, session }: DashboardStatsProps) {
@@ -194,7 +196,7 @@ export default function DashboardStats({ data, session }: DashboardStatsProps) {
     },
     {
       name: 'Low Stock Items',
-      value: data.lowStockProducts.length.toString(),
+       value: data.lowStockCount.toString(),
       icon: ExclamationTriangleIcon,
       bgColor: 'bg-red-50',
       iconColor: 'text-red-500',
@@ -214,6 +216,7 @@ export default function DashboardStats({ data, session }: DashboardStatsProps) {
         onAllTime={handleAllTime}  // Add this
         isLoading={isLoading}
         data={data}
+        session={session}
       />
 
 

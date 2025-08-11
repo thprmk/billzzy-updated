@@ -27,20 +27,26 @@ export async function GET(
         organisationId: organisationId,
         billingMode: mode,
       },
-      select: {
-        id: true,
-        billNo: true,
-        companyBillNo: true,
-        date: true,
-        totalPrice: true,
-        paymentStatus: true,
-        status: true,
+      include: {
         customer: {
           select: {
             name: true,
           },
         },
-        salesSource: true, // <--- INCLUDE THE NEW FIELD IN THE RESPONSE
+        items: {
+          include: {
+            // Include the standard product details if the item is linked to one
+            product: true, 
+            
+            // Include the variant details if the item is linked to one
+            productVariant: {
+              include: {
+                // Also include the parent product of the variant to get its name
+                product: true, 
+              },
+            },
+          },
+        },
       },
       orderBy: {
         date: 'desc',

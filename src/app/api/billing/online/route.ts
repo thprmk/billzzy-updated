@@ -423,14 +423,29 @@ export async function POST(request: Request) {
           salesSource
         );
 
-        await tx.transactionItem.createMany({
-          data: transactionItemsData.map((item) => ({
-            transactionId: newBill.id,
-            productId: item.productId, // This will be null for variants
-            productVariantId: item.productVariantId, // This will be null for standard products
-            quantity: item.quantity,
-            totalPrice: item.totalPrice,
-          })),
+           await tx.transactionItem.createMany({
+          data: transactionItemsData.map((item) => {
+            // Check if it's a variant item
+            if (item.productVariantId) {
+              return {
+                transactionId: newBill.id,
+                productId: null, // Explicitly null
+                productVariantId: item.productVariantId,
+                quantity: item.quantity,
+                totalPrice: item.totalPrice,
+              };
+            } 
+            // Otherwise, it's a standard item
+            else {
+              return {
+                transactionId: newBill.id,
+                productId: item.productId,
+                productVariantId: null, // Explicitly null
+                quantity: item.quantity,
+                totalPrice: item.totalPrice,
+              };
+            }
+          }),
         });
 
         if (shippingMethodDetails) {
@@ -504,46 +519,46 @@ export async function POST(request: Request) {
       tax_amount: finalTaxAmount || 0
     };
 
-    try {
-      if (customer.phone) {
-        const productsString = productDetails
-          .map((item) => `${item.productName} x ${item.quantity}`)
-          .join(', ');
+    // try {
+    //   if (customer.phone) {
+    //     const productsString = productDetails
+    //       .map((item) => `${item.productName} x ${item.quantity}`)
+    //       .join(', ');
 
-        const fullAddress = [
-          customer.flatNo,
-          customer.street,
-          customer.district,
-          customer.state,
-          customer.pincode,
-        ].filter(Boolean).join(', ');
+    //     const fullAddress = [
+    //       customer.flatNo,
+    //       customer.street,
+    //       customer.district,
+    //       customer.state,
+    //       customer.pincode,
+    //     ].filter(Boolean).join(', ');
 
-        let message: string;
+    //     let message: string;
 
-        if (shippingDetails && shippingDetails.name) {
-          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${calculatedShippingCost}).`;
-        } else {
-          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
-        }
+    //     if (shippingDetails && shippingDetails.name) {
+    //       message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${calculatedShippingCost}).`;
+    //     } else {
+    //       message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
+    //     }
 
-        await sendBillingSMS({
-          phone: customer.phone,
-          companyName: organisation.shopName,
-          products: productsString,
-          amount: newBill.totalPrice,
-          address: fullAddress,
-          organisationId: organisation.id,
-          billNo: newBill.billNo,
-          shippingMethod: shippingDetails && shippingDetails.name ? {
-            name: shippingDetails.name,
-            type: shippingDetails.type,
-            cost: calculatedShippingCost || 0 // Use calculatedShippingCost
-          } : null
-        });
-      }
-    } catch (smsError) {
-      console.error('SMS sending failed:', smsError);
-    }
+    //     await sendBillingSMS({
+    //       phone: customer.phone,
+    //       companyName: organisation.shopName,
+    //       products: productsString,
+    //       amount: newBill.totalPrice,
+    //       address: fullAddress,
+    //       organisationId: organisation.id,
+    //       billNo: newBill.billNo,
+    //       shippingMethod: shippingDetails && shippingDetails.name ? {
+    //         name: shippingDetails.name,
+    //         type: shippingDetails.type,
+    //         cost: calculatedShippingCost || 0 // Use calculatedShippingCost
+    //       } : null
+    //     });
+    //   }
+    // } catch (smsError) {
+    //   console.error('SMS sending failed:', smsError);
+    // }
 
     return NextResponse.json(responseData, { status: 200 });
   } catch (error: any) {

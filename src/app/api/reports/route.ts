@@ -36,17 +36,23 @@ async function fetchFilteredTransactions(organisationId: number, startDate: stri
 
 
   return prisma.transactionRecord.findMany({
-    where: whereClause,
+        where: whereClause,
     include: {
       customer: true,
       items: {
         include: {
-          product: true
-        }
-      }
+          product: true, // For standard products
+          productVariant: { // For boutique/variant products
+            include: {
+              product: true, // Also get the variant's parent product
+            },
+          },
+        },
+      },
     },
     orderBy: { date: 'asc' },
   });
+
 }
 
 // POST function to fetch data for the UI report table

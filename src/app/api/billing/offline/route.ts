@@ -198,6 +198,33 @@ export async function POST(request: Request) {
         })),
       });
 
+
+      await tx.transactionItem.createMany({
+        data: items.map(item => {
+          // If the item has a productVariantId, it's a Boutique product.
+          // We MUST ensure its productId is null in the TransactionItem table.
+          if (item.productVariantId) {
+            return {
+              transactionId: transactionRecord.id,
+              productId: null, // Explicitly set to null
+              productVariantId: item.productVariantId,
+              quantity: item.quantity,
+              totalPrice: item.total,
+            };
+          } 
+          // Otherwise, it's a Standard product.
+          else {
+            return {
+              transactionId: transactionRecord.id,
+              productId: item.productId,
+              productVariantId: null, // Explicitly set to null
+              quantity: item.quantity,
+              totalPrice: item.total,
+            };
+          }
+        }),
+      });
+
       return transactionRecord;
     });
 

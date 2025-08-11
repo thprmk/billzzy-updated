@@ -207,7 +207,15 @@ const DailyReport: React.FC = () => {
                             <td className="px-4 py-3" rowSpan={row.items.length || 1}>{row.customer?.phone ?? 'N/A'}</td>
                             <td className="px-4 py-3" rowSpan={row.items.length || 1}>{row.salesSource || 'N/A'}</td>
                         </>) : null}
-                        <td className="px-4 py-3">{item.product.name}</td>
+                       <td className="px-4 py-3">
+                                {
+                                  // Check for variant name first
+                                  item.productVariant?.product?.name ? 
+                                    `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || 'Variant'})`
+                                  // Then check for standard product name
+                                  : item.product?.name || 'N/A'
+                                }
+                              </td>
                         <td className="px-4 py-3 text-center">{item.quantity}</td>
                         <td className="px-4 py-3 text-right">₹{((item.totalPrice ?? 0) / (item.quantity || 1)).toFixed(2)}</td>
                         <td className="px-4 py-3 text-right font-medium">₹{(item.totalPrice ?? 0).toFixed(2)}</td>

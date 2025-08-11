@@ -64,6 +64,7 @@ interface ProductTableProps {
 export interface ProductTableRef {
   resetTable: () => void;
   focusFirstProductInput: () => void;
+  getItems: () => BillItem[];
 }
 
 function createInitialRow(): ProductRow {
@@ -75,10 +76,32 @@ function createInitialRow(): ProductRow {
   };
 }
 
+function mapInitialItemsToRows(initialItems?: BillItem[]): ProductRow[] {
+  if (initialItems && initialItems.length > 0) {
+    const mapped = initialItems.map(item => ({
+      id: Math.random().toString(36).substring(2, 9), // Use random ID for row key
+      productId: item.productId,
+      productVariantId: item.productVariantId,
+      productName: item.name || '',
+      availableQuantity: item.availableQuantity || 0,
+      sellingPrice: item.price,
+      quantity: item.quantity,
+      total: item.total,
+      SKU: item.SKU || '',
+      productOptions: [],
+    }));
+    // Add a blank row at the end for adding more items
+    return [...mapped, createInitialRow()];
+  }
+  // If no initial items, just return one blank row
+  return [createInitialRow()];
+}
+
+
 // --- MAIN COMPONENT ---
 export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>(
   ({ onChange, maxRows = 20, onCreateBill, initialItems }, ref) => {
-    const [rows, setRows] = useState<ProductRow[]>([createInitialRow()]);
+  const [rows, setRows] = useState<ProductRow[]>(mapInitialItemsToRows(initialItems));
     const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
     const [searchTerm, setSearchTerm] = useState<{ id: string; term: string }>({ id: '', term: '' });
     const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(-1);
@@ -93,6 +116,22 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
     const totalAmount = useMemo(() => {
       return rows.reduce((sum, row) => sum + (row.total || 0), 0);
     }, [rows]);
+
+
+      const getItems = (): BillItem[] => {
+      return rows
+        .filter((row) => (row.productId || row.productVariantId) && row.quantity > 0)
+        .map((row) => ({
+          productId: row.productId,
+          productVariantId: row.productVariantId,
+          name: row.productName,
+          quantity: row.quantity,
+          price: row.sellingPrice || 0,
+          total: row.total || 0,
+          SKU: row.SKU,
+          availableQuantity: row.availableQuantity,
+        }));
+    };
 
     useEffect(() => {
       if (debouncedSearchTerm.term) {
@@ -154,6 +193,8 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
       }
       setSelectedOptionIndex(-1);
     }, [maxRows]);
+
+
 
     const handleVariantSelect = (variant: ProductVariant) => {
       if (!activeRowId || !selectedBoutiqueProduct) return;
@@ -234,7 +275,11 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
       }
     }, [rows]);
 
-    React.useImperativeHandle(ref, () => ({ resetTable, focusFirstProductInput }));
+   React.useImperativeHandle(ref, () => ({
+  resetTable,
+  focusFirstProductInput,
+  getItems,
+}));
 
     return (
       <div className="space-y-4">

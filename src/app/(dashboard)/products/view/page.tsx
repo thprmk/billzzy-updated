@@ -374,35 +374,87 @@ export default function ViewProductsPage() {
         </div>
       </div>
 
-      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Product">
-        {editingProduct && (
-          <form onSubmit={handleEditSubmit} className="space-y-4 p-4">
-            <input type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} className="w-full p-2 border rounded" placeholder="Product Name" />
-            <input type="text" value={editingProduct.SKU || ''} onChange={(e) => setEditingProduct({ ...editingProduct, SKU: e.target.value })} className="w-full p-2 border rounded" placeholder="SKU" />
-            <input type="number" value={editingProduct.netPrice || 0} onChange={(e) => setEditingProduct({ ...editingProduct, netPrice: parseFloat(e.target.value) })} className="w-full p-2 border rounded" placeholder="Net Price" />
-            <input type="number" value={editingProduct.sellingPrice || 0} onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: parseFloat(e.target.value) })} className="w-full p-2 border rounded" placeholder="Selling Price" />
-            <input type="number" value={editingProduct.quantity || 0} onChange={(e) => setEditingProduct({ ...editingProduct, quantity: parseInt(e.target.value) })} className="w-full p-2 border rounded" placeholder="Quantity" />
-            <Select
-              value={editingProduct.category ? String(editingProduct.category.id) : "none"}
-              onValueChange={(value) => {
-                const catId = value === "none" ? undefined : parseInt(value);
-                const category = catId ? categories.find(c => c.id === catId) : undefined;
-                setEditingProduct({ ...editingProduct, category });
-              }}
-            >
-              <SelectTrigger className="w-full"><SelectValue placeholder="Select Category" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Select Category</SelectItem>
-                {categories.map((cat) => ( <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem> ))}
-              </SelectContent>
-            </Select>
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="secondary" onClick={() => setShowEditModal(false)}>Cancel</Button>
-              <Button type="submit" isLoading={isSubmitting}>Save Changes</Button>
-            </div>
-          </form>
-        )}
-      </Modal>
+     <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Product">
+  {editingProduct && (
+    <form onSubmit={handleEditSubmit} className="space-y-4 p-6">
+      {/* Each input is now wrapped in a div with a proper label */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+        <Input 
+          value={editingProduct.name} 
+          onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} 
+          placeholder="Product Name" 
+          required 
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+        <Input 
+          value={editingProduct.SKU || ''} 
+          onChange={(e) => setEditingProduct({ ...editingProduct, SKU: e.target.value.toUpperCase() })} 
+          placeholder="SKU" 
+          required 
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Net Price</label>
+        <Input 
+          type="number" 
+          value={editingProduct.netPrice || ''} 
+          onChange={(e) => setEditingProduct({ ...editingProduct, netPrice: parseFloat(e.target.value) || 0 })} 
+          placeholder="Net Price" 
+          required 
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Selling Price</label>
+        <Input 
+          type="number" 
+          value={editingProduct.sellingPrice || ''} 
+          onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: parseFloat(e.target.value) || 0 })} 
+          placeholder="Selling Price" 
+          required 
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
+        <Input 
+          type="number" 
+          value={editingProduct.quantity || ''} 
+          onChange={(e) => setEditingProduct({ ...editingProduct, quantity: parseInt(e.target.value) || 0 })} 
+          placeholder="Quantity" 
+          required 
+        />
+      </div>
+      {/* <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+        <Select
+          // Use the category ID for the value to correctly pre-select it
+          value={editingProduct.category?.id ? String(editingProduct.category.id) : "none"}
+          onValueChange={(value) => {
+            const selectedCat = categories.find(c => c.id === parseInt(value));
+            setEditingProduct({ 
+              ...editingProduct, 
+              // Set the category object on the product being edited
+              category: value === "none" ? undefined : selectedCat 
+            });
+          }}
+        >
+          <SelectTrigger className="w-full"><SelectValue placeholder="Select Category" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">None</SelectItem>
+            {categories.map((cat) => ( <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem> ))}
+          </SelectContent>
+        </Select>
+      </div> */}
+
+      <div className="flex justify-end space-x-2 pt-4 border-t">
+        <Button type="button" variant="secondary" onClick={() => setShowEditModal(false)}>Cancel</Button>
+        <Button type="submit">Save Changes</Button>
+      </div>
+    </form>
+  )}
+</Modal>
 
       <Modal isOpen={showVariantEditModal} onClose={() => setShowVariantEditModal(false)} title="Edit Variant">
         {editingVariant && (

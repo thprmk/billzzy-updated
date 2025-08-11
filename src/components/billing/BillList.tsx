@@ -26,35 +26,36 @@ interface BillItem {
 
 interface Bill {
   id: number;
-  billNo: number;
-  date: string; // 'YYYY-MM-DD'
-  time: string; // 'HH:MM AM/PM'
+  billNo: number | null;
+  date: string | Date; // Can be a string from the API or a Date from the server
+  time: string 
   totalPrice: number;
   status: string;
   billingMode: string;
   customer: {
     name: string;
     phone: string;
-    district?: string;
-    state?: string;
-  };
+    district?: string | null;
+    state?: string | null;
+  } | null;
   items: Array<{
     id: number;
-    productName: string;
     quantity: number;
     totalPrice: number;
-    SKU: string; 
+    SKU?: string;
+    product?: any;       // Use 'any' to accept the full object
+    productVariant?: any; // Use 'any' to accept the full object
   }>;
   paymentMethod?: string;
   amountPaid?: number;
   balance?: number;
   trackingNumber?: string | null;
   weight?: number | null;
-  paymentStatus: string;     // <-- FIX
-  isEdited: boolean;         // <-- FIX
-  notes: string | null;      // <-- FIX
-  salesSource?: string | null; // <-- Our new field
-  shipping?: {               // <-- FIX
+  paymentStatus: string;
+  isEdited: boolean;
+  notes: string | null;
+  salesSource?: string | null;
+  shipping?: {
     methodName: string;
     totalCost: number;
   } | null;
@@ -491,7 +492,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
                 {mode === 'online' && (
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
               )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[200px]">Order Details</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase min-w-[280px]">Order Details</th>
                 {mode === 'offline' ? (
                   <>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
@@ -513,10 +514,12 @@ export function BillList({ initialBills, mode }: BillListProps) {
               {bills.map((bill) => (
                 <tr key={bill.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{bill.billNo}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div>{formatDate(bill.date)}</div>
-                    <div className="text-xs">{bill.time}</div>
-                  </td>
+                  
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div>{bill.date ? formatDate(bill.date.toString()) : ''}</div>
+<div className="text-xs">{bill.time}</div>                
+</td> 
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="font-medium text-gray-900">{bill.customer.name}</div>
                     <div>{bill.customer.phone}</div>
@@ -524,13 +527,33 @@ export function BillList({ initialBills, mode }: BillListProps) {
                   {mode === 'online' && (
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.salesSource || '-'}</td>
                 )}
-                
-                <td className="px-6 py-4 text-sm text-gray-500">
-                    {bill.items.map(item => <div key={item.id}>{item.SKU || 'N/A'} × {item.quantity} = ₹{item.totalPrice.toFixed(2)}</div>)}
-                    {bill.shipping && <div className="font-semibold mt-1">Shipping: {bill.shipping.methodName} (₹{bill.shipping.totalCost.toFixed(2)})</div>}
-                    <div className="font-bold text-gray-800 mt-1">Total: ₹{bill.totalPrice.toFixed(2)}</div>
-                </td>
+<td className="px-6 py-4 text-sm text-gray-500">
+  {bill.items.map(item => {
+    let displayString = 'Product Not Found';
 
+    // Case 1: It's a Boutique product with a variant
+    if (item.productVariant && item.productVariant.product) {
+      const sku = item.productVariant.SKU ? `[${item.productVariant.SKU}] ` : '';
+      const name = `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || 'Variant'})`.trim();
+      displayString = `${sku}${name}`;
+    } 
+    // Case 2: It's a Standard product
+    else if (item.product) {
+      const sku = item.product.SKU ? `[${item.product.SKU}] ` : '';
+      const name = item.product.name;
+      displayString = `${sku}${name}`;
+    }
+
+    return (
+      <div key={item.id}>
+        {displayString} × {item.quantity} = ₹{item.totalPrice.toFixed(2)}
+      </div>
+    );
+  })}
+  
+  {bill.shipping && <div className="font-semibold mt-1">Shipping: {bill.shipping.methodName} (₹{bill.shipping.totalCost.toFixed(2)})</div>}
+  <div className="font-bold text-gray-800 mt-1">Total: ₹{bill.totalPrice.toFixed(2)}</div>
+</td>
                   {/* --- FIXED: The conditional rendering for columns --- */}
                   {mode === 'offline' ? (
                     <>

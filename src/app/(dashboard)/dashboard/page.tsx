@@ -1,30 +1,30 @@
-// pages/dashboard/index.tsx
+// src/app/(dashboard)/dashboard/page.tsx
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import DashboardStats from '@/components/dashboard/DashboardStats';
-import React from 'react';  // Add this import
-
-// Update your import statements as necessary
+import React from 'react';
 
 async function getDashboardData(organisationId: string) {
   const today = new Date();
   const startOfDay = new Date(today.setHours(0, 0, 0, 0));
   const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
+  // CORRECTED: 10 variables in the list to match the 10 queries below.
   const [
     todayStats,
     totalProducts,
-    lowStockProducts,
+    lowStockStandardProducts, // This variable will hold an ARRAY of standard products
+    lowStockVariantList,   // This variable will hold a NUMBER of variants
     recentTransactions,
     organisationData,
     totalCustomers,
     ordersNeedingTracking,
     packingOrdersCount,
-   printedOrdersCount,
+    printedOrdersCount,
   ] = await Promise.all([
-    // Today's stats
+    // Query 1: Today's stats
     prisma.transactionRecord.aggregate({
       where: {
         organisationId: parseInt(organisationId),
@@ -40,28 +40,48 @@ async function getDashboardData(organisationId: string) {
       _count: true,
     }),
 
-    // Total products
+    // Query 2: Total products (This was the missing query)
     prisma.product.count({
       where: {
         organisationId: parseInt(organisationId),
       },
     }),
 
-    // Low stock products
+    // Query 3: Low stock STANDARD products (fetches the list of products for the tooltip)
     prisma.product.findMany({
       where: {
         organisationId: parseInt(organisationId),
+        productType: 'STANDARD',
+        quantity: {
+          lte: 10, // Your low stock threshold
+        },
+      },
+      select: { id: true, name: true, quantity: true }
+    }),
+
+    // Query 4: Low stock VARIANTS (fetches the count of variants)
+  prisma.productVariant.findMany({
+      where: {
+        product: {
+          organisationId: parseInt(organisationId),
+        },
         quantity: {
           lte: 10,
         },
       },
+      // Include the parent product to get its name
+      include: {
+        product: {
+          select: { name: true }
+        }
+      }
     }),
 
-    // Recent transactions
+    // Query 5: Recent transactions
     prisma.transactionRecord.findMany({
       where: {
         organisationId: parseInt(organisationId),
-        paymentStatus: 'PAID'  // Added this condition
+        paymentStatus: 'PAID'
       },
       include: {
         customer: true,
@@ -69,9 +89,10 @@ async function getDashboardData(organisationId: string) {
       orderBy: {
         date: 'desc',
       },
+      take: 5 // Limiting to 5 recent transactions
     }),
 
-    // SMS count from organisation
+    // Query 6: SMS count from organisation
     prisma.organisation.findUnique({
       where: {
         id: parseInt(organisationId),
@@ -81,14 +102,14 @@ async function getDashboardData(organisationId: string) {
       },
     }),
 
-    // Total customers
+    // Query 7: Total customers
     prisma.customer.count({
       where: {
         organisationId: parseInt(organisationId),
       },
     }),
 
-    // Orders needing tracking numbers
+    // Query 8: Orders needing tracking numbers
     prisma.transactionRecord.count({
       where: {
         organisationId: parseInt(organisationId),
@@ -100,7 +121,7 @@ async function getDashboardData(organisationId: string) {
       },
     }),
 
-    // Packing orders count
+    // Query 9: Packing orders count
     prisma.transactionRecord.count({
       where: {
         organisationId: parseInt(organisationId),
@@ -108,11 +129,10 @@ async function getDashboardData(organisationId: string) {
         status: {
           in: ['processing','printed' ]
         }
-      
       },
     }),
 
-    // Dispatch orders count
+    // Query 10: Dispatch orders count
     prisma.transactionRecord.count({
       where: {
         organisationId: parseInt(organisationId),
@@ -124,10 +144,17 @@ async function getDashboardData(organisationId: string) {
     })
   ]);
 
+  // CORRECTED: The return statement now uses the correct variables
   return {
     todayStats,
     totalProducts,
-    lowStockProducts,
+    lowStockProducts: [
+      ...lowStockStandardProducts.map(p => ({ id: p.id, name: p.name, quantity: p.quantity })),
+      // Use the correct variable name: lowStockVariantList
+      ...lowStockVariantList.map(v => ({ id: v.id, name: `${v.product.name} (${v.size || v.color || 'Variant'})`, quantity: v.quantity }))
+    ],
+    // THE FIX: Combine the lengths of the two arrays for the stat card
+    lowStockCount: lowStockStandardProducts.length + lowStockVariantList.length,// This is the combined NUMBER for the stat card
     recentTransactions,
     smsCount: organisationData?.smsCount || 0,
     totalCustomers,
@@ -137,20 +164,17 @@ async function getDashboardData(organisationId: string) {
   };
 }
 
-// pages/dashboard/index.tsx
-
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return null;
-console.log(session,"db");
 
   const data = await getDashboardData(session.user.id);
 
+  // CORRECTED: Pass session as a separate prop
   return (
-    <div className="h-[100vh]  flex flex-col">
-      {/* Main Content */}
-      <div className="flex-1  py-4">
-        <DashboardStats data={{ ...data, organisationId: session.user.id,session }} />
+    <div className="h-[100vh] flex flex-col">
+      <div className="flex-1 py-4">
+        <DashboardStats data={{ ...data, organisationId: session.user.id }} session={session} />
       </div>
     </div>
   );
