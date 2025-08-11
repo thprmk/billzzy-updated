@@ -19,10 +19,6 @@ import { Modal } from '@/components/ui/Modal';
 import React from 'react';  
 import { EditBillModal } from './EditBillModal';
 
-interface BillItem {
-  productId: number;
-  quantity: number;
-}
 
 interface Bill {
   id: number;
@@ -59,6 +55,7 @@ interface Bill {
     methodName: string;
     totalCost: number;
   } | null;
+  taxAmount?: number | null;
 }
 
 
@@ -143,7 +140,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
   }, [searchQuery, dateFilter, statusFilter, hasTrackingFilter, sourceFilter]);
   
   // Update bill function for editing
-  const handleUpdateBill = async (items: BillItem[]) => {
+  const handleUpdateBill = async (items: any[]) => {
     try {
       console.log('Updating bill:', billToEdit.id, items);
       
@@ -521,38 +518,68 @@ export function BillList({ initialBills, mode }: BillListProps) {
 </td> 
 
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="font-medium text-gray-900">{bill.customer.name}</div>
-                    <div>{bill.customer.phone}</div>
+                    <div className="font-medium text-gray-900">{bill.customer?.name || 'N/A'}</div>
+                    <div>{bill.customer?.phone || ''}</div>
                   </td>
                   {mode === 'online' && (
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{bill.salesSource || '-'}</td>
                 )}
-<td className="px-6 py-4 text-sm text-gray-500">
-  {bill.items.map(item => {
-    let displayString = 'Product Not Found';
+    <td className="px-6 py-4 text-sm text-gray-500">
+  {(() => {
+    // This is a grouping function to fix the duplicate data issue.
+    const groupedItems = new Map<string, { name: string; quantity: number; totalPrice: number }>();
 
-    // Case 1: It's a Boutique product with a variant
-    if (item.productVariant && item.productVariant.product) {
-      const sku = item.productVariant.SKU ? `[${item.productVariant.SKU}] ` : '';
-      const name = `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || 'Variant'})`.trim();
-      displayString = `${sku}${name}`;
-    } 
-    // Case 2: It's a Standard product
-    else if (item.product) {
-      const sku = item.product.SKU ? `[${item.product.SKU}] ` : '';
-      const name = item.product.name;
-      displayString = `${sku}${name}`;
-    }
+    bill.items.forEach(item => {
+      let key = '';
+      let displayName = 'Product Not Found';
+      let sku = '';
 
-    return (
-      <div key={item.id}>
-        {displayString} × {item.quantity} = ₹{item.totalPrice.toFixed(2)}
+      if (item.productVariant && item.productVariant.product) {
+        key = `variant_${item.productVariant.id}`;
+        sku = item.productVariant.SKU ? `[${item.productVariant.SKU}] ` : '';
+        displayName = `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || 'Variant'})`.trim();
+      } else if (item.product) {
+        key = `product_${item.product.id}`;
+        sku = item.product.SKU ? `[${item.product.SKU}] ` : '';
+        displayName = item.product.name;
+      }
+      
+      if (key) {
+        const existing = groupedItems.get(key);
+        if (existing) {
+          existing.quantity += item.quantity;
+          existing.totalPrice += Number(item.totalPrice);
+        } else {
+          groupedItems.set(key, {
+            name: `${sku}${displayName}`,
+            quantity: item.quantity,
+            totalPrice: Number(item.totalPrice),
+          });
+        }
+      }
+    });
+
+    return Array.from(groupedItems.values()).map((groupedItem, index) => (
+      <div key={index}>
+        {groupedItem.name} × {groupedItem.quantity} = ₹{groupedItem.totalPrice.toFixed(2)}
       </div>
-    );
-  })}
+    ));
+  })()}
   
-  {bill.shipping && <div className="font-semibold mt-1">Shipping: {bill.shipping.methodName} (₹{bill.shipping.totalCost.toFixed(2)})</div>}
-  <div className="font-bold text-gray-800 mt-1">Total: ₹{bill.totalPrice.toFixed(2)}</div>
+  {/* The rest of your code for shipping, tax, and total remains the same */}
+  {bill.taxAmount && Number(bill.taxAmount) > 0 && (
+    <div className="font-semibold mt-1">
+      Tax: ₹{Number(bill.taxAmount).toFixed(2)}
+    </div>
+  )}
+  {bill.shipping && (
+    <div className="font-semibold mt-1">
+      Shipping: {bill.shipping.methodName} (₹{Number(bill.shipping.totalCost).toFixed(2)})
+    </div>
+  )}
+  <div className="font-bold text-gray-800 mt-1">
+    Total: ₹{Number(bill.totalPrice).toFixed(2)}
+  </div>
 </td>
                   {/* --- FIXED: The conditional rendering for columns --- */}
                   {mode === 'offline' ? (

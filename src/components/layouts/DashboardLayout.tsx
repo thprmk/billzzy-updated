@@ -1,16 +1,16 @@
-// components/layouts/DashboardLayout.tsx
+// src/components/layouts/DashboardLayout.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Header from '../dashboard/Header';
+import { LoadingScreen } from '../ui/LoadingScreen'; // Make sure this import is correct
 
-// Dynamically import Sidebar to prevent SSR hydration issues
+// Your dynamic import of the Sidebar is correct. Do not change it.
 const Sidebar = dynamic(() => import('../dashboard/Sidebar'), {
   ssr: false,
   loading: () => (
     <div className="hidden md:flex md:w-64 md:flex-col bg-gray-900">
-      {/* Loading placeholder for sidebar */}
       <div className="animate-pulse h-full bg-gray-800"></div>
     </div>
   )
@@ -22,26 +22,36 @@ interface DashboardLayoutProps {
     name?: string;
     shopName?: string;
     image?: string;
-    // other fields as needed
   };
   children: React.ReactNode;
 }
 
 export default function DashboardLayout({ user, children }: DashboardLayoutProps) {
-  // Track sidebar open/close (especially for mobile)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  // This state is the key to the entire solution.
+  const [isClientLoaded, setIsClientLoaded] = useState(false);
 
+  useEffect(() => {
+    // This code runs only once in the browser after the component has mounted.
+    setIsClientLoaded(true);
+  }, []); // The empty array means it only runs on the initial mount.
+
+  // On the server, and on the very first render in the browser,
+  // isClientLoaded is `false`. We show the LoadingScreen.
+  if (!isClientLoaded) {
+    return <LoadingScreen />;
+  }
+  
+  // After the component mounts, isClientLoaded becomes `true`,
+  // and we render the actual layout.
   return (
     <div className="h-screen flex overflow-hidden bg-gray-100">
-      {/* Left Sidebar (pinned or toggled for mobile) */}
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
-      {/* Right side (Header + main content) */}
-      <div className=" relative flex-1 overflow-auto focus:outline-none">
-      {/* The header sits at the top of the right content area */}
+      <div className="relative flex-1 overflow-auto focus:outline-none">
         <Header openSidebar={() => setIsSidebarOpen(true)} user={user} />
-
-       <main className="md:ml-[15rem] md:overflow-y-auto pb-6 px-2 sm:px-6 lg:px-8">
+        <main className="md:ml-[15rem] md:overflow-y-auto pb-6 px-2 sm:px-6 lg:px-8">
           {children}
         </main>
       </div>
