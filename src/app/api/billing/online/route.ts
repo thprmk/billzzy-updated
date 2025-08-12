@@ -180,39 +180,29 @@ async function createTransactionRecord(
   billingMode: string,
   notes: string | null,
   taxAmount: number,
-  companyBillNo: number, // <-- ADD THIS PARAMETER
+  companyBillNo: number, // This is the SAFE, unique number from the billCounter
   shippingCost: number,
   salesSource: string | null | undefined
 ) {
-  const lastBill = await tx.transactionRecord.findFirst({
-    orderBy: { billNo: 'desc' },
-  });
-
-  const newBillNo = (lastBill?.billNo || 0) + 1;
-
-  console.log(newBillNo, "new bill no");
-
-
-  const indianDateTime = moment().tz('Asia/Kolkata');
-  const indianDate = indianDateTime.format('YYYY-MM-DD');
-  const indianTime = indianDateTime.format('HH:mm:ss');
+  // The unsafe logic has been removed.
+  
+  const indianDateTime = moment().tz('Asia/Kolkata').toDate(); // Use a single, valid Date object
 
   return await tx.transactionRecord.create({
     data: {
-      billNo: newBillNo,
-      companyBillNo: companyBillNo, // <-- ADD THIS
-
+      billNo: companyBillNo, // <-- USE THE SAFE NUMBER
+      companyBillNo: companyBillNo,
       totalPrice,
       amountPaid: 0,
       balance: totalPrice,
       billingMode,
       organisationId,
       customerId,
-      date: new Date(indianDate),
-      time: new Date(`1970-01-01T${indianTime}.000Z`),
+      date: indianDateTime, // <-- FIX for the date bug
+      time: indianDateTime, // <-- FIX for the date bug
       status: 'paymentPending',
       paymentStatus: 'PENDING',
-      paymentMethod: 'offline',
+      paymentMethod: 'online', // <-- Corrected from 'offline'
       notes: notes,
       taxAmount: taxAmount,
       shippingCost: shippingCost,
@@ -298,7 +288,6 @@ export async function POST(request: Request) {
         });
       }
     }
-    // --- END: MONTHLY USAGE TRACKING ---
 
     if (items.length === 0) { // Added check for empty items array
       return NextResponse.json(
@@ -519,46 +508,46 @@ export async function POST(request: Request) {
       tax_amount: finalTaxAmount || 0
     };
 
-    // try {
-    //   if (customer.phone) {
-    //     const productsString = productDetails
-    //       .map((item) => `${item.productName} x ${item.quantity}`)
-    //       .join(', ');
+    try {
+      if (customer.phone) {
+        const productsString = productDetails
+          .map((item) => `${item.productName} x ${item.quantity}`)
+          .join(', ');
 
-    //     const fullAddress = [
-    //       customer.flatNo,
-    //       customer.street,
-    //       customer.district,
-    //       customer.state,
-    //       customer.pincode,
-    //     ].filter(Boolean).join(', ');
+        const fullAddress = [
+          customer.flatNo,
+          customer.street,
+          customer.district,
+          customer.state,
+          customer.pincode,
+        ].filter(Boolean).join(', ');
 
-    //     let message: string;
+        let message: string;
 
-    //     if (shippingDetails && shippingDetails.name) {
-    //       message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${calculatedShippingCost}).`;
-    //     } else {
-    //       message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
-    //     }
+        if (shippingDetails && shippingDetails.name) {
+          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}, Shipping: ${shippingDetails.name} (₹${calculatedShippingCost}).`;
+        } else {
+          message = `Bill Created! Products: ${productsString}, Amount: ${newBill.totalPrice}, Address: ${fullAddress}. Courier details will be sent soon.`;
+        }
 
-    //     await sendBillingSMS({
-    //       phone: customer.phone,
-    //       companyName: organisation.shopName,
-    //       products: productsString,
-    //       amount: newBill.totalPrice,
-    //       address: fullAddress,
-    //       organisationId: organisation.id,
-    //       billNo: newBill.billNo,
-    //       shippingMethod: shippingDetails && shippingDetails.name ? {
-    //         name: shippingDetails.name,
-    //         type: shippingDetails.type,
-    //         cost: calculatedShippingCost || 0 // Use calculatedShippingCost
-    //       } : null
-    //     });
-    //   }
-    // } catch (smsError) {
-    //   console.error('SMS sending failed:', smsError);
-    // }
+        await sendBillingSMS({
+          phone: customer.phone,
+          companyName: organisation.shopName,
+          products: productsString,
+          amount: newBill.totalPrice,
+          address: fullAddress,
+          organisationId: organisation.id,
+          billNo: newBill.billNo,
+          shippingMethod: shippingDetails && shippingDetails.name ? {
+            name: shippingDetails.name,
+            type: shippingDetails.type,
+            cost: calculatedShippingCost || 0 // Use calculatedShippingCost
+          } : null
+        });
+      }
+    } catch (smsError) {
+      console.error('SMS sending failed:', smsError);
+    }
 
     return NextResponse.json(responseData, { status: 200 });
   } catch (error: any) {
