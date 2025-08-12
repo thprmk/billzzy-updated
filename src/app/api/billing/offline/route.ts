@@ -98,10 +98,13 @@ export async function POST(request: Request) {
       });
       const newCompanyBillNo = org.billCounter;
 
+      // Create a new, globally unique bill number
+      const globallyUniqueBillNo = (organisationId * 10000000) + newCompanyBillNo;
+
       const transactionRecord = await tx.transactionRecord.create({
         data: {
-          companyBillNo: newCompanyBillNo,
-          billNo: newCompanyBillNo,
+          companyBillNo: newCompanyBillNo,  // This is the simple number for the user
+          billNo: globallyUniqueBillNo,    // This is the safe number for the database
           totalPrice: total,
           paymentMethod: paymentDetails.method,
           amountPaid: paymentDetails.amountPaid,
@@ -109,8 +112,8 @@ export async function POST(request: Request) {
           billingMode: 'offline',
           organisationId: organisationId,
           customerId: customer.id,
-          date: indianDateTime, // Use the full Date object
-          time: indianDateTime, // Use the full Date object
+          date: indianDateTime,
+          time: indianDateTime,
           status: (total - paymentDetails.amountPaid) <= 0 ? 'completed' : 'partial',
           paymentStatus: (total - paymentDetails.amountPaid) <= 0 ? 'PAID' : 'PENDING',
           notes: notes,

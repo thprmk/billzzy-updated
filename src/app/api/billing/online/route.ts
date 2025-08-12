@@ -180,29 +180,30 @@ async function createTransactionRecord(
   billingMode: string,
   notes: string | null,
   taxAmount: number,
-  companyBillNo: number, // This is the SAFE, unique number from the billCounter
+  companyBillNo: number, // This is the SAFE number
   shippingCost: number,
   salesSource: string | null | undefined
 ) {
-  // The unsafe logic has been removed.
-  
-  const indianDateTime = moment().tz('Asia/Kolkata').toDate(); // Use a single, valid Date object
+  const indianDateTime = moment().tz('Asia/Kolkata').toDate();
+
+  // Create a new, globally unique bill number
+  const globallyUniqueBillNo = (organisationId * 10000000) + companyBillNo;
 
   return await tx.transactionRecord.create({
     data: {
-      billNo: companyBillNo, // <-- USE THE SAFE NUMBER
-      companyBillNo: companyBillNo,
+      billNo: globallyUniqueBillNo, // Use the guaranteed-unique number for the database
+      companyBillNo: companyBillNo, // Keep the simple number for the user
       totalPrice,
       amountPaid: 0,
       balance: totalPrice,
       billingMode,
       organisationId,
       customerId,
-      date: indianDateTime, // <-- FIX for the date bug
-      time: indianDateTime, // <-- FIX for the date bug
+      date: indianDateTime,
+      time: indianDateTime,
       status: 'paymentPending',
       paymentStatus: 'PENDING',
-      paymentMethod: 'online', // <-- Corrected from 'offline'
+      paymentMethod: 'online', // Corrected to 'online'
       notes: notes,
       taxAmount: taxAmount,
       shippingCost: shippingCost,
