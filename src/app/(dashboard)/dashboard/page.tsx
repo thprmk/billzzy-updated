@@ -7,6 +7,25 @@ import DashboardStats from '@/components/dashboard/DashboardStats';
 import React from 'react';
 
 async function getDashboardData(organisationId: string) {
+   const orgId = parseInt(organisationId);
+
+  // 2. Check if the ID is valid. If not, return default data.
+  if (!orgId || isNaN(orgId)) {
+    console.warn("getDashboardData received an invalid ID. Returning default data.");
+    return {
+      todayStats: { _sum: { totalPrice: 0 }, _count: 0 },
+      totalProducts: 0,
+      lowStockProducts: [],
+      lowStockCount: 0,
+      recentTransactions: [],
+      smsCount: 0,
+      totalCustomers: 0,
+      ordersNeedingTracking: 0,
+      packingOrdersCount: 0,
+      printedOrdersCount: 0,
+    };
+  }
+  
   const today = new Date();
   const startOfDay = new Date(today.setHours(0, 0, 0, 0));
   const endOfDay = new Date(today.setHours(23, 59, 59, 999));
@@ -27,7 +46,7 @@ async function getDashboardData(organisationId: string) {
     // Query 1: Today's stats
     prisma.transactionRecord.aggregate({
       where: {
-        organisationId: parseInt(organisationId),
+        organisationId: orgId,
         paymentStatus: 'PAID' ,
         date: {
           gte: startOfDay,
@@ -43,14 +62,14 @@ async function getDashboardData(organisationId: string) {
     // Query 2: Total products (This was the missing query)
     prisma.product.count({
       where: {
-        organisationId: parseInt(organisationId),
+        organisationId: orgId,
       },
     }),
 
     // Query 3: Low stock STANDARD products (fetches the list of products for the tooltip)
     prisma.product.findMany({
       where: {
-        organisationId: parseInt(organisationId),
+        organisationId: orgId,
         productType: 'STANDARD',
         quantity: {
           lte: 10, // Your low stock threshold
@@ -63,7 +82,7 @@ async function getDashboardData(organisationId: string) {
   prisma.productVariant.findMany({
       where: {
         product: {
-          organisationId: parseInt(organisationId),
+          organisationId: orgId,
         },
         quantity: {
           lte: 10,
@@ -80,7 +99,7 @@ async function getDashboardData(organisationId: string) {
     // Query 5: Recent transactions
     prisma.transactionRecord.findMany({
       where: {
-        organisationId: parseInt(organisationId),
+        organisationId: orgId,
         paymentStatus: 'PAID'
       },
       include: {
@@ -95,7 +114,7 @@ async function getDashboardData(organisationId: string) {
     // Query 6: SMS count from organisation
     prisma.organisation.findUnique({
       where: {
-        id: parseInt(organisationId),
+        id: orgId,
       },
       select: {
         smsCount: true,
@@ -105,14 +124,14 @@ async function getDashboardData(organisationId: string) {
     // Query 7: Total customers
     prisma.customer.count({
       where: {
-        organisationId: parseInt(organisationId),
+        organisationId: orgId,
       },
     }),
 
     // Query 8: Orders needing tracking numbers
     prisma.transactionRecord.count({
       where: {
-        organisationId: parseInt(organisationId),
+        organisationId: orgId,
         billingMode: 'online',
         status: {
           in: ['processing', 'printed','packed']
@@ -124,7 +143,7 @@ async function getDashboardData(organisationId: string) {
     // Query 9: Packing orders count
     prisma.transactionRecord.count({
       where: {
-        organisationId: parseInt(organisationId),
+        organisationId: orgId,
         billingMode: 'online',
         status: {
           in: ['processing','printed' ]
@@ -135,7 +154,7 @@ async function getDashboardData(organisationId: string) {
     // Query 10: Dispatch orders count
     prisma.transactionRecord.count({
       where: {
-        organisationId: parseInt(organisationId),
+        organisationId: orgId,
         billingMode: 'online',
         status: {
           in: ['processing' ]

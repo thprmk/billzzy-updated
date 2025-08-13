@@ -1,4 +1,4 @@
-// app/api/analytics/top-products/route.ts
+// src/app/api/analytics/top-product/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
@@ -10,119 +10,76 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    const organisationId = parseInt(session.user.id);
+    if (isNaN(organisationId)) {
+      return NextResponse.json({ error: 'Invalid User ID' }, { status: 400 });
+    }
+    
+    // ==========================================================
+    // ===          THIS IS THE MISSING DATE LOGIC            ===
+    // ==========================================================
     const searchParams = request.nextUrl.searchParams;
-    // Get the ID from the user's logged-in session for security and correct type
-    const organisationId = parseInt(session.user.id); 
     const timeRange = searchParams.get('timeRange') || 'week';
 
     const today = new Date();
     let startDate = new Date();
-
-    // Set date range based on selected time period
     switch (timeRange) {
-      case 'week':
-        startDate.setDate(today.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(today.getMonth() - 1);
-        break;
-      case '3months':
-        startDate.setMonth(today.getMonth() - 3);
-        break;
-      case 'year':
-        startDate.setFullYear(today.getFullYear() - 1);
-        break;
-      default:
-        startDate.setDate(today.getDate() - 7);
+      case 'week': startDate.setDate(today.getDate() - 7); break;
+      case 'month': startDate.setMonth(today.getMonth() - 1); break;
+      case '3months': startDate.setMonth(today.getMonth() - 3); break;
+      case 'year': startDate.setFullYear(today.getFullYear() - 1); break;
+      default: startDate.setDate(today.getDate() - 7);
+    }
+    // ==========================================================
+
+    // 1. Fetch all PAID transactions and their items
+    const paidTransactions = await prisma.transactionRecord.findMany({
+      where: {
+        organisationId: organisationId,
+        paymentStatus: 'PAID',
+        date: { gte: startDate, lte: today }, // Now 'startDate' and 'today' are defined
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+            productVariant: { include: { product: true } }
+          }
+        }
+      }
+    });
+
+    // 2. Aggregate the data in code
+    const productSales = new Map<string, { name: string, quantity: number, revenue: number }>();
+    for (const transaction of paidTransactions) {
+      for (const item of transaction.items) {
+        let key = '';
+        let name = 'Unknown';
+        if (item.productVariant) {
+          key = `variant-${item.productVariantId}`;
+          name = `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || 'Variant'})`.trim();
+        } else if (item.product) {
+          key = `product-${item.productId}`;
+          name = item.product.name;
+        }
+        if (key) {
+          const existing = productSales.get(key) || { name, quantity: 0, revenue: 0 };
+          existing.quantity += item.quantity;
+          existing.revenue += Number(item.totalPrice);
+          productSales.set(key, existing);
+        }
+      }
     }
 
-    // Get top selling products
-    // 1. Get top selling STANDARD products (where productVariantId is null)
-    const topStandardProducts = await prisma.transactionItem.groupBy({
-      by: ['productId' as any],
-      where: {
-        transaction: {
-          paymentStatus: 'PAID',
-          organisationId: organisationId,
-          date: { gte: startDate, lte: today },
-        },
-        productVariantId: null, // Only standard products
-        productId: { not: null } // Ensure productId exists
-      },
-      _sum: {
-        quantity: true,
-        totalPrice: true,
-      },
-      orderBy: { _sum: { quantity: 'desc' } },
-    });
+    // 3. Convert to array, sort, and slice
+    const sortedProducts = Array.from(productSales.values())
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5);
 
-    // 2. Get top selling PRODUCT VARIANTS (where productId is null)
-    const topVariantProducts = await prisma.transactionItem.groupBy({
-     by: ['productVariantId' as any],
-      where: {
-        transaction: {
-          paymentStatus: 'PAID',
-          organisationId: organisationId,
-          date: { gte: startDate, lte: today },
-        },
-        productId: null, // Only variant products
-        productVariantId: { not: null } // Ensure productVariantId exists
-      },
-      _sum: {
-        quantity: true,
-        totalPrice: true,
-      },
-      orderBy: { _sum: { quantity: 'desc' } },
-    });
-
-    // 3. Fetch details for all the top products and variants
-    const standardProductIds = topStandardProducts.map(item => item.productId!);
-    const standardProducts = await prisma.product.findMany({
-      where: { id: { in: standardProductIds } },
-    });
-
-    const variantIds = topVariantProducts.map(item => item.productVariantId!);
-    const variants = await prisma.productVariant.findMany({
-      where: { id: { in: variantIds } },
-      include: { product: true }, // Include parent for the name
-    });
-    
-    // 4. Combine and format the data
-    const formattedStandard = topStandardProducts.map(item => {
-      const product = standardProducts.find(p => p.id === item.productId);
-      return {
-        name: product?.name || 'Unknown Product',
-        quantity: item._sum?.quantity || 0,
-        revenue: item._sum?.totalPrice || 0,
-      };
-    });
-
-    const formattedVariants = topVariantProducts.map(item => {
-      const variant = variants.find(v => v.id === item.productVariantId);
-      const name = variant ? `${variant.product.name} (${variant.size || variant.color})` : 'Unknown Variant';
-      return {
-        name: name,
-        quantity: item._sum?.quantity || 0,
-        revenue: item._sum?.totalPrice || 0,
-      };
-    });
-    
-    // 5. Merge, sort, and take the top results
-    const combinedTopProducts = [...formattedStandard, ...formattedVariants]
-      .sort((a, b) => b.quantity - a.quantity) // Sort by quantity descending
-      .slice(0, 5); // Take the top 5 overall
-
-    return NextResponse.json({
-      success: true,
-      data: combinedTopProducts,
-    });
+    return NextResponse.json({ success: true, data: sortedProducts });
 
   } catch (error) {
     console.error('Error fetching top products:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

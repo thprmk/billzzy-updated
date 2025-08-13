@@ -11,8 +11,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+     // Get the organisationId from the SESSION, not the URL.
+    const organisationId = parseInt(session.user.id, 10);
+    
+    // Check for parsing errors
+    if (isNaN(organisationId)) {
+        return NextResponse.json({ error: 'Invalid User ID in session' }, { status: 400 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
-    const organisationId = searchParams.get('organisationId');
     const timeRange = searchParams.get('timeRange') || 'week';
 
     const today = new Date();
@@ -41,7 +48,7 @@ export async function GET(request: NextRequest) {
       by: ['date'],
       where: {
         paymentStatus: 'PAID',
-        organisationId: parseInt(organisationId!),
+        organisationId: organisationId, 
         date: {
           gte: startDate,
           lte: today,

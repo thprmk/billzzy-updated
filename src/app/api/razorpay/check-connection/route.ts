@@ -8,12 +8,20 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session) {
+    // THIS IS THE FIX: A more robust check for the session, user, and user ID
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const organisationId = parseInt(session.user.id, 10);
+    
+    // Extra safety check for NaN
+    if (isNaN(organisationId)) {
+      return NextResponse.json({ error: 'Invalid User ID in session' }, { status: 400 });
+    }
+
     const organisation = await prisma.organisation.findUnique({
-      where: { id: parseInt(session.user.id) },
+      where: { id: organisationId }, // <-- Use the safe, validated ID
       select: { razorpayAccessToken: true }
     });
 

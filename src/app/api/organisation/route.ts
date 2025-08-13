@@ -6,39 +6,24 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 
 export async function GET(request: NextRequest) {
-  // Retrieve the session
   const session = await getServerSession(authOptions);
 
-  if (!session) {
+  // THIS IS THE FIX: The robust session check
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
-    // Assuming the session.user.id corresponds to organisation.id
-    
-    const orgId = session.user.id;
+    // Now it's safe to use session.user.id
+    const organisationId = parseInt(session.user.id, 10);
+
+    // Extra safety check
+    if (isNaN(organisationId)) {
+      return NextResponse.json({ error: 'Invalid User ID in session' }, { status: 400 });
+    }
 
     const organisation = await prisma.organisation.findUnique({
-      where: { id: Number(orgId) },
-      // select: {
-      //   id: true,
-      //   email: true,
-      //   name: true,
-      //   shopName: true,
-      //   endDate: true,
-      //   subscriptionType: true,
-      //   smsCount: true,
-      //   monthlyUsage:true,
-
-        // // --- ADD THESE LINES FOR THE PRINTOUT ---
-        // flatNo: true,
-        // street: true,
-        // district: true,
-        // state: true,
-        // pincode: true,
-        // phone: true, // Use the 'phone' field from your schema
-        // websiteAddress: true
-      // },
+      where: { id: organisationId }, // Use the safe, validated ID
     });
 
     if (!organisation) {
@@ -46,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ organisation });
-  } catch (error) {
+  } catch (error: any) { // Use 'any' to access error.message
     console.error('Error fetching organisation:', error.message);
     return NextResponse.json({ error: 'Failed to fetch organisation data' }, { status: 500 });
   }

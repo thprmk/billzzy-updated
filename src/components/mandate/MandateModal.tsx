@@ -29,7 +29,7 @@ export function MandateModal({ isOpen, onClose }: UpgradeModalProps) {
     revalidateOnFocus: true,
     refreshInterval: 10000, 
   });
-  const subscriptionType = data?.organisation.subscriptionType
+  const subscriptionType = data?.organisation?.subscriptionType;
   
 
 

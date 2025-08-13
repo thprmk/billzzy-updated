@@ -119,21 +119,28 @@ export async function POST(request: Request) {
 }
 
 
+// src/app/api/billing/customer_submission/route.ts
+
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session) {
+    // THIS IS THE FIX: A more robust check for the session and user ID
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const organisationId = parseInt(session.user.id, 10);
 
-    // Parse the URL and get query parameters
+    // Extra safety check
+    if (isNaN(organisationId)) {
+      return NextResponse.json({ error: 'Invalid User ID in session' }, { status: 400 });
+    }
+
     const url = new URL(request.url);
     const status = url.searchParams.get('status') || 'pending';
 
-    // Fetch customer submissions with the specified status
+    // The rest of your logic is correct and does not need to be changed.
     const submissions = await prisma.customerSubmission.findMany({
       where: {
         organisationId,
@@ -141,7 +148,6 @@ export async function GET(request: Request) {
       },
     });
 
-    // For each submission, fetch the customer data by customerId
     const submissionsWithCustomerData = await Promise.all(
       submissions.map(async (submission) => {
         let customer = null;
@@ -149,14 +155,6 @@ export async function GET(request: Request) {
           customer = await prisma.customer.findUnique({
             where: { id: submission.customerId },
           });
-
-          // If customer not found, handle accordingly
-          if (!customer) {
-            console.warn(`Customer with ID ${submission.customerId} not found.`);
-            // Decide how to handle this case: set customer to null or throw an error
-            // For this example, we'll set customer to null
-            customer = null;
-          }
         }
         return {
           ...submission,
@@ -171,4 +169,3 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch customer submissions' }, { status: 500 });
   }
 }
-

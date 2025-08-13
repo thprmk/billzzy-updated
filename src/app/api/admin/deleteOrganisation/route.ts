@@ -1,71 +1,35 @@
+// src/app/api/admin/deleteOrganisation/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+// You should also add your session and admin checks here for security
 
 export async function POST(request: NextRequest) {
   try {
-    const { id } = await request.json();
-    const organisationId = Number(id);
+    const body = await request.json();
+    // Safely get the ID, checking for 'id' or 'organisationId'
+    const organisationId = Number(body.id || body.organisationId);
 
+    // Add validation to prevent crashes
+    if (!organisationId || isNaN(organisationId)) {
+      return NextResponse.json({ 
+        success: false, error: 'Invalid or missing Organisation ID.' 
+      }, { status: 400 });
+    }
+
+    // The transaction is now much simpler
     await prisma.$transaction(async (tx) => {
-      // 1. Delete transaction-related records
-      // First delete shipping records
-      await tx.transactionShipping.deleteMany({
-        where: {
-          transaction: { organisationId }
-        }
-      });
+      // 1. Manually delete records that DO NOT have `onDelete: Cascade`
+      // These are required to be deleted first.
+      await tx.customerSubmission.deleteMany({ where: { organisationId } });
+      await tx.activeMandate.deleteMany({ where: { organisationId } });
+      await tx.customShipping.deleteMany({ where: { organisationId } });
+      await tx.tax.deleteMany({ where: { organisationId } });
+      await tx.subscriptionDetails.deleteMany({ where: { organisationId } });
 
-      // Then delete transaction items
-      await tx.transactionItem.deleteMany({
-        where: {
-          transaction: { organisationId }
-        }
-      });
-
-      // Then delete main transaction records
-      await tx.transactionRecord.deleteMany({
-        where: { organisationId }
-      });
-
-      // 2. Delete inventory records
-      await tx.inventory.deleteMany({
-        where: { organisationId }
-      });
-
-      // 3. Delete customer-related records
-      await tx.customerSubmission.deleteMany({
-        where: { organisationId }
-      });
-
-      await tx.customer.deleteMany({
-        where: { organisationId }
-      });
-
-      // 4. Delete product-related records
-      await tx.product.deleteMany({
-        where: { organisationId }
-      });
-
-      await tx.productCategory.deleteMany({
-        where: { organisationId }
-      });
-
-      // 5. Delete seller records
-      await tx.seller.deleteMany({
-        where: { organisationId }
-      });
-
-      // 6. Delete shipping methods
-      await tx.shippingMethod.deleteMany({
-        where: { organisationId }
-      });
-
-      // Check for any subscription details
-      await tx.subscriptionDetails.deleteMany({
-        where: { organisationId }
-      });
-
-      // Finally delete the organisation
+      // 2. Now, delete the Organisation.
+      // The database will automatically delete all related Products, Customers,
+      // Transactions, etc., because of the `onDelete: Cascade` rule in your schema.
       await tx.organisation.delete({
         where: { id: organisationId }
       });
@@ -76,9 +40,16 @@ export async function POST(request: NextRequest) {
       message: 'Organisation and all related records deleted successfully' 
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in deletion process:', error);
     
+    // Add better error handling for a common case
+    if (error.code === 'P2025') {
+       return NextResponse.json({ 
+        success: false, error: `Organisation with ID ${organisationId} not found.`
+      }, { status: 404 });
+    }
+
     return NextResponse.json({ 
       success: false,
       error: 'Failed to delete organisation and related records',

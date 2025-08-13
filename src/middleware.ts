@@ -5,12 +5,19 @@ import { NextResponse } from "next/server";
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token;
-    const isAdminPath = req.nextUrl.pathname.startsWith('/admin');
+    const pathname = req.nextUrl.pathname; // Use the full pathname for clarity
+    const isAdminPath = pathname.startsWith('/admin');
     
+    if (token?.role === 'admin' && !isAdminPath) {
+      return NextResponse.redirect(new URL('/admin', req.url));
+    }
+    
+
     if (isAdminPath && token?.role !== 'admin') {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
+    // If neither of the above rules apply, the user is in the correct place.
     return NextResponse.next();
   },
   {
