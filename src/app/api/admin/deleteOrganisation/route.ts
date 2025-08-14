@@ -43,10 +43,11 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error in deletion process:', error);
     
-    // Add better error handling for a common case
+    // Check for a specific Prisma error if the record to delete wasn't found
     if (error.code === 'P2025') {
+       // THE FIX: Use a generic message that doesn't need the 'organisationId' variable.
        return NextResponse.json({ 
-        success: false, error: `Organisation with ID ${organisationId} not found.`
+        success: false, error: `The organisation to be deleted could not be found.`
       }, { status: 404 });
     }
 
@@ -58,4 +59,5 @@ export async function POST(request: NextRequest) {
       status: 500 
     });
   }
+
 }
