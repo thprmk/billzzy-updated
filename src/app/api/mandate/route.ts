@@ -43,6 +43,7 @@ interface MandateRequest {
 
 export async function POST(request: Request) {
   try {
+    console.log("[MANDATE_DEBUG] 1: POST /api/mandate route hit.");
     const timeZone = 'Asia/Kolkata';
     const today = toZonedTime(new Date(), timeZone);
 
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as MandateRequestBody;
     const { payerVa } = body;
+    console.log(`[MANDATE_DEBUG] 2: Session found for orgId ${session?.user?.id}, payerVa: ${payerVa}`);
     if (!payerVa) {
       return NextResponse.json(
         { error: 'Payer Virtual Address is required' },
@@ -123,7 +125,7 @@ export async function POST(request: Request) {
 
     console.log("request payload for create mandate", mandateRequest);
 
-
+    console.log("[MANDATE_DEBUG] 3: Prepared mandate request payload:", mandateRequest);
     const { encryptedKey, iv, encryptedData } = IciciCrypto.encrypt(mandateRequest);
 
     const encryptedPayload = {
@@ -154,6 +156,7 @@ console.log("ICICI_API_BASE_URL", process.env.ICICI_API_BASE_URL," ICICI_API_KEY
       }
     );
 
+    console.log(`[MANDATE_DEBUG] 4: Received response from ICICI with status: ${response.status}`);
    
 
 
@@ -183,11 +186,13 @@ console.log("ICICI_API_BASE_URL", process.env.ICICI_API_BASE_URL," ICICI_API_KEY
           apiResponse.encryptedKey,
           apiResponse.iv
         );
-
+        console.log("[MANDATE_DEBUG] 5: Decrypted ICICI response:", decryptedResponse);
         console.log("response from create mandate", decryptedResponse);
 
 
         if (!decryptedResponse.success) {
+
+          console.error("[MANDATE_DEBUG] ERROR: Decrypted response indicates failure.", decryptedResponse);
 
           // Send error response based on ICICI error codes
           const errorCode = decryptedResponse.response;
@@ -224,6 +229,7 @@ console.log("ICICI_API_BASE_URL", process.env.ICICI_API_BASE_URL," ICICI_API_KEY
           data: { endDate: nextMandateDate }
         });
 
+        console.log("[MANDATE_DEBUG] 6: Process complete. Sending success response.");
         return NextResponse.json({
           success: true,
           message: "Mandate creation initiated",
@@ -235,6 +241,7 @@ console.log("ICICI_API_BASE_URL", process.env.ICICI_API_BASE_URL," ICICI_API_KEY
         });
 
       } catch (error) {
+        
         return NextResponse.json(
           {
             success: false,
@@ -253,7 +260,7 @@ console.log("ICICI_API_BASE_URL", process.env.ICICI_API_BASE_URL," ICICI_API_KEY
     }, { status: 500 });
 
   } catch (error) {
-    console.log("error", error);
+    console.error("[MANDATE_DEBUG] FATAL ERROR: The API route crashed.", error);
 
     return NextResponse.json(
 
