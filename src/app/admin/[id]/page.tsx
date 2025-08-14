@@ -11,12 +11,15 @@ const formatDate = (date: Date | null) => {
  * Next.js automatically provides the `params` prop for dynamic routes.
  * e.g. /admin/123 => params.id = "123"
  */
+// 1. Update the interface to reflect that params is a Promise
 interface MandatePageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function MandatePage({ params }: MandatePageProps) {
-  const organisationId = Number(params.id);
+  // 2. Await the params to resolve them before using them
+  const resolvedParams = await params;
+  const organisationId = Number(resolvedParams.id);
 
   // Fetch the organisation basic info (optional, for display)
   const organisation = await prisma.organisation.findUnique({
