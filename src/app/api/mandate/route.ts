@@ -101,7 +101,7 @@ export async function POST(request: Request) {
       merchantName: 'Tech Vaseegrah',
       subMerchantName: merchantName,
       payerVa,
-      amount: "499.00",
+      amount: "1.00", // changed for testing
       note: "mandaterequest",
       collectByDate: format(collectByDate, 'dd/MM/yyyy hh:mm a'), // Format correct
       merchantTranId, // Must be unique
