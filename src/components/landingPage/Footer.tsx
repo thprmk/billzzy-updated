@@ -29,47 +29,39 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12">
           
           {/* Column 1: Brand & Credit */}
-          <div className="lg:col-span-5">
-            <Link href="/" className="flex items-center gap-3 mb-6">
-              <img src="/assets/billzzy-logo.png" alt="Billzzy Logo" width={140} height={140} />
-            </Link>
-            <a 
-              href="https://techvaseegrah.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-gray-300 hover:text-white transition-colors w-fit"
-            >
-              Powered by <span className="font-semibold">Tech Vaseegrah</span>
-            </a>
-            <p className="text-xs text-gray-500 mt-4 max-w-sm">
-              &copy; {new Date().getFullYear()} Billzzy. All rights reserved.
-            </p>
+          <div className="lg:col-span-5 flex flex-col">
+            <div className="flex-grow">
+              <Link href="/" className="inline-block mb-4">
+                <img src="/assets/billzzy-logo.png" alt="Billzzy Logo" width={140} height={40} />
+              </Link>
+              <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
+                Simplifying billing for businesses worldwide with smart automation and powerful features.
+              </p>
+            </div>
+            <div className="mt-8">
+              <a 
+                href="https://techvaseegrah.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-gray-300 hover:text-white transition-colors w-fit"
+              >
+                Powered by <span className="font-semibold">Tech Vaseegrah</span>
+              </a>
+              <p className="text-xs text-gray-500 mt-2">
+                &copy; {new Date().getFullYear()} Billzzy. All rights reserved.
+              </p>
+            </div>
           </div>
 
           {/* Link Columns Wrapper */}
           <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
-            {/* Column 2: Socials */}
+            {/* Column 2: Site */}
             <div>
-              <h3 className="text-sm font-bold text-white mb-6">Socials</h3>
-              <ul className="space-y-4">
-                {socialLinks.map((link) => (
-                  <li key={link.name}>
-                    <a href={link.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm hover:text-white transition-colors">
-                      <link.icon className="w-4 h-4" />
-                      {link.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Column 3: Site */}
-            <div>
-              <h3 className="text-sm font-bold text-white mb-6">Site</h3>
-              <ul className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Site</h3>
+              <ul className="space-y-3">
                 {siteLinks.map((link) => (
                   <li key={link.name}>
-                    <Link href={link.href} className="text-sm hover:text-white transition-colors">
+                    <Link href={link.href} className="hover:text-white transition-colors">
                       {link.name}
                     </Link>
                   </li>
@@ -77,18 +69,37 @@ export default function Footer() {
               </ul>
             </div>
             
-            {/* Column 4: Legal */}
+            {/* Column 3: Legal */}
             <div>
-              <h3 className="text-sm font-bold text-white mb-6">Legal</h3>
-              <ul className="space-y-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Legal</h3>
+              <ul className="space-y-3">
                 {legalLinks.map((link) => (
                   <li key={link.name}>
-                    <Link href={link.href} className="text-sm hover:text-white transition-colors">
+                    <Link href={link.href} className="hover:text-white transition-colors">
                       {link.name}
                     </Link>
                   </li>
                 ))}
               </ul>
+            </div>
+
+            {/* Column 4: Follow Us (Icons Only) */}
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Follow Us</h3>
+              <div className="flex gap-4">
+                {socialLinks.map((link) => (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-white hover:scale-110 transition-all"
+                    aria-label={link.name}
+                  >
+                    <link.icon className="w-6 h-6" />
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -1,20 +1,17 @@
 'use client';
-
 import React, { Suspense } from 'react';
-
 import Navbar from '../landingPage/Navbar';
 import Hero from '../landingPage/Hero';
 import Features from '../landingPage/Features';
 import FeatureImage from '../landingPage/Feature_img';
 import UseCases from '../landingPage/UseCase';
 import Pricing from '../landingPage/Pricing';
+import Faq from '../landingPage/Faq';
 import Contact from '../landingPage/Contact';
 import Footer from '../landingPage/Footer';
 
 export default function Home() {
-
   return (
-
     <div className="min-h-screen">
       <Suspense
         fallback={
@@ -27,10 +24,9 @@ export default function Home() {
         <Hero />
         <Features />
         <FeatureImage />
-        {/* <Brands /> */}
         <UseCases />
-        {/* <About /> */}
         <Pricing />
+        <Faq />
         <Contact />
         <Footer />
       </Suspense>

@@ -1,143 +1,149 @@
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { motion } from "framer-motion";
+// src/components/landingPage/FeatureImage.tsx
+'use client';
 
-const OurFeature = [
+import { useState, useEffect } from "react";
+import { Box, Repeat, Scale, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+const ourFeatures = [
+  // ... (Your ourFeatures array remains the same)
   {
     feature: "Order Confirmation Automation",
-    content:
-      "Instantly confirm orders and reduce errors with automated confirmations.",
     image: "/assets/message.png",
   },
   {
     feature: "Automatic Amount Confirmation",
-    content:
-      "Automatically verify amounts to avoid discrepancies and manual checks.",
     image: "/assets/payment.png",
   },
   {
     feature: "Automated Address Entry",
-    content:
-      "Save time with smart address detection and auto-fill capabilities.",
     image: "/assets/address.png",
   },
   {
     feature: "Shipping Partner Integration",
-    content: "Automatically sync with shipping partners for seamless delivery.",
     image: "/assets/shipping.png",
   },
 ];
 
+const benefits = [
+  // ... (Your benefits array remains the same)
+  { icon: Box, text: "Explore 50+ product collections" },
+  { icon: Repeat, text: "Buy and sell with $0 commissions" },
+  { icon: Scale, text: "Weigh pros and cons at a glance" },
+  { icon: Zap, text: "Get started with just $1" },
+];
+
+const variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? "100%" : "-100%",
+    opacity: 0,
+  }),
+  center: {
+    zIndex: 1,
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    zIndex: 0,
+    x: direction < 0 ? "100%" : "-100%",
+    opacity: 0,
+  }),
+};
+
+const transition = {
+  x: { type: "spring", stiffness: 300, damping: 30 },
+  opacity: { duration: 0.2 },
+};
+
 export default function FeatureImage() {
-  const [current, setCurrent] = useState(0);
+  const [[imageIndex, direction], setImageState] = useState([0, 0]);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const paginate = (newDirection: number) => {
+    const newIndex = (imageIndex + newDirection + ourFeatures.length) % ourFeatures.length;
+    setImageState([newIndex, newDirection]);
+  };
 
   useEffect(() => {
+    if (isHovered) return;
     const timer = setInterval(() => {
-      setCurrent((prev) => (prev + 1) % OurFeature.length);
-    }, 5000);
+      paginate(1);
+    }, 3000);
     return () => clearInterval(timer);
-  }, []);
-
-  const prev = () => {
-    setCurrent((curr) => (curr - 1 + OurFeature.length) % OurFeature.length);
-  };
-
-  const next = () => {
-    setCurrent((curr) => (curr + 1) % OurFeature.length);
-  };
+  }, [isHovered, imageIndex]);
 
   return (
-    <div id="blog" className="bg-white py-12 sm:py-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8 ">
-          <motion.h2
-            className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            Our Special Features
-          </motion.h2>
-          <motion.p
-            className="text-lg sm:text-xl text-gray-600"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-          >
-            Discover the unique features that make us stand out.
-          </motion.p>
-        </div>
-
-        <div className="relative">
-          <div className="overflow-hidden">
-            <motion.div
-              className="flex transition-transform duration-500"
-              style={{ transform: `translateX(-${current * 100}%)` }}
-              key={current}
-            >
-              {OurFeature.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  className={`w-full flex-shrink-0 px-2 sm:px-4 ${
-                    index === current ? "scale-105" : "scale-100"
-                  }`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 2 }}
-                >
-                  <div
-                    className="p-4 sm:p-8 rounded-xl max-w-3xl mx-auto"
-                    style={{ minHeight: "400px sm:minHeight:600px" }}
-                  >
-                    <motion.h3
-                      className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 text-center"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                    >
-                      {feature.feature}
-                    </motion.h3>
-                    <motion.div
-                      className="flex justify-center items-center sm:mt-12 mb-5 sm:mx-8"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ type: "tween", duration: 0.2 }}
-                    >
-                      <img
-                        src={feature.image}
-                        alt={feature.feature}
-                        className="w-full h-[400px] sm:h-[560px] object-contain "
-                      />
-                    </motion.div>
-                    <motion.p
-                      className="text-[#1d4ed8] text-center text-base sm:text-xl"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.4 }}
-                    >
-                      {feature.content}
-                    </motion.p>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+    <section 
+      id="features" 
+      className="bg-white"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
+        
+        {/* Left Side: Text Content */}
+        <motion.div 
+          initial={{ opacity: 0, x: -50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="text-center lg:text-left"
+        >
+          <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tighter text-gray-900">
+            A smarter way to discover and bill.
+          </h1>
+          <p className="mt-6 text-lg text-gray-600 max-w-xl mx-auto lg:mx-0">
+            We make sense of the market so you can make more strategic choices, faster. Browse dozens of themes and opportunities, dive into data and perspectives, and invest with ease.
+          </p>
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6 max-w-lg mx-auto lg:mx-0">
+            {benefits.map((benefit) => (
+              <div key={benefit.text} className="flex items-center gap-3">
+                <benefit.icon className="w-5 h-5 text-indigo-600 flex-shrink-0" />
+                <span className="text-gray-700">{benefit.text}</span>
+              </div>
+            ))}
           </div>
+        </motion.div>
 
-          <motion.button
-            onClick={prev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 sm:p-2 hover:bg-gray-50 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6" />
-          </motion.button>
-
-          <motion.button
-            onClick={next}
-            className="absolute right-0 top-1/2 -translate-y-1/2 bg-white rounded-full p-1 sm:p-2 hover:bg-gray-50 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6" />
-          </motion.button>
-        </div>
+        {/* Right Side: High-Fidelity Phone Mockup */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1] }}
+          className="relative w-full h-[500px] lg:h-[600px] flex items-center justify-center"
+        >
+          {/* THE KEY CHANGES ARE HERE: A more detailed phone mockup */}
+          <div className="relative w-[280px] h-[560px] bg-gradient-to-br from-gray-800 to-gray-900 rounded-[44px] shadow-2xl shadow-black/40">
+            {/* Side Buttons */}
+            <div className="absolute left-[-3px] top-[110px] w-1 h-16 bg-gray-700 rounded-l-sm" />
+            <div className="absolute right-[-3px] top-[140px] w-1 h-24 bg-gray-700 rounded-r-sm" />
+            
+            {/* Inner Bezel */}
+            <div className="absolute inset-2 bg-black rounded-[36px]">
+              {/* Screen Content */}
+              <div className="absolute inset-2 bg-white rounded-[32px] overflow-hidden">
+                <AnimatePresence initial={false} custom={direction}>
+                  <motion.img
+                    key={imageIndex}
+                    src={ourFeatures[imageIndex].image}
+                    alt={ourFeatures[imageIndex].feature}
+                    custom={direction}
+                    variants={variants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={transition}
+                    className="absolute w-full h-full object-cover"
+                  />
+                </AnimatePresence>
+              </div>
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-b-xl" />
+            </div>
+          </div>
+        </motion.div>
       </div>
-    </div>
+    </section>
   );
 }
