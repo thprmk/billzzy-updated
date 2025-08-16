@@ -47,19 +47,15 @@ export default function Pricing() {
         <div className="max-w-4xl mx-auto text-center mb-16 sm:mb-20">
           <motion.h2 
             className="mt-4 text-3xl font-extrabold tracking-tighter text-gray-900 sm:text-4xl lg:text-5xl"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }}
           >
             Simple, transparent pricing
           </motion.h2>
           <motion.p 
-            className="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8 lg:text-xl"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-6 text-base leading-7 text-gray-600 sm:text-lg sm:leading-8"
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.2 }}
           >
             Choose the plan that's right for your business. No hidden fees.
           </motion.p>
@@ -71,7 +67,7 @@ export default function Pricing() {
               <motion.div
                 key={plan.name}
                 className={cn(
-                  "relative p-6 sm:p-8 lg:p-10 rounded-3xl flex flex-col transition-all duration-300 bg-white",
+                  "relative p-8 lg:p-10 rounded-3xl flex flex-col transition-all duration-300 bg-white",
                   plan.popular 
                     ? "shadow-2xl shadow-indigo-900/10 ring-1 ring-gray-900/5" 
                     : "ring-1 ring-gray-200 hover:ring-indigo-300"
@@ -101,7 +97,8 @@ export default function Pricing() {
                   )}
                 </div>
                 
-                <ul className="mt-8 space-y-4 text-base text-gray-600 flex-grow">
+                {/* Responsive spacing for the feature list */}
+                <ul className="mt-8 space-y-3 sm:space-y-4 text-base text-gray-600 flex-grow">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-1" />
@@ -113,7 +110,7 @@ export default function Pricing() {
                 <Link href={plan.href} className="mt-10">
                   <button
                     className={cn(
-                      "w-full py-3 px-4 rounded-lg font-semibold text-base transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600",
+                      "w-full py-3 px-4 rounded-lg font-semibold text-base lg:text-lg transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600",
                       plan.popular
                         ? "bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 hover:-translate-y-0.5"
                         : "text-indigo-600 ring-1 ring-inset ring-indigo-200 hover:bg-indigo-50"

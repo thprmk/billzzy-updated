@@ -13,48 +13,33 @@ import {
 import { motion, AnimatePresence, useAnimationControls } from "framer-motion";
 
 const features = [
-  // ... (Your features array remains the same)
   {
-    id: "address-entry",
+    id: "Retail",
     icon: ClipboardCheck,
-    title: "Automated Address Entry",
-    description: "Save time with smart address detection and auto-fill capabilities.",
-    image: "/assets/feature-address.jpg",
+    title: "Retail",
+    description: "Billz streamlines inventory management, billing, and customer tracking for retail businesses, with built-in SMS notifications to keep customers updated from order to delivery.",
+    image: "/assets/b6.png",
   },
   {
-    id: "amount-confirmation",
+    id: "E-commerce",
     icon: DollarSign,
-    title: "Automatic Amount Confirmation",
-    description: "Automatically verify amounts to avoid discrepancies and manual checks.",
-    image: "/assets/feature-amount.jpg",
+    title: "E-commerce",
+    description: "Create professional online bills with tracking numbers, generate shipping labels, and automatically notify customers when orders are created, packed, and dispatched.",
+    image: "/assets/b7.png",
   },
   {
-    id: "order-confirmation",
+    id: "Small Businesses",
     icon: CheckCircle,
-    title: "Order Confirmation Automation",
-    description: "Instantly confirm orders and reduce errors with automated confirmations.",
-    image: "/assets/feature-order.jpg",
+    title: "Small Businesses",
+    description: "Track sales, manage inventory, and analyze business performance through our comprehensive dashboard, helping small businesses make data-driven decisions.",
+    image: "/assets/b8.png",
   },
   {
-    id: "label-printing",
+    id: "Logistics & Delivery",
     icon: Printer,
-    title: "Label Printing",
-    description: "Seamlessly print labels for shipping and inventory management.",
-    image: "/assets/feature-printing.jpg",
-  },
-  {
-    id: "tracking-automation",
-    icon: Package,
-    title: "Packing & Tracking Automation",
-    description: "Automate packing and track orders in real-time for better inventory control.",
-    image: "/assets/feature-tracking.jpg",
-  },
-  {
-    id: "mobile-management",
-    icon: Smartphone,
-    title: "Mobile Order Management",
-    description: "Manage orders on-the-go with mobile compatibility for your business.",
-    image: "/assets/feature-mobile.jpg",
+    title: "Logistics & Delivery",
+    description: "Integrate with courier services, generate tracking IDs, and provide automatic SMS updates to customers about their shipment status and delivery timeline.",
+    image: "/assets/b9.png",
   },
 ];
 
@@ -77,7 +62,6 @@ export default function Features() {
   const [isHovered, setIsHovered] = useState(false);
   const controls = useAnimationControls();
 
-  // Effect for the autoplay timer
   useEffect(() => {
     if (isHovered) return;
     const interval = setInterval(() => {
@@ -86,7 +70,6 @@ export default function Features() {
     return () => clearInterval(interval);
   }, [isHovered]);
 
-  // Effect for controlling the progress bar animation
   useEffect(() => {
     controls.stop();
     controls.set({ scaleX: 0 });
@@ -113,15 +96,85 @@ export default function Features() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl text-center mx-auto mb-16 sm:mb-20">
-          <h3 className="mt-4 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            Purpose-Built. Outcome-Driven. Scalable.
-          </h3>
+
+          <motion.h2 
+            className="mt-4 text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tighter text-gray-900"
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            Industry Use Cases
+          </motion.h2>
+          <motion.p
+            className="mt-6 text-lg text-gray-600"
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            Billzzy is adaptable to various industries, improving efficiency and simplifying operations.
+          </motion.p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-start">
-          {/* THE KEY CHANGE: The two main columns have been swapped */}
+          {/* Left Side: Vertical Navigation */}
+          <div className="flex flex-col gap-6 lg:gap-8">
+            {features.map((item, index) => (
+              <div key={item.id}>
+                <button
+                  onClick={() => handleItemClick(index)}
+                  className="relative text-left p-2 w-full"
+                >
+                  <motion.h4
+                    animate={{ color: activeIndex === index ? '#4f46e5' : '#1f2937' }}
+                    className="text-xl sm:text-2xl font-bold"
+                  >
+                    {item.title}
+                  </motion.h4>
+                  <div className="overflow-hidden">
+                    <AnimatePresence>
+                      {activeIndex === index && (
+                        <motion.p
+                          variants={textVariants} initial="initial" animate="animate" exit="exit"
+                          className="mt-2 text-gray-600 leading-relaxed"
+                        >
+                          {item.description}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  {activeIndex === index ? (
+                    <motion.div
+                      layoutId="active-feature-underline"
+                      className="absolute bottom-[-16px] left-0 w-full h-0.5 bg-indigo-100"
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    >
+                      <motion.div 
+                        className="h-full bg-indigo-600"
+                        style={{ transformOrigin: 'left' }}
+                        animate={controls}
+                      />
+                    </motion.div>
+                  ) : (
+                     <div className="absolute bottom-[-16px] left-0 w-full h-0.5 bg-gray-200" />
+                  )}
+                </button>
+                {/* Mobile-only Image */}
+                <div className="mt-8 lg:hidden">
+                  <AnimatePresence>
+                    {activeIndex === index && (
+                       <motion.div initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: -20}}>
+                         <div className="relative bg-indigo-100/30 p-4 rounded-2xl ring-1 ring-indigo-200/50">
+                           <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl">
+                              <img src={item.image} alt={item.title} className="absolute inset-0 w-full h-full object-cover"/>
+                           </div>
+                         </div>
+                       </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            ))}
+          </div>
 
-          {/* Left Side: Image Showcase (DESKTOP ONLY) */}
+          {/* Right Side: Image Showcase (DESKTOP ONLY) */}
           <div className="w-full hidden lg:block sticky top-24">
             <div className="relative bg-indigo-100/30 p-4 rounded-2xl ring-1 ring-indigo-200/50">
               <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl">
@@ -143,67 +196,6 @@ export default function Features() {
               {activeIndex + 1}/{features.length}
             </p>
           </div>
-
-          {/* Right Side: Vertical Navigation */}
-          <div className="flex flex-col gap-8">
-            {features.map((item, index) => (
-              <div key={item.id}>
-                <button
-                  onClick={() => handleItemClick(index)}
-                  className="relative text-left p-2 w-full"
-                >
-                  <motion.h4
-                    animate={{ color: activeIndex === index ? '#4f46e5' : '#1f2937' }}
-                    className="text-2xl font-bold"
-                  >
-                    {item.title}
-                  </motion.h4>
-                  <div className="overflow-hidden">
-                    <AnimatePresence>
-                      {activeIndex === index && (
-                        <motion.p
-                          variants={textVariants} initial="initial" animate="animate" exit="exit"
-                          className="mt-2 text-gray-600 leading-relaxed"
-                        >
-                          {item.description}
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                  {activeIndex === index ? (
-                    <motion.div
-                      layoutId="active-feature-underline"
-                      className="absolute bottom-[-16px] left-0 w-full h-0.5 bg-indigo-200"
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    >
-                      <motion.div 
-                        className="h-full bg-indigo-600"
-                        style={{ transformOrigin: 'left' }}
-                        animate={controls}
-                      />
-                    </motion.div>
-                  ) : (
-                     <div className="absolute bottom-[-16px] left-0 w-full h-0.5 bg-gray-200" />
-                  )}
-                </button>
-                {/* Mobile-only Image, now appears correctly under its content */}
-                <div className="mt-8 lg:hidden">
-                  <AnimatePresence>
-                    {activeIndex === index && (
-                       <motion.div initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}}>
-                         <div className="relative bg-indigo-100/30 p-4 rounded-2xl ring-1 ring-indigo-200/50">
-                           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl">
-                              <img src={item.image} alt={item.title} className="absolute inset-0 w-full h-full object-cover"/>
-                           </div>
-                         </div>
-                       </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            ))}
-          </div>
-
         </div>
       </div>
     </section>

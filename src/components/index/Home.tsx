@@ -1,5 +1,6 @@
+// src/components/landingPage/Home.tsx
 'use client';
-import React, { Suspense } from 'react';
+import React from 'react';
 import Navbar from '../landingPage/Navbar';
 import Hero from '../landingPage/Hero';
 import Features from '../landingPage/Features';
@@ -13,23 +14,32 @@ import Footer from '../landingPage/Footer';
 export default function Home() {
   return (
     <div className="min-h-screen">
-      <Suspense
-        fallback={
-          <div className="flex justify-center items-center min-h-screen">
-            <img src="/assets/loading.gif" alt="Loading..." />
-          </div>
-        }
-      >
-        <Navbar />
-        <Hero />
+      <Navbar />
+      <Hero />
+      
+      <section id="features" className="scroll-mt-20">
         <Features />
-        <FeatureImage />
+      </section>
+
+      <FeatureImage />
+
+      <section id="usecase" className="scroll-mt-20">
         <UseCases />
+      </section>
+
+      <section id="pricing" className="scroll-mt-20">
         <Pricing />
+      </section>
+      
+      <section id="faq" className="scroll-mt-20">
         <Faq />
+      </section>
+
+      <section id="contact" className="scroll-mt-20">
         <Contact />
-        <Footer />
-      </Suspense>
+      </section>
+      
+      <Footer />
     </div>
   );
 }

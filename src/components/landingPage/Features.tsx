@@ -4,30 +4,6 @@
 import { motion } from "framer-motion";
 import { LayoutGrid, Clock, Heart, Tag } from "lucide-react";
 
-const benefits = [
-  // ... (benefits array remains the same)
-  {
-    icon: LayoutGrid,
-    title: "Diversify your services",
-    description: "Add 10+ business finance offerings with zero effort.",
-  },
-  {
-    icon: Clock,
-    title: "Save time and effort",
-    description: "Save 98% of time & cost while managing clients.",
-  },
-  {
-    icon: Heart,
-    title: "Delight your clients",
-    description: "Delight clients with simplified business processes.",
-  },
-  {
-    icon: Tag,
-    title: "Get exclusive offers",
-    description: "Get an exclusive discount for your clients.",
-  },
-];
-
 const partnerTypes = [
   // ... (partnerTypes array remains the same)
   {
@@ -68,53 +44,42 @@ const itemVariants = {
 
 export default function Partners() {
   return (
-    <section id="partners" className="py-24 sm:py-32 bg-white">
+    <section id="partners" className="py-20 sm:py-24 lg:py-32 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Header */}
-        <div className="max-w-3xl mb-16">
-          <h2 className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
+        <div className="max-w-3xl mx-auto text-center mb-12 sm:mb-16">
+          <h2 className="mt-4 text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tighter text-gray-900">
               Key Features to Simplify Your Business
           </h2>
+          <p className="mt-4 text-lg text-gray-600">
+            Powerful tools that automate manual tasks and boost your efficiency.
+          </p>
         </div>
 
-        {/* Top Benefits Grid */}
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 mb-20"
-          variants={containerVariants} initial="hidden" whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
-        >
-          {benefits.map((benefit) => (
-            <motion.div key={benefit.title} variants={itemVariants}>
-              <benefit.icon className="w-10 h-10 text-indigo-600 mb-6" />
-              <h3 className="text-xl font-semibold text-gray-900">{benefit.title}</h3>
-              <p className="mt-2 text-base text-gray-600">{benefit.description}</p>
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Bottom Partner Cards Grid */}
         <div className="max-w-6xl mx-auto">
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8"
             variants={containerVariants} initial="hidden" 
             whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
+            viewport={{ once: true, amount: 0.1 }}
           >
             {partnerTypes.map((partner) => (
               <motion.div
                 key={partner.id}
                 variants={itemVariants}
-                // THE CHANGE IS HERE: Decreased border curve from rounded-xl to rounded-lg
                 className="bg-gray-50/70 rounded-lg border border-gray-200/80 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
               >
-                {/* THE CHANGE IS HERE: Matched the top corners to the new curve */}
-                <div className="aspect-[3/4] w-full overflow-hidden rounded-t-lg">
+                {/* 
+                  THE KEY CHANGE IS HERE:
+                  - `aspect-[16/9]` is the default (for mobile and tablet)
+                  - `lg:aspect-[3/4]` applies ONLY on large screens and up
+                */}
+                <div className="aspect-[16/9] lg:aspect-[3/4] w-full overflow-hidden rounded-t-lg">
                   <img src={partner.image} alt={partner.title} className="w-full h-full object-cover" />
                 </div>
-                <div className="p-8">
-                  <h3 className="text-xl font-bold text-gray-900">{partner.title}</h3>
-                  <p className="mt-2 text-base text-gray-600">{partner.description}</p>
+                <div className="p-6 sm:p-8">
+                  <h3 className="text-lg sm:text-xl font-bold text-gray-900">{partner.title}</h3>
+                  <p className="mt-2 text-base text-gray-600 leading-relaxed">{partner.description}</p>
                 </div>
               </motion.div>
             ))}

@@ -3,10 +3,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Phone } from "lucide-react";
 import Link from "next/link";
 
-// 1. Define the TypeScript type for an FAQ item
+// Define the TypeScript type for an FAQ item
 type FaqItem = {
   id: number;
   question: string;
@@ -14,34 +14,30 @@ type FaqItem = {
 };
 
 const faqData: FaqItem[] = [
+  // ... (Your faqData array remains the same)
   {
     id: 1,
-    question: "What is a POS machine and why do I need it?",
-    answer: "A Point of Sale (POS) machine is a device used to process transactions in a retail environment. You need it to accept card payments, track sales, manage inventory, and generate reports, which simplifies your business operations.",
+    question: "Who is Billzzy for?",
+    answer: "Billzzy is perfect for small business owners, especially those running boutiques, online stores, or shops that need a simple way to create bills, track inventory, and manage sales. If you're tired of doing everything manually, Billzzy is for you.",
   },
   {
     id: 2,
-    question: "What if I only have a small shop and don't want to invest much?",
-    answer: "Our 'Starter' plan is perfect for small shops. It's completely free and provides all the essential features you need to manage your billing and customers without a significant upfront investment.",
+    question: "Is it difficult to get started?",
+    answer: "Not at all! You can sign up and create your first bill in just a few minutes. The design is simple and intuitive, so you don't need any technical knowledge to start managing your business more efficiently.",
   },
   {
     id: 3,
-    question: "How can I get a POS device for my business?",
-    answer: "Getting started is easy. Simply sign up for one of our plans, and based on your selection, we can guide you through the process of acquiring a compatible POS device or using our software on your existing Android or iOS devices.",
+    question: "Can I manage products with different sizes and colors?",
+    answer: "Yes! This is one of our key features. Billzzy fully supports products with variants like different sizes, colors, or styles. Each variant has its own stock count, so your inventory is always accurate.",
   },
   {
     id: 4,
-    question: "What is an Android POS or Android swipe machine?",
-    answer: "An Android POS is a point-of-sale system that runs on the Android operating system, often on a dedicated terminal or a standard tablet/smartphone. It offers flexibility, a user-friendly interface, and access to a wide range of business apps.",
-  },
-  {
-    id: 5,
-    question: "Is it possible to use an Android POS terminal with an iOS device?",
-    answer: "While the POS terminal itself runs on Android, our cloud-based system allows you to access your dashboard, view reports, and manage your business from any device with a web browser, including your iOS device.",
+    question: "Is my data safe with Billzzy?",
+    answer: "Absolutely. Your business data is very important to us. We use secure cloud infrastructure (AWS) and standard encryption practices to ensure your customer, product, and sales information is always kept safe and private.",
   },
 ];
 
-// 2. Define the props for the AccordionItem component
+// Define the props for the AccordionItem component
 type AccordionItemProps = {
   item: FaqItem;
   isOpen: boolean;
@@ -53,12 +49,13 @@ const AccordionItem = ({ item, isOpen, onToggle }: AccordionItemProps) => {
     <div className="border-b border-gray-200 py-6">
       <button
         onClick={onToggle}
-        className="w-full flex justify-between items-center text-left"
+        className="w-full flex justify-between items-center text-left gap-4"
       >
-        <h3 className="text-lg font-medium text-gray-900">{item.question}</h3>
+        <h3 className="text-base sm:text-lg font-medium text-gray-900">{item.question}</h3>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
+          className="flex-shrink-0"
         >
           <ChevronDown className="w-5 h-5 text-gray-400" />
         </motion.div>
@@ -91,23 +88,24 @@ export default function Faq() {
   };
 
   return (
-    <section id="faq" className="py-24 sm:py-32 bg-white">
+    <section id="faq" className="py-20 sm:py-24 lg:py-32 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-16">
-          {/* Left Side: Sticky Header */}
-          <div className="lg:col-span-1">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-16">
+          {/* Left Side: Header */}
+          <div className="lg:col-span-1 text-center lg:text-left">
             <div className="lg:sticky lg:top-24">
-              <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-gray-900">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900">
                 Frequently Asked Questions
               </h2>
-              <p className="mt-4 text-lg text-gray-600">
+              <p className="mt-4 text-base sm:text-lg text-gray-600">
                 Can't find the answer you're looking for? Reach out to our customer support team.
               </p>
-              <Link href="/contact" className="mt-8 inline-block">
-                <button className="bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold text-base transition-all duration-300 hover:bg-indigo-700 hover:scale-105">
-                  Contact Sales
+              <a href="tel:7339249430" className="mt-8 inline-block">
+                <button className="inline-flex items-center gap-2 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold text-base transition-all duration-300 hover:bg-indigo-700 hover:scale-105">
+                  <Phone className="w-4 h-4" />
+                   7339249430
                 </button>
-              </Link>
+              </a>
             </div>
           </div>
 

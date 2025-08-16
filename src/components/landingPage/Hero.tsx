@@ -23,15 +23,17 @@ export default function Hero() {
   
   return (
     <section className="bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16 sm:pt-32 sm:pb-24 lg:pt-40 lg:pb-32">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24 lg:py-40">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-16 items-center">
           
           {/* LEFT: Text Content */}
+          {/* THE CHANGE IS HERE: Added responsive order classes */}
           <motion.div 
-            className="text-center lg:text-left"
+            className="text-center lg:text-left order-last lg:order-first"
             variants={containerVariants}
             initial="hidden"
-            animate="visible"
+            whileInView="visible"
+            viewport={{ once: true }}
           >
             <motion.h1 
               className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tighter leading-tight"
@@ -41,22 +43,23 @@ export default function Hero() {
             </motion.h1>
 
             <motion.p 
-              className="mt-6 text-lg lg:text-xl text-slate-600 max-w-lg mx-auto lg:mx-0"
+              className="mt-6 text-base sm:text-lg lg:text-xl text-slate-600 max-w-lg mx-auto lg:mx-0"
               variants={itemVariants}
             >
               Streamline your billing process and boost productivity with automated address entry and smart order management.
             </motion.p>
 
-            <motion.ul className="mt-8 space-y-3 text-left max-w-md mx-auto lg:mx-0" variants={itemVariants}>
+            <motion.ul className="mt-8 space-y-3" variants={itemVariants}>
               {benefits.map((benefit, index) => (
-                <li key={index} className="flex items-center">
+                <li key={index} className="flex items-center justify-center lg:justify-start">
                   <CheckCircle2 className="w-5 h-5 text-indigo-500 mr-3 flex-shrink-0" />
                   <span className="text-slate-700">{benefit}</span>
                 </li>
               ))}
             </motion.ul>
 
-            <motion.div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4" variants={itemVariants}>
+            {/* THE CHANGE IS HERE: Simplified flex classes to always be horizontal */}
+            <motion.div className="mt-10 flex flex-row items-center justify-center lg:justify-start gap-4" variants={itemVariants}>
               <Link href="/register">
                 <button className="w-full sm:w-auto bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 hover:bg-indigo-700 hover:-translate-y-0.5">
                   Get Started
@@ -71,11 +74,13 @@ export default function Hero() {
           </motion.div>
 
           {/* RIGHT: Image Composition */}
+          {/* THE CHANGE IS HERE: Added responsive order classes */}
           <motion.div 
-            className="relative w-full max-w-lg mx-auto"
+            className="relative w-full max-w-lg mx-auto order-first lg:order-last"
             initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, delay: 0.4, ease: [0.25, 1, 0.5, 1] }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 1, 0.5, 1] }}
           >
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-auto">
               <img 
@@ -85,9 +90,9 @@ export default function Hero() {
               />
             </div>
             
-            <div className="relative z-10 w-4/5 ml-auto">
+            <div className="relative z-10 w-4/5 mx-auto">
               <img 
-                src="/assets/shopkeeper.png"
+                src="/assets/shopperson.png"
                 alt="Happy customer using the app" 
                 className="w-full h-auto"
               />

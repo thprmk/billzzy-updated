@@ -2,6 +2,7 @@
 
 import { Facebook, Instagram, Linkedin, Mail } from "lucide-react";
 import Link from "next/link";
+// We don't need useState here, so I'm removing the import to keep the code clean.
 
 export default function Footer() {
   const socialLinks = [
@@ -12,10 +13,10 @@ export default function Footer() {
   ];
 
   const siteLinks = [
-    { name: "Home", href: "/" },
-    { name: "About", href: "/about" },
-    { name: "Contact", href: "/contact" },
+    { name: "Features", href: "#features" },
+    { name: "Use Case", href: "#usecase" },
     { name: "Pricing", href: "#pricing" },
+    { name: "Contact", href: "#contact" },
   ];
   
   const legalLinks = [
@@ -26,36 +27,28 @@ export default function Footer() {
   return (
     <footer className="bg-gray-950 text-gray-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           
-          {/* Column 1: Brand & Credit */}
-          <div className="lg:col-span-5 flex flex-col">
-            <div className="flex-grow">
-              <Link href="/" className="inline-block mb-4">
-                <img src="/assets/billzzy-logo.png" alt="Billzzy Logo" width={140} height={40} />
-              </Link>
-              <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
-                Simplifying billing for businesses worldwide with smart automation and powerful features.
-              </p>
-            </div>
-            <div className="mt-8">
+          <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+            <Link href="/" className="mb-4">
+              <img src="/assets/billzzy-logo.png" alt="Billzzy Logo" width={140} height={40} />
+            </Link>
+            <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
+              Simplifying billing for businesses worldwide with smart automation and powerful features.
+            </p>
+            <div className="mt-8 text-sm">
               <a 
                 href="https://techvaseegrah.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-gray-300 hover:text-white transition-colors w-fit"
+                className="text-gray-300 hover:text-white transition-colors w-fit"
               >
                 Powered by <span className="font-semibold">Tech Vaseegrah</span>
               </a>
-              <p className="text-xs text-gray-500 mt-2">
-                &copy; {new Date().getFullYear()} Billzzy. All rights reserved.
-              </p>
             </div>
           </div>
 
-          {/* Link Columns Wrapper */}
-          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
-            {/* Column 2: Site */}
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center sm:text-left">
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Site</h3>
               <ul className="space-y-3">
@@ -69,7 +62,6 @@ export default function Footer() {
               </ul>
             </div>
             
-            {/* Column 3: Legal */}
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Legal</h3>
               <ul className="space-y-3">
@@ -83,10 +75,9 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Column 4: Follow Us (Icons Only) */}
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Follow Us</h3>
-              <div className="flex gap-4">
+              <div className="flex gap-4 justify-center sm:justify-start">
                 {socialLinks.map((link) => (
                   <a
                     key={link.name}
@@ -102,6 +93,13 @@ export default function Footer() {
               </div>
             </div>
           </div>
+        </div>
+        
+        <div className="border-t border-white/10 mt-12 pt-8 text-center">
+          <p className="text-xs text-gray-500">
+            {/* THE FIX IS HERE: Replaced the incorrect code with the correct JS */}
+            &copy; {new Date().getFullYear()} Billzzy. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>
