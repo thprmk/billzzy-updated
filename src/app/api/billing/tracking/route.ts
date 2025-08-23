@@ -1,18 +1,20 @@
 /*
  * FILE: src/app/api/billing/tracking/route.ts
- *
- * CHANGES:
- * - Both POST and GET handlers now query the database using `companyBillNo`
- * instead of the old `billNo` to correctly identify transactions
- * on a per-organisation basis.
+ * 
+ * ENHANCED WITH WHATSAPP INTEGRATION
+ * - UPDATED: Sends only WhatsApp notifications for shipped orders.
+ * - Uses tenant-specific WhatsApp configuration.
+ * - Proper error handling for WhatsApp failures.
+ * - FIXED: WhatsApp variables reduced to 7 parameters to match template.
  */
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
-import { sendOrderStatusSMS, splitProducts } from '@/lib/msg91';
+import { splitProducts } from '@/lib/msg91'; // splitProducts is still needed for formatting
+import { sendWhatsAppMessageByOrganisation } from '@/lib/whatsapp'; // Import WhatsApp function
 
-// Helper functions (determineShippingPartner, getTrackingUrl) remain the same
+// Helper functions remain the same
 function determineShippingPartner(trackingNumber: string): string {
   if (trackingNumber.startsWith("CT")) return "INDIA POST";
   if (trackingNumber.startsWith("C1")) return "DTDC";
@@ -60,7 +62,6 @@ function getTrackingUrl(shippingPartner: string, trackingNumber: string): string
   }
 }
 
-
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -78,11 +79,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // --- MODIFIED LOGIC ---
-    // First, check if the bill exists using companyBillNo
+    // Find bill using companyBillNo
     const existingBill = await prisma.transactionRecord.findFirst({
       where: {
-        companyBillNo: parseInt(billId), // Use companyBillNo
+        companyBillNo: parseInt(billId),
         organisationId: parseInt(session.user.id)
       },
       include: {
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
         { status: 404 }
       );
     }
-
+    
     if (existingBill.billingMode === 'offline') {
       return NextResponse.json(
         { error: 'Tracking cannot be added to offline bills through this endpoint.' },
@@ -110,10 +110,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Update the bill with tracking details using its unique primary key
+    // Update bill with tracking details
     const updatedBill = await prisma.transactionRecord.update({
       where: {
-        id: existingBill.id // Use the unique id for the update
+        id: existingBill.id
       },
       data: {
         trackingNumber,
@@ -131,38 +131,66 @@ export async function POST(request: Request) {
       }
     });
 
-    // Send SMS notification
+    // Prepare and send WhatsApp notification
     if (updatedBill.customer?.phone) {
       const organisationName = updatedBill.organisation.shopName;
-      const products = updatedBill.items.map((item) => item.product.name);
+      const products = updatedBill.items
+        .filter((item) => item.product !== null)
+        .map((item) => item.product!.name);
       const productList = products.join(', ');
       const [productsPart1, productsPart2] = splitProducts(productList);
 
       const shippingPartner = determineShippingPartner(trackingNumber || '');
       const trackingUrl = getTrackingUrl(shippingPartner, trackingNumber || '');
-
-      const smsVariables = {
-        var1: organisationName,
-        var2: productsPart1,
-        var3: productsPart2,
-        var4: shippingPartner,
-        var5: trackingNumber,
-        var6: `${weight} Kg`,
-        var7: trackingUrl,
-        var8: organisationName
+      
+      const whatsappVariables = [
+        organisationName,           // {{1}} - organisationName
+        productsPart1,             // {{2}} - productsPart1
+        productsPart2,             // {{3}} - productsPart2
+        shippingPartner,           // {{4}} - shippingPartner
+        trackingNumber,            // {{5}} - trackingNumber (Tracking ID)
+        `${weight} Kg`,            // {{6}} - weight with unit
+        trackingUrl                // {{7}} - trackingUrl
+      ];
+      
+      const notificationResult = {
+        whatsapp: { success: false, error: null as string | null }
       };
-      await sendOrderStatusSMS({
-        phone: updatedBill.customer.phone,
-        organisationId: parseInt(session.user.id),
-        status: 'shipped',
-        smsVariables
+
+      try {
+        await sendWhatsAppMessageByOrganisation({
+          organisationId: parseInt(session.user.id),
+          phone: updatedBill.customer.phone,
+          templateName: 'order_shipped_notification',
+          variables: whatsappVariables,
+          skipValidation: false
+        });
+        notificationResult.whatsapp.success = true;
+        console.log(`✅ WhatsApp notification sent successfully for bill ${billId}`);
+      } catch (whatsappError: any) {
+        notificationResult.whatsapp.error = whatsappError.message;
+        console.error(`❌ WhatsApp notification failed for bill ${billId}:`, whatsappError.message);
+        
+        if (whatsappError.message.includes('No WhatsApp configuration found')) {
+          console.warn(`⚠️  Organisation ${session.user.id} needs WhatsApp configuration setup`);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: updatedBill,
+        notifications: notificationResult
       });
     }
 
     return NextResponse.json({
       success: true,
-      data: updatedBill
+      data: updatedBill,
+      notifications: {
+        whatsapp: { success: false, error: 'No customer phone number' }
+      }
     });
+
   } catch (error: any) {
     console.error('Error details:', error.message);
     return NextResponse.json(
@@ -193,10 +221,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // --- MODIFIED LOGIC ---
     const bill = await prisma.transactionRecord.findFirst({
       where: {
-        companyBillNo: parseInt(billId), // Use companyBillNo
+        companyBillNo: parseInt(billId),
         organisationId: parseInt(session.user.id)
       },
       include: {

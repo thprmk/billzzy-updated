@@ -17,11 +17,11 @@ import {
   ShareIcon,
   BellIcon,
 } from '@heroicons/react/24/outline';
+
 import { PackageIcon, PrinterIcon, Truck } from 'lucide-react';
 import useSWR from 'swr';
 import { parseISO, differenceInCalendarDays, isAfter } from 'date-fns';
 import { toast } from 'react-toastify';
-
 import EnhancedLogoutButton from '../ui/LogoutBtn';
 import RazorpayConnect from '../ui/RazorpayConnect';
 import { MandateModal } from '../mandate/MandateModal';
@@ -87,6 +87,16 @@ const navigation = [
       { name: 'Offline', href: '/transactions/offline' },
     ],
   },
+
+  {
+    name: 'Invoices',
+    icon: DocumentTextIcon, // Using an existing icon for now
+    children: [
+      { name: 'Create Invoice', href: '/invoices/new' },
+      { name: 'View All Invoices', href: '/invoices/list' },
+    ],
+  },
+  
   { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
   { name: 'Printing', href: '/printing', icon: PrinterIcon },
   { name: 'Packing', href: '/packing', icon: PackageIcon },
@@ -521,9 +531,7 @@ export default function Sidebar({
   );
 }
 
-// ---------------------------------
 // Footer sub-component
-// ---------------------------------
 function FooterSection({
   org,
   setShowUpgradeModal,

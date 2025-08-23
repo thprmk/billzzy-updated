@@ -62,6 +62,8 @@ model Organisation {
   MandateNotification MandateNotification[]
   customShippings     CustomShipping[] // <--- NEW RELATION
   taxes               Tax[] // <--- NEW RELATION
+  gowhats   Gowhats?
+  invoices            Invoice[]
 
   @@index([resetToken])
   @@map("organisation")
@@ -116,9 +118,47 @@ model Product {
   inventory        Inventory[]
   transactionItems TransactionItem[]
   variants         ProductVariant[]
+  invoiceItems     InvoiceItem[]
   @@map("products")
 }
 
+
+model Invoice {
+  id                   Int       @id @default(autoincrement())
+  invoiceNumber        String    @map("invoice_number")
+  issueDate            DateTime  @db.Date
+  dueDate              DateTime  @db.Date
+  status               String    @default("DRAFT")
+  notes                String?   @db.Text
+  subTotal             Float     @map("sub_total")
+  totalTax             Float     @map("total_tax")
+  totalAmount          Float     @map("total_amount")
+  customerId           Int?      @map("customer_id")
+  customer             Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  organisationId       Int       @map("organisation_id")
+  organisation         Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  items                InvoiceItem[]
+  createdTransactionId Int?      @unique @map("created_transaction_id")
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([organisationId, invoiceNumber])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          Int     @id @default(autoincrement())
+  description String
+  quantity    Float
+  unitPrice   Float   @map("unit_price")
+  total       Float
+  productId   Int?    @map("product_id")
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  invoiceId   Int     @map("invoice_id")
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_items")
+}
 
 enum ProductType {
   STANDARD
@@ -221,7 +261,15 @@ model TransactionItem {
 
   @@map("transaction_items")
 }
-
+model Gowhats {
+  id              Int           @id @default(autoincrement())
+  organisation    Organisation  @relation(fields: [organisationId], references: [id])
+  organisationId  Int           @unique
+  whatsappNumber  String
+  accessToken    String   @db.Text  // 👈 This is the key change - from String to Text
+  businessId      String
+  phoneNumberId   String
+}
 model Customer {
   id             Int     @id @default(autoincrement())
   name           String
@@ -237,6 +285,7 @@ model Customer {
   organisation       Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   transactions       TransactionRecord[]
   CustomerSubmission CustomerSubmission[]
+  invoices Invoice[]
 
   @@map("customers")
 }
