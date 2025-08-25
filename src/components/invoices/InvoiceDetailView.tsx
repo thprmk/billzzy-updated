@@ -61,7 +61,7 @@ export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
     
     {/* The new "Download PDF" button */}
     <a 
-      href={`/api/invoice/${currentInvoice.id}/download`} 
+      href={`/api/invoices/${currentInvoice.id}?format=pdf`} 
       target="_blank" // Opens the download in a new tab
       rel="noopener noreferrer"
     >

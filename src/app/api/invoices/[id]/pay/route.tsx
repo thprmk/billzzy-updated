@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import generateBillNumber from '@/lib/generateBillNumber';
+import generateBillNumber from '@/lib/generateBillNumber'; // Ensure this import is correct
 
 export async function PATCH(
   req: Request,
@@ -22,8 +22,10 @@ export async function PATCH(
   }
 
   try {
+    // Use a Prisma transaction to ensure all operations succeed or none do.
     const updatedInvoice = await prisma.$transaction(async (tx) => {
       
+      // 1. Find the invoice and ensure it belongs to the logged-in user.
       const invoice = await tx.invoice.findFirst({
         where: {
           id: invoiceId,
@@ -36,11 +38,15 @@ export async function PATCH(
         throw new Error('Invoice not found');
       }
 
-      if (invoice.status === 'PAID' && invoice.createdTransactionId) {
+      // If it's already paid, do nothing and just return it.
+      if (invoice.status === 'PAID') {
         return invoice;
       }
 
+      // 2. Generate a new, unique bill number for the transaction record.
       const newBillNo = await generateBillNumber(organisationId);
+      
+      // 3. Create the corresponding TransactionRecord.
       const newTransaction = await tx.transactionRecord.create({
         data: {
           billNo: newBillNo,
@@ -55,6 +61,7 @@ export async function PATCH(
           notes: `Generated from Invoice #${invoice.invoiceNumber}`,
           status: 'confirmed',
           paymentStatus: 'PAID',
+          // Create the transaction items from the invoice items.
           items: {
             create: invoice.items.map(item => ({
               quantity: item.quantity,
@@ -65,6 +72,7 @@ export async function PATCH(
         },
       });
 
+      // 4. Update inventory for each product on the invoice.
       for (const item of invoice.items) {
         if (item.productId) {
           await tx.product.update({
@@ -78,6 +86,7 @@ export async function PATCH(
         }
       }
 
+      // 5. Update the invoice to mark it as PAID and link it to the new transaction.
       const finalInvoice = await tx.invoice.update({
         where: { id: invoiceId },
         data: {

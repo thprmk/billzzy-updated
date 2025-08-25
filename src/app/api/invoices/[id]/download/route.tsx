@@ -1,4 +1,4 @@
-// src/app/invoice/[id]/download/route.ts
+// src/app/api/invoices/[id]/download/route.ts
 
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -34,11 +34,14 @@ export async function GET(
 
   try {
     // --- THIS IS THE PERMANENT FIX ---
-    // 1. We cast the database object to our strict Invoice type on its own line.
+    // 1. We cast the database object to our strict Invoice type on its own, separate line.
     const invoice: Invoice = invoiceFromDb as Invoice;
 
-    // 2. Now, we pass the clean, correctly-typed variable to the component.
-    const pdfStream = await renderToStream(<InvoicePDF invoice={invoice} />);
+    // 2. We then pass the clean, correctly-typed variable to the component. The JSX is now simple and correct.
+    const MyDoc = <InvoicePDF invoice={invoice} />;
+
+    // 3. Pass the clean element to the render function.
+    const pdfStream = await renderToStream(MyDoc);
     // --- END OF FIX ---
 
     const response = new Response(pdfStream as any, {
