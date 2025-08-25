@@ -57,6 +57,9 @@ export async function POST(req: Request) {
   // Store the organization ID for later use. Ensure it's a number for Prisma.
   const organisationId = Number(session.user.organisationId);
 
+  console.log(`--- API: POST /api/invoices ---`);
+  console.log(`API INFO: Creating invoice for organisationId: ${organisationId}`);
+
   try {
     // 2. --- DATA EXTRACTION & VALIDATION ---
     // Parse the JSON data sent from the frontend.
@@ -99,10 +102,7 @@ export async function POST(req: Request) {
         organisation: {
           connect: { id: organisationId }
         },
-        // If a customerId was provided, connect the invoice to that customer.
-        customer: customerId ? {
-          connect: { id: Number(customerId) }
-        } : undefined,
+
         // Create all line items and connect them to this new invoice.
         items: {
           create: items.map((item: InvoiceItemInput) => ({
@@ -121,6 +121,8 @@ export async function POST(req: Request) {
         items: true, 
       },
     });
+
+    console.log('API RESULT: Successfully created new invoice:', newInvoice);
 
     // 5. --- RESPONSE ---
     // Send back the complete new invoice object with a 201 "Created" status.

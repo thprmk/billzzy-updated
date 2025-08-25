@@ -1,42 +1,45 @@
 // src/app/(dashboard)/invoices/[id]/page.tsx
+'use client';
 
-import Header from '@/components/dashboard/Header';
-import { InvoiceDetailView } from '@/components/invoices/InvoiceDetailView'; // We will create this next
-import { getInvoiceById } from '@/lib/data/invoices'; // We will create this function
+import { useState, useEffect } from 'react';
+import Header from '../../../../components/dashboard/Header';
+import { InvoiceDetailView } from '../../../../components/invoices/InvoiceDetailView';
+import { Invoice } from '../../../../types/invoice'; // Correct import
 
-// Define the type for the invoice data we expect
-// This should match your Prisma model
-interface Invoice {
-  id: number;
-  invoiceNumber: string;
-  status: string;
-  issueDate: Date;
-  dueDate: Date;
-  notes: string;
-  subTotal: number;
-  totalTax: number;
-  totalAmount: number;
-  items: {
-    id: number;
-    description: string;
-    quantity: number;
-    unitPrice: number;
-    total: number;
-  }[];
-}
+export default function InvoiceDetailPage({ params }: { params: { id: string } }) {
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
-// This is an async Server Component
-export default async function InvoiceDetailPage({ params }: { params: { id: string } }) {
-  // Fetch the specific invoice using the ID from the URL
-  const invoice: Invoice | null = await getInvoiceById(params.id);
+  useEffect(() => {
+    const fetchInvoice = async () => {
+      try {
+        const response = await fetch(`/api/invoices/${params.id}`);
+        if (!response.ok) throw new Error('Invoice not found');
+        const data = await response.json();
+        setInvoice(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInvoice();
+  }, [params.id]);
 
-  if (!invoice) {
+  if (loading) return <div>Loading...</div>;
+
+  if (error || !invoice) {
     return (
-        <div>
-        {/* --- FIX 2: Removed the 'title' prop --- */}
-        <Header />
+      <div>
+        <Header 
+          isSidebarOpen={isSidebarOpen}
+          openSidebar={() => setSidebarOpen(true)}
+          closeSidebar={() => setSidebarOpen(false)}
+        />
         <main className="p-6">
-          <p>The invoice you are looking for does not exist or you do not have permission to view it.</p>
+          <p>Error: {error || 'The invoice you are looking for does not exist.'}</p>
         </main>
       </div>
     );
@@ -44,8 +47,11 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
 
   return (
     <div>
-      {/* --- FIX 2: Removed the 'title' prop --- */}
-      <Header />
+      <Header 
+        isSidebarOpen={isSidebarOpen}
+        openSidebar={() => setSidebarOpen(true)}
+        closeSidebar={() => setSidebarOpen(false)}
+      />
       <main className="p-4 md:p-6">
         <InvoiceDetailView invoice={invoice} />
       </main>

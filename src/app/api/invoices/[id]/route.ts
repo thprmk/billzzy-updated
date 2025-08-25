@@ -1,5 +1,4 @@
-// src/app/api/invoices/[id]/route.ts
-
+// src/app/api/invoice/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
@@ -9,38 +8,42 @@ export async function GET(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  // 1. Authentication check
+
+  console.log('--- API: GET /api/invoice/[id] ---');
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.organisationId) {
-    return NextResponse.json({ error: 'Not Authenticated' }, { status: 401 });
+    return new NextResponse('Unauthorized', { status: 401 });
   }
   const organisationId = Number(session.user.organisationId);
   const invoiceId = Number(params.id);
 
+  console.log(`API INFO: Logged-in organisationId: ${organisationId}`);
+  console.log(`API INFO: Looking for invoiceId: ${invoiceId}`);
+
+  if (isNaN(invoiceId)) {
+
+    console.log(`API ERROR: The provided ID "${params.id}" is not a number.`);
+    return new NextResponse('Invalid Invoice ID', { status: 400 });
+  }
+
   try {
-    // 2. Database query with security check
-    // Find the invoice WHERE the ID matches AND it belongs to the logged-in user's organization.
-    // This is a CRITICAL security measure.
     const invoice = await prisma.invoice.findFirst({
-      where: {
-        id: invoiceId,
-        organisationId: organisationId,
-      },
-      include: {
-        items: true, // Also fetch the line items associated with this invoice
-      },
+      where: { id: invoiceId, organisationId },
+      include: { items: true },
     });
 
-    // 3. Handle 'Not Found' case
     if (!invoice) {
-      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+
+      console.log('API RESULT: No invoice found with that ID and organisationId.');
+
+      return new NextResponse('Invoice not found', { status: 404 });
     }
 
-    // 4. Return the invoice data
+    console.log('API RESULT: Invoice found!', invoice);
     return NextResponse.json(invoice);
-
   } catch (error) {
-    console.error(`[INVOICE_GET_BY_ID_ERROR]`, error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('API CRASH:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

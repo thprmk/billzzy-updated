@@ -19,8 +19,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Please enter your email and password");
         }
 
-        
-
         // Admin check
         if (
           credentials.email === 'admin@billz.com' &&
@@ -67,6 +65,7 @@ export const authOptions: NextAuthOptions = {
           subscriptionType: user.subscriptionType,
           smsCount: user.smsCount,
           role: "user",
+          organisationId: user.id.toString(),
         };
       },
     }),
@@ -88,7 +87,7 @@ export const authOptions: NextAuthOptions = {
         token.endDate = user.endDate;
         token.subscriptionType = user.subscriptionType;
         token.smsCount = user.smsCount;
-        token.organisationId = user.id; 
+        token.organisationId = user.organisationId;
       }
 
       // Add Razorpay state management

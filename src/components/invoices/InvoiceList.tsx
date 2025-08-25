@@ -57,7 +57,7 @@ export function InvoiceList() {
           {data.map((invoice) => (
             <tr key={invoice.id} className="border-b hover:bg-gray-50">
       <td className="p-2 font-medium">
-        <Link href={`/invoices/${invoice.id}`} className="text-indigo-600 hover:underline">
+        <Link href={`/invoice/${invoice.id}`} className="text-indigo-600 hover:underline">
           {invoice.invoiceNumber}
         </Link>
       </td>              <td className="p-2">{invoice.notes.split('\n')[0]}</td> {/* Show first line of notes as customer */}
