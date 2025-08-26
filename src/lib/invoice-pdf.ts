@@ -3,14 +3,11 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { Invoice } from '@/types/invoice';
 import { Organisation } from '@/types/organization';
-import fs from 'fs/promises';
-import path from 'path';
-import * as numberToWords from 'number-to-words'; // <-- 1. Import the new library
+import * as numberToWords from 'number-to-words';
 
-// 2. A simpler, more robust function using the library
+// A simpler, more robust function using a library
 function toWords(num: number): string {
   const words = numberToWords.toWords(num);
-  // This capitalizes the first letter of each word
   return words.replace(/\b\w/g, char => char.toUpperCase());
 }
 
@@ -19,8 +16,12 @@ export async function createInvoicePDF(invoice: Invoice, organisation: Organisat
   const page = pdfDoc.addPage();
   const { width, height } = page.getSize();
 
+  // --- THIS IS THE FIX ---
+  // We are now using the standard, built-in Helvetica font.
+  // This requires no external file downloads.
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  // --- END OF FIX ---
   
   const colors = {
       primary: rgb(0, 0, 0),
@@ -32,18 +33,8 @@ export async function createInvoicePDF(invoice: Invoice, organisation: Organisat
   let y = height - 40;
   const marginX = 40;
 
-  // Header
-  try {
-    const logoPath = path.join(process.cwd(), 'public/assets/billzzy-logo.png');
-    const logoImageBytes = await fs.readFile(logoPath);
-    const logoImage = await pdfDoc.embedPng(logoImageBytes);
-    const logoDims = logoImage.scale(0.25);
-    page.drawImage(logoImage, {
-        x: marginX, y: y - logoDims.height + 20, width: logoDims.width, height: logoDims.height,
-    });
-  } catch (e) {
-    page.drawText('Your Logo Here', { x: marginX, y, font: boldFont, size: 16 });
-  }
+  // Header (No longer tries to load a logo file)
+  page.drawText(organisation.shopName, { x: marginX, y, font: boldFont, size: 16 });
 
   const orgAddress = `${organisation.street}\n${organisation.city}, ${organisation.state} ${organisation.pincode}\nIndia`;
   const orgContact = `${organisation.phone}\n${organisation.email}\n${organisation.websiteAddress}`;
@@ -95,13 +86,12 @@ export async function createInvoicePDF(invoice: Invoice, organisation: Organisat
   page.drawLine({ start: { x: marginX, y: tableY }, end: { x: width - marginX, y: tableY }, thickness: 1, color: colors.borderColor });
   page.drawRectangle({ x: marginX, y: tableY, width: width - (2 * marginX), height: tableTopY - tableY, borderColor: colors.borderColor, borderWidth: 1 });
   page.drawText('Sub Total', { x: width - marginX - 150, y: tableY - 15, font, size: 10 });
-  page.drawText(`₹${invoice.subTotal.toFixed(2)}`, { x: width - marginX - 80, y: tableY - 15, font, size: 10 });
+  // --- USE "INR" INSTEAD OF "₹" ---
+  page.drawText(`INR ${invoice.subTotal.toFixed(2)}`, { x: width - marginX - 80, y: tableY - 15, font, size: 10 });
   y = tableY - 40;
 
   // Footer
-  // 3. Use the new toWords function
   const totalInWords = `Indian Rupee ${toWords(Math.round(invoice.totalAmount))} Only`;
-  // 4. Correct the typo here
   page.drawText('Total in Words', { x: marginX, y, font: boldFont, size: 9 });
   page.drawText(totalInWords, { x: marginX, y: y-12, font, size: 9 });
 
@@ -114,9 +104,10 @@ export async function createInvoicePDF(invoice: Invoice, organisation: Organisat
   const totalsBoxX = width - marginX - totalsBoxWidth;
   page.drawRectangle({ x: totalsBoxX, y: y - totalsBoxHeight, width: totalsBoxWidth, height: totalsBoxHeight, borderColor: colors.borderColor, borderWidth: 1 });
   page.drawText('Total', { x: totalsBoxX + 10, y: y - 15, font, size: 10 });
-  page.drawText(`₹${invoice.totalAmount.toFixed(2)}`, { x: totalsBoxX + 100, y: y - 15, font, size: 10 });
+  // --- USE "INR" INSTEAD OF "₹" ---
+  page.drawText(`INR ${invoice.totalAmount.toFixed(2)}`, { x: totalsBoxX + 100, y: y - 15, font, size: 10 });
   page.drawText('Balance Due', { x: totalsBoxX + 10, y: y - 30, font: boldFont, size: 10 });
-  page.drawText(`₹${invoice.totalAmount.toFixed(2)}`, { x: totalsBoxX + 100, y: y - 30, font: boldFont, size: 10 });
+  page.drawText(`INR ${invoice.totalAmount.toFixed(2)}`, { x: totalsBoxX + 100, y: y - 30, font: boldFont, size: 10 });
 
   // Payment Info
   y -= 100;
