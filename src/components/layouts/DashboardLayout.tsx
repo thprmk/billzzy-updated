@@ -46,7 +46,7 @@ export default function DashboardLayout({ user, children }: DashboardLayoutProps
   // After the component mounts, isClientLoaded becomes `true`,
   // and we render the actual layout.
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
+    <div className="h-screen flex overflow-hidden bg-gray-50">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
       <div className="relative flex-1 overflow-auto focus:outline-none">

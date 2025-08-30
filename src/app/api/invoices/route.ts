@@ -72,7 +72,8 @@ export async function POST(req: Request) {
       subTotal, 
       totalTax, 
       totalAmount, 
-      notes 
+      notes,
+      status 
     } = body;
 
     // Perform basic validation to ensure the most critical data is present.
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
         invoiceNumber: newInvoiceNumber,
         issueDate: new Date(issueDate),
         dueDate: new Date(dueDate),
-        status: 'DRAFT', // All new invoices must start as drafts.
+        status: status || 'DRAFT', // All new invoices must start as drafts.
         subTotal,
         totalTax,
         totalAmount,

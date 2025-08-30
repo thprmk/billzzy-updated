@@ -95,7 +95,7 @@ html {
 }
 
   * {
-    @apply border-[#e5e7eb];
+    @apply border-[#ffffff];
   }
 
   body {

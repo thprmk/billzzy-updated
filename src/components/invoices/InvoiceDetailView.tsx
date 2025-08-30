@@ -1,7 +1,7 @@
 // src/components/invoices/InvoiceDetailView.tsx
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Invoice } from '@/types/invoice'; 
@@ -28,7 +28,10 @@ export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
         throw new Error('Failed to mark invoice as paid');
       }
       const updatedInvoice = await response.json();
-      setCurrentInvoice(updatedInvoice); // Update local state to re-render the component
+      setCurrentInvoice(prevInvoice => ({
+        ...prevInvoice!, // This keeps all the old data, including the 'items' array.
+        ...updatedInvoice, // This overwrites any updated fields, like 'status'.
+      })); // Update local state to re-render the component
       router.refresh(); // Tells Next.js to re-fetch server data for consistency
     } catch (error) {
       console.error(error);

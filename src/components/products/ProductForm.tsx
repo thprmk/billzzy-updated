@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "react-toastify"
 import type React from "react"
 
-// --- TYPESCRIPT INTERFACES ---
+// Typescript interface 
 interface Category {
   id: number
   name: string

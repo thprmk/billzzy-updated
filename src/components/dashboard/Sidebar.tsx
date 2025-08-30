@@ -16,6 +16,9 @@ import {
   ChevronDownIcon,
   ShareIcon,
   BellIcon,
+  CurrencyDollarIcon,
+  ArrowDownTrayIcon,
+  CreditCardIcon,
 } from '@heroicons/react/24/outline';
 
 import { PackageIcon, PrinterIcon, Truck } from 'lucide-react';
@@ -73,7 +76,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   {
     name: 'Billing',
-    icon: DocumentTextIcon,
+    icon: CreditCardIcon,
     children: [
       { name: 'Online Bills', href: '/billing/online' },
       { name: 'Offline Bills', href: '/billing/offline' },
@@ -90,7 +93,7 @@ const navigation = [
 
   {
     name: 'Invoices',
-    icon: DocumentTextIcon, // Using an existing icon for now
+    icon: CurrencyDollarIcon, // Using an existing icon for now
     children: [
       { name: 'Create Invoice', href: '/invoices/new' },
       { name: 'View All Invoices', href: '/invoices/list' },
@@ -115,7 +118,7 @@ const navigation = [
 
   {
     name: 'Report Download',
-    icon: DocumentTextIcon,
+    icon: ArrowDownTrayIcon,
     href:'/reports'
 
   },
