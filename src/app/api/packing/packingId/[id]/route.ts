@@ -1,3 +1,4 @@
+// src/app/api/packing/packingId/[id]/route.ts
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -5,158 +6,181 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { revalidatePath } from 'next/cache';
 import { sendWhatsAppMessageByOrganisation } from '@/lib/whatsapp';
+import { TransactionRecord, Customer, Organisation } from '@prisma/client'; // Import types from Prisma
 
-// --- Constants for better maintainability ---
-const NEW_STATUS = 'packed';
-const WHATSAPP_TEMPLATE_NAME = 'order_packed_notification';
+// --- 1. DEFINE A SPECIFIC TYPE ---
+// This creates a new type that includes the TransactionRecord and its related Customer and Organisation.
+// This is much safer than using `any`.
+type TransactionWithRelations = TransactionRecord & {
+  customer: Customer | null;
+  organisation: Organisation | null;
+};
 
-/**
- * Handles sending the WhatsApp notification.
- * This function is separated for clarity and reusability.
- */
-async function sendPackingNotification(transactionRecord: any) {
-  if (!transactionRecord.customer?.phone) {
-    const message = `Customer phone number not available for WhatsApp notification.`;
-    console.log(`⚠️  [Org ${transactionRecord.organisationId}] ${message}`);
-    return { success: false, error: message };
+// ===================================================================
+//  GET: Fetches bill details for the packing screen.
+// ===================================================================
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.organisationId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const organisationId = Number(session.user.organisationId);
+    
+    const companyBillNo = parseInt(params.id, 10);
+    if (isNaN(companyBillNo)) {
+      return NextResponse.json({ error: 'Invalid bill number' }, { status: 400 });
+    }
+
+    const bill = await prisma.transactionRecord.findFirst({
+      where: {
+        companyBillNo: companyBillNo,
+        organisationId: organisationId,
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+            productVariant: {
+              include: { product: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!bill) {
+      return NextResponse.json({ error: `Bill with Company Bill No. ${companyBillNo} not found` }, { status: 404 });
+    }
+
+    // --- 2. USE A TYPE FOR THE MAPPED ITEM ---
+    const products = bill.items.map((item: { productVariant: any; product: any; quantity: number }) => {
+      if (item.productVariant) {
+        return {
+          id: item.productVariant.id,
+          SKU: item.productVariant.SKU,
+          name: `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || ''})`.trim(),
+          quantity: item.quantity,
+        };
+      }
+      if (item.product) {
+        return {
+          id: item.product.id,
+          SKU: item.product.SKU,
+          name: item.product.name,
+          quantity: item.quantity,
+        };
+      }
+      return null;
+    }).filter(Boolean);
+    
+    return NextResponse.json({
+      billNo: bill.billNo,
+      companyBillNo: bill.companyBillNo,
+      products
+    });
+
+  } catch (error) {
+    console.error('Packing fetch error:', error);
+    return NextResponse.json({ error: 'Failed to fetch bill details' }, { status: 500 });
   }
+}
 
+
+// ===================================================================
+//  POST: Updates the bill status and sends a notification.
+// ===================================================================
+
+// --- 3. USE OUR NEW, SAFE TYPE HERE ---
+async function sendPackingNotification(transactionRecord: TransactionWithRelations) {
+  if (!transactionRecord.customer?.phone) {
+    console.log(`⚠️  WhatsApp notification skipped: No phone number for bill #${transactionRecord.companyBillNo}`);
+    return { success: false, error: "Customer phone number not available." };
+  }
   try {
     const customerPhone = transactionRecord.customer.phone;
-    const orderId = transactionRecord.companyBillNo.toString();
-    const productList = transactionRecord.itemName || 'Your items';
-    const orderStatus = 'Packed and Ready for Dispatch';
+    const orderId = transactionRecord.companyBillNo!.toString(); // Use non-null assertion
     const companyName = transactionRecord.organisation?.name || 'Your Store';
-
-    console.log(`📱 [Org ${transactionRecord.organisationId}] Preparing packing notification for ${customerPhone}`);
 
     const whatsappResult = await sendWhatsAppMessageByOrganisation({
       organisationId: transactionRecord.organisationId,
       phone: customerPhone,
-      templateName: WHATSAPP_TEMPLATE_NAME,
-      variables: [orderId, productList, orderStatus, companyName],
+      templateName: 'order_packed_notification',
+      variables: [orderId, "Your items", "Packed and Ready for Dispatch", companyName],
     });
 
-    console.log(`✅ [Org ${transactionRecord.organisationId}] WhatsApp notification sent successfully:`, {
-      messageId: whatsappResult?.messages?.[0]?.id,
-    });
     return { success: true, data: whatsappResult };
-
-  } catch (error: any) {
-    console.error(`❌ [Org ${transactionRecord.organisationId}] WhatsApp notification failed:`, error.message);
-    // Don't fail the entire request, just report the error
-    return { success: false, error: error.message };
+  } catch (error) {
+    // Catch as 'unknown' for better type safety
+    const e = error as Error;
+    console.error(`❌ WhatsApp notification failed for bill #${transactionRecord.companyBillNo}:`, e.message);
+    return { success: false, error: e.message };
   }
 }
 
-// --- API Route Handler ---
 export async function POST(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.organisationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const organisationId = Number(session.user.organisationId);
 
-    const companyBillNo = parseInt(context.params.id, 10);
+    const companyBillNo = parseInt(params.id, 10);
     if (isNaN(companyBillNo)) {
       return NextResponse.json({ error: 'Invalid bill number format' }, { status: 400 });
     }
 
-    const organisationId = parseInt(session.user.id, 10);
     let updatedTransaction;
-
-    // --- Using a Database Transaction for Atomicity ---
-    // This ensures that we find and update the record in one safe operation.
     try {
       updatedTransaction = await prisma.$transaction(async (tx) => {
-        // 1. Find the transaction record within the transaction
         const transactionRecord = await tx.transactionRecord.findFirst({
-          where: {
-            companyBillNo: companyBillNo,
-            organisationId: organisationId,
-          },
-          include: {
-            customer: true, // For phone number
-            organisation: true, // For company name
-          },
+          where: { companyBillNo, organisationId },
+          include: { customer: true, organisation: true },
         });
 
-        if (!transactionRecord) {
-            // By throwing an error here, the transaction is automatically rolled back.
-            throw new Error('NOT_FOUND');
-        }
-        
-        // Optional: Add a check to prevent re-packing an already packed order
-        if (transactionRecord.status === NEW_STATUS) {
-            throw new Error('ALREADY_PACKED');
-        }
+        if (!transactionRecord) throw new Error('NOT_FOUND');
+        if (transactionRecord.status === 'packed') throw new Error('ALREADY_PACKED');
 
-        // 2. Update the record within the same transaction
-        const updatedRecord = await tx.transactionRecord.update({
-          where: {
-            id: transactionRecord.id, // Use the primary key for updates for reliability
-          },
-          data: {
-            status: NEW_STATUS,
-          },
-          include: {
-            customer: true,
-            organisation: true,
-          }
+        return tx.transactionRecord.update({
+          where: { id: transactionRecord.id },
+          data: { status: 'packed' },
+          include: { customer: true, organisation: true },
         });
-
-        return updatedRecord;
       });
-    } catch (error: any) {
-      // Catch errors from the transaction
-      if (error.message === 'NOT_FOUND') {
-        return NextResponse.json(
-          { error: 'Bill not found or you do not have permission to access it.' },
-          { status: 404 }
-        );
+    } catch (error) {
+      const e = error as Error;
+      if (e.message === 'NOT_FOUND') {
+        return NextResponse.json({ error: 'Bill not found.' }, { status: 404 });
       }
-      if (error.message === 'ALREADY_PACKED') {
-        return NextResponse.json(
-          { error: 'This bill has already been marked as packed.' },
-          { status: 409 } // 409 Conflict is a good status code here
-        );
+      if (e.message === 'ALREADY_PACKED') {
+        return NextResponse.json({ error: 'This bill is already packed.' }, { status: 409 });
       }
-      // For other unexpected database errors
-      throw error;
+      throw e;
     }
 
-    // --- Send WhatsApp Notification (after successful DB update) ---
     const notificationResult = await sendPackingNotification(updatedTransaction);
-
-    // --- Revalidate cache to show updated status on the frontend ---
-    revalidatePath('/transactions/online');
     revalidatePath('/dashboard');
 
     return NextResponse.json({
       success: true,
       message: 'Bill status updated to packed.',
-      whatsapp: {
-        sent: notificationResult.success,
-        result: notificationResult.success ? notificationResult.data : null,
-        error: notificationResult.success ? null : notificationResult.error,
-      },
+      whatsapp: notificationResult,
       data: {
-        organisationId: updatedTransaction.organisationId,
         billNumber: updatedTransaction.companyBillNo,
         newStatus: updatedTransaction.status,
       }
     });
 
-  } catch (error: any) {
-    console.error('Failed to update packing status:', error.message, {
-        params: context.params,
-    });
-    return NextResponse.json(
-      { error: 'An internal error occurred while updating the packing status.' },
-      { status: 500 }
-    );
+  } catch (error) {
+    const e = error as Error;
+    console.error('Failed to update packing status:', e.message);
+    return NextResponse.json({ error: 'An internal error occurred.' }, { status: 500 });
   }
 }

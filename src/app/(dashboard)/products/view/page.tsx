@@ -37,6 +37,7 @@ interface Product {
   netPrice: number | null; // Can be null for boutique
   sellingPrice: number | null; // Can be null for boutique
   quantity: number | null; // Can be null for boutique
+  categoryId: number | null;
   category?: { name: string; id: number; };
   variants?: ProductVariant[]; // Add this
 }
@@ -147,10 +148,9 @@ export default function ViewProductsPage() {
       const response = await fetch(`/api/products/${editingProduct.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            ...editingProduct,
-            categoryId: editingProduct.category?.id ? Number(editingProduct.category.id) : null
-        }),
+
+        body: JSON.stringify(editingProduct),
+
       });
 
       if (response.ok) {
@@ -244,6 +244,7 @@ export default function ViewProductsPage() {
             <SelectTrigger className="w-full md:w-64">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
+            
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map((cat) => (
@@ -252,6 +253,7 @@ export default function ViewProductsPage() {
                 </SelectItem>
               ))}
             </SelectContent>
+            
           </Select>
         </div>
 
@@ -387,6 +389,11 @@ export default function ViewProductsPage() {
           required 
         />
       </div>
+
+      <div>
+</div>
+
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
         <Input 
@@ -426,27 +433,38 @@ export default function ViewProductsPage() {
           required 
         />
       </div>
-      {/* <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-        <Select
-          // Use the category ID for the value to correctly pre-select it
-          value={editingProduct.category?.id ? String(editingProduct.category.id) : "none"}
-          onValueChange={(value) => {
-            const selectedCat = categories.find(c => c.id === parseInt(value));
-            setEditingProduct({ 
-              ...editingProduct, 
-              // Set the category object on the product being edited
-              category: value === "none" ? undefined : selectedCat 
-            });
-          }}
-        >
-          <SelectTrigger className="w-full"><SelectValue placeholder="Select Category" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None</SelectItem>
-            {categories.map((cat) => ( <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem> ))}
-          </SelectContent>
-        </Select>
-      </div> */}
+  
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+  <Select
+    value={editingProduct.categoryId ? String(editingProduct.categoryId) : "none"}
+    onValueChange={(value) => {
+      const newCatId = value === "none" ? null : Number(value);
+      const newCat = categories.find(c => c.id === newCatId);
+      setEditingProduct(prev => prev ? { 
+        ...prev, 
+        categoryId: newCatId, 
+        category: newCat 
+      } : null);
+    }}
+  >
+    <SelectTrigger aria-label="Product category">
+      <SelectValue>
+        {editingProduct.categoryId
+          ? categories.find(c => c.id === editingProduct.categoryId)?.name
+          : "None"}
+      </SelectValue>
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="none">None</SelectItem>
+      {categories.map((category) => (
+        <SelectItem key={category.id} value={String(category.id)}>
+          {category.name}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+</div>
 
       <div className="flex justify-end space-x-2 pt-4 border-t">
         <Button type="button" variant="secondary" onClick={() => setShowEditModal(false)}>Cancel</Button>

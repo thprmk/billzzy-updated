@@ -67,20 +67,35 @@ export async function PATCH(
   }
 }
 
-// PUT endpoint for full product updates
+// Replace the entire PUT function in src/app/api/products/[id]/route.ts
+
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
+    // Use the explicit organisationId from the session, which is now correctly typed
+    if (!session?.user?.organisationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const organisationId = Number(session.user.organisationId);
+    const productId = Number(params.id);
 
-    const { id } = params;
-    if (!id) {
-      return NextResponse.json({ error: 'Product ID is required' }, { status: 400 });
+    if (isNaN(productId)) {
+      return NextResponse.json({ error: 'Invalid Product ID' }, { status: 400 });
+    }
+
+    // First, verify that the product exists and belongs to the user
+    const product = await prisma.product.findFirst({
+      where: {
+        id: productId,
+        organisationId: organisationId,
+      }
+    });
+
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found or permission denied' }, { status: 404 });
     }
 
     const body = await request.json();
@@ -90,95 +105,45 @@ export async function PUT(
       netPrice,
       sellingPrice,
       quantity,
-      category,
+      categoryId, // We now expect the raw categoryId
     } = body;
-
-    const existingProduct = await prisma.product.findUnique({
-      where: {
-        id: parseInt(id),
-        organisationId: parseInt(session.user.id),
-      },
-    });
-
-    if (!existingProduct) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
-    }
-
-    const categoryId = category && typeof category === 'object' ? category.id : null;
-
-    // Create an updateData object without netPrice initially
-    const updateData: any = {
+    
+    // Create the data object for the update, handling potential undefined values
+    const updateData = {
       name,
       SKU,
-      sellingPrice: parseFloat(sellingPrice),
-      quantity: parseInt(quantity),
-      categoryId,
+      netPrice: netPrice ? Number(netPrice) : undefined,
+      sellingPrice: sellingPrice ? Number(sellingPrice) : undefined,
+      quantity: quantity ? Number(quantity) : undefined,
+      categoryId: categoryId ? Number(categoryId) : null,
     };
-
-    // Only add netPrice to updateData if it exists
-    if (netPrice !== undefined && netPrice !== null) {
-      updateData.netPrice = parseFloat(netPrice);
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      const updatedProduct = await tx.product.update({
-        where: {
-          id: parseInt(id),
-          organisationId: parseInt(session.user.id),
-        },
-        data: updateData,
-      });
-
-      await tx.inventory.updateMany({
-        where: {
-          productId: parseInt(id),
-          organisationId: parseInt(session.user.id),
-        },
-        data: {
-          quantity: parseInt(quantity),
-          categoryId,
-        },
-      });
-
-      return updatedProduct;
-    }, {
-      timeout: 30000
+    
+    // Now, update the product using its unique ID
+    const updatedProduct = await prisma.product.update({
+      where: {
+        id: productId,
+      },
+      data: updateData,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-      message: 'Product updated successfully'
-    });
+    return NextResponse.json(updatedProduct);
 
-  } catch (error) {
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    });
-
-    if (error.code === 'P2025') {
-      return NextResponse.json({
-        success: false,
-        error: 'Product not found or you do not have permission to update it'
-      }, { status: 404 });
+  } catch (error: unknown) { // Use 'unknown' for better type safety
+    // Type guard to check if it's a Prisma error
+    if (typeof error === 'object' && error !== null && 'code' in error) {
+        const prismaError = error as { code: string };
+        if (prismaError.code === 'P2002') {
+            return NextResponse.json({ error: 'A product with this SKU already exists.' }, { status: 409 });
+        }
     }
-
-    if (error.code === 'P2002') {
-      return NextResponse.json({
-        success: false,
-        error: 'A product with this SKU already exists'
-      }, { status: 409 });
-    }
-
-    return NextResponse.json({
-      success: false,
-      error: error.message,
-      details: error.message,
-    }, { status: 409 });
+    // General error handling
+    console.error('Update product error:', error);
+    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }
 }
+
+
+
 // DELETE endpoint
 export async function DELETE(
   request: Request,
