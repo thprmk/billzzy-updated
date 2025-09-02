@@ -64,6 +64,9 @@ model Organisation {
   taxes               Tax[] // <--- NEW RELATION
   gowhats   Gowhats?
   invoices            Invoice[]
+  pendingScans PendingCustomerScan[]
+  
+
 
   @@index([resetToken])
   @@map("organisation")
@@ -270,6 +273,25 @@ model Gowhats {
   businessId      String
   phoneNumberId   String
 }
+model whatsapptracker {
+  id            Int      @id @default(autoincrement())
+  transactionId Int
+  templateType  String
+  phoneNumber   String
+  sentAt        DateTime @default(now())
+
+  @@index([transactionId], map: "WhatsAppTracker_transactionId_idx")
+}
+model PendingCustomerScan {
+  id             Int      @id @default(autoincrement())
+  organisationId Int
+  customerName   String
+  customerPhone  String
+  createdAt      DateTime @default(now())
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+}
 model Customer {
   id             Int     @id @default(autoincrement())
   name           String
@@ -286,6 +308,8 @@ model Customer {
   transactions       TransactionRecord[]
   CustomerSubmission CustomerSubmission[]
   invoices Invoice[]
+  @@unique([phone, organisationId])
+
 
   @@map("customers")
 }

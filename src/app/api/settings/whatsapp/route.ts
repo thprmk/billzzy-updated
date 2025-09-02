@@ -42,15 +42,11 @@ export async function GET(request: NextRequest) {
     console.log('GET /api/settings/whatsapp - Starting');
     
     const session = await getServerSession(authOptions);
-    console.log('Session:', session ? 'Found' : 'Not found');
-
     if (!session?.user?.id) {
       return createErrorResponse('Unauthorized', 401);
     }
 
     const organisationId = parseInt(session.user.id);
-    console.log('Organisation ID:', organisationId);
-
     if (isNaN(organisationId)) {
       return createErrorResponse('Invalid organisation ID', 400);
     }
@@ -59,10 +55,11 @@ export async function GET(request: NextRequest) {
       where: { organisationId },
     });
 
-    console.log('Settings found:', settings ? 'Yes' : 'No');
-
+    // --- CHANGE THIS BLOCK ---
     if (!settings) {
-      return createSuccessResponse(null, 'No WhatsApp settings found');
+      // OLD: return createSuccessResponse(null, 'No WhatsApp settings found');
+      // NEW: Return a proper 404 error
+      return createErrorResponse('WhatsApp settings have not been configured', 404);
     }
 
     const responseData = {
@@ -70,7 +67,7 @@ export async function GET(request: NextRequest) {
       goWhatsApiToken: settings.accessToken,
       phoneNumberId: settings.phoneNumberId,
       businessAccountId: settings.businessId,
-      whatsappEnabled: true // Add this if you need it in frontend
+      whatsappEnabled: true
     };
 
     return createSuccessResponse(responseData, 'WhatsApp settings retrieved successfully');
