@@ -13,6 +13,8 @@ import BillingTab from '../mandate/BillingTab';
 import { WhatsAppSettings } from './WhatsappSettings';
 import { TaxSettings } from '@/components/settings/TaxSettings';
 import ShopifySettings from './ShopifySettings';
+import QrCodeSettings from './QrCodeSettings ';
+
 
 
 
@@ -76,7 +78,11 @@ export default function SettingsForm({ organisation, initialData }: { initialDat
             {activeTab === 'tax' && (
               <TaxSettings />
             )}
-
+                    {/* This is the new part for your QR Code settings */}
+        {activeTab === 'qrcode' && (
+          <QrCodeSettings />
+        )}
+            
           </div>
         </div>
       </div>
