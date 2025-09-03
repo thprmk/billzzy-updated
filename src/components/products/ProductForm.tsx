@@ -315,7 +315,7 @@ export default function ProductForm({ initialData, categories }: ProductFormProp
         </form>
       </div>
     </div>
-  )
+  ) 
 }
 
 // A simple Trash icon component to be used in the button.

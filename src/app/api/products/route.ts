@@ -34,16 +34,38 @@ export async function GET(request: Request) {
       ];
     }
 
-    const products = await prisma.product.findMany({
+   // --- STEP 1: Fetch products using your original logic ---
+    const productsFromDb = await prisma.product.findMany({
       where: whereClause,
       include: {
-        category: true, // Include category information
-        variants: true, 
+        category: true,
+        variants: true, // This is essential for the calculation
       },
       orderBy: { name: 'asc' }
     });
 
-    return NextResponse.json(products);
+    // --- STEP 2: Calculate net worth for each fetched product ---
+    const productsWithNetWorth = productsFromDb.map(product => {
+      let netWorth = 0;
+
+      if (product.productType === 'BOUTIQUE') {
+        // For boutique, sum the net worth of all its variants
+        netWorth = product.variants.reduce((total, variant) => {
+          return total + (variant.sellingPrice * variant.quantity);
+        }, 0);
+      } else {
+        // For standard, it's a simple multiplication
+        netWorth = (product.sellingPrice || 0) * (product.quantity || 0);
+      }
+      
+      return {
+        ...product,
+        netWorth, // Add the new calculated field
+      };
+    });
+
+    // --- STEP 3: Return the final data ---
+    return NextResponse.json(productsWithNetWorth);
 
   } catch (error) {
     console.error('Failed to fetch products:', error);

@@ -68,6 +68,10 @@ export async function PATCH(
 }
 
 // Replace the entire PUT function in src/app/api/products/[id]/route.ts
+// src/app/api/products/[id]/route.ts
+
+// The PATCH and DELETE functions remain the same.
+// Only replace the PUT function.
 
 export async function PUT(
   request: Request,
@@ -75,7 +79,6 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    // Use the explicit organisationId from the session, which is now correctly typed
     if (!session?.user?.organisationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -86,7 +89,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid Product ID' }, { status: 400 });
     }
 
-    // First, verify that the product exists and belongs to the user
+    // Verify the product exists and belongs to the user's organization
     const product = await prisma.product.findFirst({
       where: {
         id: productId,
@@ -99,50 +102,80 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const {
-      name,
-      SKU,
-      netPrice,
-      sellingPrice,
-      quantity,
-      categoryId, // We now expect the raw categoryId
-    } = body;
-    
-    // Create the data object for the update, handling potential undefined values
-    const updateData = {
-      name,
-      SKU,
-      netPrice: netPrice ? Number(netPrice) : undefined,
-      sellingPrice: sellingPrice ? Number(sellingPrice) : undefined,
-      quantity: quantity ? Number(quantity) : undefined,
-      categoryId: categoryId ? Number(categoryId) : null,
-    };
-    
-    // Now, update the product using its unique ID
-    const updatedProduct = await prisma.product.update({
-      where: {
-        id: productId,
-      },
-      data: updateData,
-    });
+    const { productType, name, categoryId, variants, ...standardData } = body;
 
-    return NextResponse.json(updatedProduct);
+    // --- LOGIC FOR BOUTIQUE PRODUCT UPDATE ---
+    if (productType === 'BOUTIQUE') {
+      if (!Array.isArray(variants) || variants.length === 0) {
+        return NextResponse.json({ error: 'Boutique products must have at least one variant.' }, { status: 400 });
+      }
 
-  } catch (error: unknown) { // Use 'unknown' for better type safety
-    // Type guard to check if it's a Prisma error
+      const updatedBoutiqueProduct = await prisma.$transaction(async (tx) => {
+        // Step 1: Update the parent product's name and category
+        const parentProduct = await tx.product.update({
+          where: { id: productId },
+          data: {
+            name,
+            categoryId: categoryId ? Number(categoryId) : null,
+          }
+        });
+
+        // Step 2: Delete all old variants for this product
+        await tx.productVariant.deleteMany({
+          where: { productId: productId }
+        });
+
+        // Step 3: Create the new variants from the request body
+        await tx.productVariant.createMany({
+          data: variants.map((variant: any) => ({
+            productId: productId, // Link to the parent product
+            SKU: variant.SKU,
+            size: variant.size,
+            color: variant.color,
+            netPrice: Number(variant.netPrice),
+            sellingPrice: Number(variant.sellingPrice),
+            quantity: Number(variant.quantity),
+          }))
+        });
+
+        return parentProduct;
+      });
+
+      return NextResponse.json(updatedBoutiqueProduct);
+    }
+    
+    // --- LOGIC FOR STANDARD PRODUCT UPDATE ---
+    else { // Assumes productType is 'STANDARD' or undefined
+      const { SKU, netPrice, sellingPrice, quantity } = standardData;
+      
+      const updateData = {
+        name,
+        SKU,
+        netPrice: netPrice ? Number(netPrice) : undefined,
+        sellingPrice: sellingPrice ? Number(sellingPrice) : undefined,
+        quantity: quantity ? Number(quantity) : undefined,
+        categoryId: categoryId ? Number(categoryId) : null,
+      };
+      
+      const updatedStandardProduct = await prisma.product.update({
+        where: { id: productId },
+        data: updateData,
+      });
+
+      return NextResponse.json(updatedStandardProduct);
+    }
+
+  } catch (error: unknown) {
     if (typeof error === 'object' && error !== null && 'code' in error) {
         const prismaError = error as { code: string };
         if (prismaError.code === 'P2002') {
             return NextResponse.json({ error: 'A product with this SKU already exists.' }, { status: 409 });
         }
     }
-    // General error handling
     console.error('Update product error:', error);
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }
 }
-
-
 
 // DELETE endpoint
 export async function DELETE(

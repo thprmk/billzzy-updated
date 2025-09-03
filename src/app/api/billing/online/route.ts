@@ -1,4 +1,3 @@
-// app/api/create_online_bill/route.ts - Corrected
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
@@ -6,8 +5,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { z } from 'zod';
 import moment from 'moment-timezone';
-// import { sendBillingSMS } from '@/lib/msg91';
-import { Product } from '@prisma/client';
+import { Product, ProductVariant } from '@prisma/client';
 import { sendWhatsAppTemplateMessage, getWhatsAppConfig } from '@/lib/whatsapp';
 
 function addOneMonthClamped(date: Date): Date {
@@ -25,6 +23,7 @@ const createBillSchema = z.object({
   items: z.array(
     z.object({
       productId: z.number().int().positive(),
+      productVariantId: z.number().int().positive().nullable().optional(),
       quantity: z.number().int().positive(),
       price: z.number().nonnegative(),
       total: z.number().nonnegative(),
@@ -94,61 +93,107 @@ async function executeWithRetry<T>(
   throw new Error('Maximum retry attempts reached');
 }
 
+// src/app/api/billing/online/route.ts
+
 async function processItems(
   tx: any,
   items: any[],
   organisationId: number
-): Promise<{ productDetails: ProcessedItem[]; totalPrice: number; transactionItemsData: TransactionItemData[] }> {
-  const productIds = items.map((item) => item.productId);
+): Promise<{ productDetails: ProcessedItem[]; totalPrice: number; transactionItemsData: any[] }> {
+  // 1. Separate items
+  const standardItems = items.filter(item => !item.productVariantId);
+  const variantItems = items.filter(item => item.productVariantId);
+
+  const standardProductIds = standardItems.map(item => item.productId);
+  const variantIds = variantItems.map(item => item.productVariantId);
+
+  // 2. Fetch data
   const dbProducts = await tx.product.findMany({
-    where: { id: { in: productIds }, organisationId },
+    where: { id: { in: standardProductIds }, organisationId },
   });
 
-  const productMap = new Map<number, Product>();
-  dbProducts.forEach((product: Product) => productMap.set(product.id, product));
+  // Prisma's type for a variant that includes its parent product
+  type VariantWithProduct = ProductVariant & { product: Product };
 
+  const dbVariants: VariantWithProduct[] = await tx.productVariant.findMany({
+    where: { id: { in: variantIds } },
+    include: { product: true },
+  });
+
+  // 3. Create Maps with explicit types
+  const productMap = new Map<number, Product>(dbProducts.map((p: Product) => [p.id, p]));
+  const variantMap = new Map<number, VariantWithProduct>(dbVariants.map((v: VariantWithProduct) => [v.id, v]));
+  
   const processedItems: ProcessedItem[] = [];
   let totalPrice = 0;
-  const transactionItemsData: TransactionItemData[] = [];
+  const transactionItemsData: any[] = [];
+  const updatePromises: Promise<any>[] = [];
 
+  // 4. Process all items
   for (const item of items) {
-    const { productId, quantity, price, total } = item;
-    const dbProduct = productMap.get(productId) as Product;
-
-    if (!dbProduct) {
-      throw new Error(`Product not found with ID: ${productId}`);
-    }
-
-    if ((dbProduct.quantity ?? 0) < quantity) {
-      throw new Error(
-        `Not enough inventory for ${dbProduct.name} (SKU: ${dbProduct.SKU}). Available: ${dbProduct.quantity}, Requested: ${quantity}`
-      );
-    }
-
+    const { productId, productVariantId, quantity, price, total } = item;
     const itemTotal = Math.round(total);
     totalPrice += itemTotal;
 
-    transactionItemsData.push({
-      productId,
-      quantity,
-      totalPrice: itemTotal,
-    });
+    if (productVariantId) {
+      const variant = variantMap.get(productVariantId);
+      if (!variant) throw new Error(`Product variant not found with ID: ${productVariantId}`);
+      if (variant.product.organisationId !== organisationId) throw new Error(`Product variant ${variant.SKU} does not belong to your organisation.`);
+      if (variant.quantity < quantity) {
+        throw new Error(`Not enough inventory for ${variant.product.name} (${variant.size || ''} ${variant.color || ''}) (SKU: ${variant.SKU}). Available: ${variant.quantity}, Requested: ${quantity}`);
+      }
 
-    processedItems.push({
-      productName: dbProduct.name,
-      SKU: dbProduct.SKU ?? '',
-      quantity,
-      unitPrice: Math.round(price || dbProduct.sellingPrice),
-      amount: itemTotal,
-    });
+      transactionItemsData.push({
+        productId: variant.productId,
+        productVariantId: variant.id,
+        quantity,
+        totalPrice: itemTotal,
+      });
+
+      processedItems.push({
+        productName: variant.product.name,
+        SKU: variant.SKU,
+        quantity,
+        unitPrice: Math.round(price || variant.sellingPrice),
+        amount: itemTotal,
+      });
+
+      updatePromises.push(
+        tx.productVariant.update({
+          where: { id: variant.id },
+          data: { quantity: { decrement: quantity } },
+        })
+      );
+    } else {
+      const dbProduct = productMap.get(productId);
+      if (!dbProduct) throw new Error(`Product not found with ID: ${productId}`);
+      if ((dbProduct.quantity ?? 0) < quantity) {
+        throw new Error(`Not enough inventory for ${dbProduct.name} (SKU: ${dbProduct.SKU}). Available: ${dbProduct.quantity}, Requested: ${quantity}`);
+      }
+
+      transactionItemsData.push({
+        productId,
+        productVariantId: null,
+        quantity,
+        totalPrice: itemTotal,
+      });
+
+      processedItems.push({
+        productName: dbProduct.name,
+        SKU: dbProduct.SKU ?? '',
+        quantity,
+        unitPrice: Math.round(price || dbProduct.sellingPrice),
+        amount: itemTotal,
+      });
+      
+      updatePromises.push(
+        tx.product.update({
+          where: { id: productId },
+          data: { quantity: { decrement: quantity } },
+        })
+      );
+    }
   }
-
-  const updatePromises = items.map((item) =>
-    tx.product.update({
-      where: { id: item.productId },
-      data: { quantity: { decrement: item.quantity } },
-    })
-  );
 
   await Promise.all(updatePromises);
 
@@ -398,14 +443,20 @@ export async function POST(request: Request) {
           roundedShippingCost
         );
 
-        await tx.transactionItem.createMany({
-          data: transactionItemsData.map((item) => ({
-            transactionId: newBill.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            totalPrice: item.totalPrice,
-          })),
-        });
+
+   await tx.transactionItem.createMany({
+  data: transactionItemsData.map((item) => {
+    const itemToSave = {
+      transactionId: newBill.id,
+      productId: item.productId,
+      productVariantId: item.productVariantId, 
+      quantity: item.quantity,
+      totalPrice: item.totalPrice,
+    };
+
+    return itemToSave;
+  }),
+});
 
         if (shippingMethodDetails) {
           await tx.transactionShipping.create({
