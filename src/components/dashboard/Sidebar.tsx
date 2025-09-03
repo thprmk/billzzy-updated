@@ -10,18 +10,16 @@ import {
   HomeIcon,
   ShoppingBagIcon,
   UsersIcon,
-  DocumentTextIcon,
   CogIcon,
   ChartBarIcon,
   ChevronDownIcon,
   ShareIcon,
   BellIcon,
   CurrencyDollarIcon,
-  ArrowDownTrayIcon,
   CreditCardIcon,
 } from '@heroicons/react/24/outline';
 
-import { PackageIcon, PrinterIcon, Truck } from 'lucide-react';
+import { PackageIcon, PrinterIcon, Truck, FileDown, ClipboardList } from 'lucide-react';
 import useSWR from 'swr';
 import { parseISO, differenceInCalendarDays, isAfter } from 'date-fns';
 import { toast } from 'react-toastify';
@@ -93,7 +91,7 @@ const navigation = [
 
   {
     name: 'Invoices',
-    icon: CurrencyDollarIcon, // Using an existing icon for now
+    icon: ClipboardList, // Using an existing icon for now
     children: [
       { name: 'Create Invoice', href: '/invoices/new' },
       { name: 'View All Invoices', href: '/invoices/list' },
@@ -118,7 +116,7 @@ const navigation = [
 
   {
     name: 'Report Download',
-    icon: ArrowDownTrayIcon,
+    icon: FileDown,
     href:'/reports'
 
   },
