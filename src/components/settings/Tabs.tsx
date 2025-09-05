@@ -18,6 +18,8 @@ export function SettingsTabs({
     { name: 'WhatsApp', key: 'whatsapp' },
     { name: 'Billing', key: 'billing' },
     { name: 'Shopify', key: 'shopify' },
+    { name: 'QR Code', key: 'qrcode' },
+
 
     { name: 'Integrations', key: 'integrations' },
     { name: 'Tax', key: 'tax' }, // Added
