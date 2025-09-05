@@ -367,53 +367,107 @@ export default function ViewProductsPage() {
         </div>
       </div>
 
-      <Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Product">
-        {editingProduct && (
-          <form onSubmit={handleEditSubmit} className="space-y-4 p-6">
+{/* --- ENHANCED MODAL FOR STANDARD PRODUCTS (v2) --- */}
+<Modal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Product">
+  {editingProduct && (
+    <form onSubmit={handleEditSubmit}>
+      {/* Main content area with more padding */}
+      <div className="p-8 space-y-8 bg-white">
+        
+        {/* --- Section 1: Core Details (Refined 2x2 Grid) --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+          <div>
+            <label htmlFor="productName" className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+            <Input 
+              id="productName"
+              value={editingProduct.name} 
+              onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} 
+              placeholder="e.g., Classic Hair Oil" 
+              required 
+            />
+          </div>
+          <div>
+            <label htmlFor="productSKU" className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+            <Input 
+              id="productSKU"
+              value={editingProduct.SKU || ''} 
+              onChange={(e) => setEditingProduct({ ...editingProduct, SKU: e.target.value.toUpperCase() })} 
+              placeholder="e.g., HO-001" 
+              required 
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label htmlFor="productCategory" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <Select
+              value={editingProduct.categoryId ? String(editingProduct.categoryId) : "none"}
+              onValueChange={(value) => {
+                const newCatId = value === "none" ? null : Number(value);
+                setEditingProduct(prev => prev ? { ...prev, categoryId: newCatId } : null);
+              }}
+            >
+              <SelectTrigger id="productCategory" aria-label="Product category">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={String(category.id)}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* --- Section 2: Pricing & Inventory --- */}
+        <div className="border-t border-gray-200 pt-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-              <Input value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} required />
+              <label htmlFor="netPrice" className="block text-sm font-medium text-gray-700 mb-1">Net Price (₹)</label>
+              <Input 
+                id="netPrice"
+                type="number" 
+                value={editingProduct.netPrice || ''} 
+                onChange={(e) => setEditingProduct({ ...editingProduct, netPrice: parseFloat(e.target.value) || 0 })} 
+                placeholder="0.00" 
+                required 
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
-              <Input value={editingProduct.SKU || ''} onChange={(e) => setEditingProduct({ ...editingProduct, SKU: e.target.value.toUpperCase() })} required />
+              <label htmlFor="sellingPrice" className="block text-sm font-medium text-gray-700 mb-1">Selling Price (₹)</label>
+              <Input 
+                id="sellingPrice"
+                type="number" 
+                value={editingProduct.sellingPrice || ''} 
+                onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: parseFloat(e.target.value) || 0 })} 
+                placeholder="0.00" 
+                required 
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Net Price</label>
-              <Input type="number" value={editingProduct.netPrice || ''} onChange={(e) => setEditingProduct({ ...editingProduct, netPrice: parseFloat(e.target.value) || 0 })} required />
+              <label htmlFor="stockQuantity" className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
+              <Input 
+                id="stockQuantity"
+                type="number" 
+                value={editingProduct.quantity || ''} 
+                onChange={(e) => setEditingProduct({ ...editingProduct, quantity: parseInt(e.target.value) || 0 })} 
+                placeholder="0" 
+                required 
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Selling Price</label>
-              <Input type="number" value={editingProduct.sellingPrice || ''} onChange={(e) => setEditingProduct({ ...editingProduct, sellingPrice: parseFloat(e.target.value) || 0 })} required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
-              <Input type="number" value={editingProduct.quantity || ''} onChange={(e) => setEditingProduct({ ...editingProduct, quantity: parseInt(e.target.value) || 0 })} required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-              <Select value={editingProduct.categoryId ? String(editingProduct.categoryId) : "none"}
-                onValueChange={(value) => {
-                  const newCatId = value === "none" ? null : Number(value);
-                  setEditingProduct(prev => prev ? { ...prev, categoryId: newCatId } : null);
-                }}
-              >
-                <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end space-x-2 pt-4 border-t">
-              <Button type="button" variant="secondary" onClick={() => setShowEditModal(false)}>Cancel</Button>
-              <Button type="submit">Save Changes</Button>
-            </div>
-          </form>
-        )}
-      </Modal>
+          </div>
+        </div>
+      </div>
+
+      {/* --- Footer with Actions --- */}
+      <div className="flex justify-end space-x-3 bg-gray-50 px-6 py-4 rounded-b-lg">
+        <Button type="button" variant="secondary" onClick={() => setShowEditModal(false)}>Cancel</Button>
+        <Button type="submit">Save Changes</Button>
+      </div>
+    </form>
+  )}
+</Modal>
 
       <Modal isOpen={showVariantEditModal} onClose={() => setShowVariantEditModal(false)} title="Edit Variant">
         {editingVariant && (

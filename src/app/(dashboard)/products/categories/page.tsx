@@ -9,7 +9,6 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Modal } from '@/components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- TYPESCRIPT INTERFACES ---
 interface Category {
   id: number;
   name: string;
@@ -19,7 +18,7 @@ interface Category {
 }
 
 export default function CategoriesPage() {
-  // --- STATE MANAGEMENT ---
+  // STATE MANAGEMENT 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +29,7 @@ export default function CategoriesPage() {
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // --- DATA FETCHING ---
+  // DATA FETCHING 
   const fetchCategories = async () => {
     // We set loading to true only if it's the initial fetch
     if (categories.length === 0) {
@@ -54,7 +53,7 @@ export default function CategoriesPage() {
     fetchCategories();
   }, []);
 
-  // --- EVENT HANDLERS ---
+  // EVENT HANDLERS 
   const handleAddSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!newCategoryName.trim()) return;
@@ -120,7 +119,7 @@ export default function CategoriesPage() {
     }
   };
 
-  // --- RENDER LOGIC ---
+  //RENDER LOGIC 
   const filteredCategories = categories.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase())
   );

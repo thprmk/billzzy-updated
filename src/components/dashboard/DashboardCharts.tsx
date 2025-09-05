@@ -49,6 +49,30 @@ const CustomBarTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+
+// This is the new, smarter function
+const truncateLabel = (label: string): string => {
+  const maxLength = 15; // Increased character limit for better readability
+  
+  // If the label is already short enough, return it as is.
+  if (label.length <= maxLength) {
+    return label;
+  }
+  
+  // Shorten the label to the max length
+  let truncated = label.slice(0, maxLength);
+  
+  // Find the last space in the truncated string to avoid cutting words in half
+  const lastSpaceIndex = truncated.lastIndexOf(' ');
+  
+  // If a space was found, shorten the string to that point
+  if (lastSpaceIndex > 0) {
+    truncated = truncated.slice(0, lastSpaceIndex);
+  }
+  
+  return `${truncated}...`;
+};
+
 const timeRanges = [
   { value: 'week', label: 'This Week' },
   { value: 'month', label: 'This Month' },
@@ -183,6 +207,7 @@ export default function DashboardCharts({ organisationId }: DashboardChartsProps
                   height={50}
                   textAnchor="middle"
                   angle={window.innerWidth < 768 ? 45 : 0}
+                  tickFormatter={truncateLabel}
                 />
                 <YAxis
                   tickFormatter={(value) => value.toString()}

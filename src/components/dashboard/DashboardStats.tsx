@@ -9,6 +9,7 @@ import {
   UserGroupIcon,
   ChatBubbleLeftIcon,
 } from '@heroicons/react/24/outline';
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Dialog } from '@headlessui/react';
@@ -17,7 +18,7 @@ import RecentTransactions from './RecentTransactions';
 import DashboardCharts from './DashboardCharts';
 import DateFilter from './DateFilter';
 import { PackageMinusIcon, Printer } from 'lucide-react';
-import React from 'react';  // Add this import
+import React from 'react';  
 
 interface Product {
   id: number;
