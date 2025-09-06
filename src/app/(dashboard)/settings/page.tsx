@@ -1,9 +1,11 @@
-// app/settings/page.tsx
+// src/app/(dashboard)/settings/page.tsx
+
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
 import SettingsForm from '@/components/settings/SettingsForm';
+import React from 'react'; // It's good practice to import React
 
 export const revalidate = 0; 
 
@@ -25,7 +27,6 @@ export default async function SettingsPage() {
       endDate: true,
       subscriptionType: true,
       razorpayAccessToken: true,
-      // Add all the missing fields that ShopSettings expects:
       flatNo: true,
       street: true,
       district: true,
@@ -37,6 +38,11 @@ export default async function SettingsPage() {
       websiteAddress: true,
       gstNumber: true,
       companySize: true,
+      // You may need to add other fields from the organisation model
+      // that your components expect in initialData, like shopifyDomain, etc.
+      shopifyDomain: true,
+      shopifyToken: true,
+      whatsappNumber: true,
     }
   });
 
@@ -44,7 +50,6 @@ export default async function SettingsPage() {
     redirect('/login');
   }
 
-  // If user subscription is "pro", also fetch mandates
   let mandates = [];
   let activeMandate = null;
   if (organisationData?.subscriptionType !== 'trial') {
@@ -60,11 +65,18 @@ export default async function SettingsPage() {
   }
 
   return (
-    <SettingsForm organisation={organisationData}
-      initialData={{
-        mandates,
-        activeMandate,
-      }}
-    />
+    // --- THIS IS THE NEW CENTERING WRAPPER ---
+    <div className="flex items-center justify-center min-h-full p-0 md:p-4">
+      <div className="w-full max-w-7xl"> {/* Constrains the max width of the settings card */}
+        <SettingsForm 
+          organisation={organisationData}
+          initialData={{
+            ...organisationData, // Pass all fetched organisation data
+            mandates,
+            activeMandate,
+          }}
+        />
+      </div>
+    </div>
   );
 }

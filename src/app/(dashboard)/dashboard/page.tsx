@@ -191,7 +191,7 @@ export default async function DashboardPage() {
 
   // CORRECTED: Pass session as a separate prop
   return (
-    <div className="h-[100vh] flex flex-col">
+    <div className="h-full flex flex-col">
       <div className="flex-1 py-4">
         <DashboardStats data={{ ...data, organisationId: session.user.id }} session={session} />
       </div>

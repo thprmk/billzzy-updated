@@ -288,7 +288,7 @@ const handleSKUSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
       <div className="bg-white rounded-lg shadow p-4 sm:p-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-          <h2 className="text-lg sm:text-xl  font-semibold mb-4 sm:mb-0">
+          <h2 className="text-2xl sm:text-2xl  font-semibold mb-4 sm:mb-0">
             Packing Verification
           </h2>
           <Button

@@ -1,57 +1,71 @@
-// components/settings/Tabs.tsx
 'use client';
 
 import { cn } from '@/lib/utils';
 import React from 'react';
+import {
+  Store, KeyRound, Truck, MessageCircle, CreditCard, Share2, QrCode, IndianRupee ,
+} from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faShopify } from '@fortawesome/free-brands-svg-icons';
+
+
+
+type ActiveTab = 'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'shopify' | 'billing' | 'tax' | 'qrcode';
 
 export function SettingsTabs({
   activeTab,
   setActiveTab,
 }: {
-  activeTab: string;
-  setActiveTab: (tab: any) => void;
+  activeTab: ActiveTab;
+  setActiveTab: (tab: ActiveTab) => void;
 }) {
   const tabs = [
-    { name: 'Shop Information', key: 'shop' },
-    { name: 'Password', key: 'password' },
-    { name: 'Shipping', key: 'shipping' },
-    { name: 'WhatsApp', key: 'whatsapp' },
-    { name: 'Billing', key: 'billing' },
-    { name: 'Shopify', key: 'shopify' },
-    { name: 'QR Code', key: 'qrcode' },
-
-
-    { name: 'Integrations', key: 'integrations' },
-    { name: 'Tax', key: 'tax' }, // Added
+    { name: 'Shop Information', key: 'shop', icon: Store },
+    { name: 'Password', key: 'password', icon: KeyRound },
+    { name: 'Shipping', key: 'shipping', icon: Truck },
+    { name: 'WhatsApp', key: 'whatsapp', icon: MessageCircle },
+    { name: 'Billing', key: 'billing', icon: CreditCard },
+    { name: 'Shopify', key: 'shopify', icon: faShopify, type: 'fontawesome' }, 
+    { name: 'QR Code', key: 'qrcode', icon: QrCode },
+    { name: 'Integrations', key: 'integrations', icon: Share2 },
+    { name: 'Tax', key: 'tax', icon: IndianRupee  },
   ];
 
   return (
-    <div className="w-full md:w-64 lg:w-72 border-r">
-      <nav 
-        className="flex md:flex-col overflow-x-auto md:overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-blue-300 hover:scrollbar-thumb-gray-400 scroll-smooth"
-        style={{
-          scrollbarWidth: 'thin',
-          msOverflowStyle: 'none',
-        }}
-      >
-        <div className="flex md:flex-col min-w-full">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+    // Use a border-b on the container for a clean underline effect on the whole list
+    <nav className="flex flex-col ">
+      {tabs.map((tab) => (
+        <button
+          key={tab.key}
+          onClick={() => setActiveTab(tab.key as ActiveTab)}
+          className={cn(
+            // --- NEW STYLING ---
+            'flex items-center gap-3 px-4 py-3 text-sm font-medium text-left transition-colors',
+            'border-b-2 md:border-b-0 md:border-l-2', // Borders for the active state indicator
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            activeTab === tab.key
+              ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50' // Active state: Indigo border and text
+              : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-100/70' // Inactive state: Transparent border
+          )}
+        >
+         {/* --- NEW LOGIC TO RENDER DIFFERENT ICON TYPES --- */}
+         {tab.type === 'fontawesome' ? (
+            <FontAwesomeIcon
+              icon={tab.icon}
               className={cn(
-                'px-6 py-6 text-sm font-medium text-left transition-all duration-200 whitespace-nowrap',
-                'hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:ring-inset',
-                activeTab === tab.key
-                  ? 'bg-blue-50 text-blue-700 border-b-2 md:border-b-0 md:border-r-2 border-blue-600'
-                  : 'text-gray-600'
+                'h-5 w-5',
+                activeTab === tab.key ? 'text-indigo-600' : 'text-gray-400'
               )}
-            >
-              <span className="inline-block">{tab.name}</span>
-            </button>
-          ))}
-        </div>
-      </nav>
-    </div>
+            />
+          ) : (
+            <tab.icon className={cn(
+              'h-5 w-5',
+              activeTab === tab.key ? 'text-indigo-600' : 'text-gray-400'
+            )} />
+          )}
+          <span>{tab.name}</span>
+        </button>
+      ))}
+    </nav>
   );
 }

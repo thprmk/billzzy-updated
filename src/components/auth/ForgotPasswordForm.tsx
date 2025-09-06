@@ -1,11 +1,10 @@
-// components/ForgotPasswordForm.tsx
 'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { toast } from 'react-toastify';
-import React from 'react';  // Add this import
+import React from 'react';
 
 export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,33 +16,28 @@ export function ForgotPasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
     try {
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Something went wrong');
       }
-
-      toast.success('Password has been sent to your email');
-      setFormData({ email: '', phone: '' }); // Reset form
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to process request');
+      toast.success('A password reset link has been sent to your email.');
+      setFormData({ email: '', phone: '' });
+    } catch (error) {
+      const err = error as Error;
+      toast.error(err.message || 'Failed to process request');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Email Address
@@ -72,14 +66,16 @@ export function ForgotPasswordForm() {
         />
       </div>
 
-      <Button
-        type="submit"
-        isLoading={isLoading}
-        disabled={isLoading}
-        className="w-full"
-      >
-        {isLoading ? 'Processing...' : 'Recover Password'}
-      </Button>
+      {/* --- THIS IS THE ONLY PART THAT HAS CHANGED --- */}
+      <div className="flex justify-end pt-2">
+        <Button
+          type="submit"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Processing...' : 'Recover Password'}
+        </Button>
+      </div>
+      
     </form>
   );
 }

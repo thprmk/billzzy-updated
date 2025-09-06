@@ -9,7 +9,11 @@ import { Metadata } from 'next';
 import { Notifications } from '@/components/Notifications';
 import LoadingBar from '@/components/ui/LoadingBar';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter', // This is the new configuration
+});
+
 
 export const metadata: Metadata = { 
   title: 'Billzzy',
@@ -26,6 +30,7 @@ export const metadata: Metadata = {
   },
 };
 
+
 export default function RootLayout({
   children,
 }: {
@@ -33,7 +38,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} flex flex-col min-h-screen`} suppressHydrationWarning>
+      <body className={`${inter.variable} font-sans flex flex-col min-h-screen`} suppressHydrationWarning>
                 <LoadingBar />
 
         <SessionProvider>

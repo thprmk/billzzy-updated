@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { toast } from 'react-toastify';
 
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faShopify } from '@fortawesome/free-brands-svg-icons';
+
 interface ShopifyImportButtonProps {
   onImportComplete: () => void;
 }
@@ -101,14 +104,25 @@ export default function ShopifyImportButton({ onImportComplete }: ShopifyImportB
 
   return (
     <>
+      {/* --- THIS IS THE UPDATED BUTTON --- */}
       <Button
-        onClick={() => setShowConfirmModal(true)} // This opens the confirmation dialog first
-        isLoading={isImporting}
-        disabled={isImporting}
-        className="bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out disabled:opacity-70 disabled:cursor-not-allowed"
-      >
-        {isImporting ? 'Syncing...' : 'Import from Shopify'}
-      </Button>
+  onClick={() => setShowConfirmModal(true)}
+  isLoading={isImporting}
+  disabled={isImporting}
+  className=" text-white font-bold px-4 py-2 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 ease-in-out disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+>
+  {isImporting ? (
+    // --- Loading State ---
+    <span>Syncing...</span>
+  ) : (
+    // --- Default State ---
+    <>
+      <span>Import from</span>
+      <FontAwesomeIcon icon={faShopify} className="h-6 w-6" />
+      <span>Shopify</span>
+    </>
+  )}
+</Button>
 
       {/* Confirmation Modal */}
       <Modal isOpen={showConfirmModal} onClose={() => setShowConfirmModal(false)} title="Confirm Import">

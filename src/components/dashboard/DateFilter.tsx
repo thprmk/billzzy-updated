@@ -1,19 +1,28 @@
-// components/dashboard/DateFilter.tsx
-import React from 'react';
-import { Calendar } from 'lucide-react';
+// src/components/dashboard/DateFilter.tsx
 
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/Button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import type { DateRange } from "react-day-picker";
+
+// This interface matches the props your DashboardStats component is already sending.
 interface DateFilterProps {
-    startDate: string;
-    endDate: string;
-    onStartDateChange: (date: string) => void;
-    onEndDateChange: (date: string) => void;
-    onFilterApply: () => void;
-    onReset: () => void;
-    onAllTime: () => void;  // New prop for All Time
-    isLoading: boolean;
-     data?: any; 
-    session?: any; 
-  }
+  startDate: string;
+  endDate: string;
+  onStartDateChange: (date: string) => void;
+  onEndDateChange: (date: string) => void;
+  onFilterApply: () => void;
+  onReset: () => void;
+  onAllTime: () => void;
+  isLoading: boolean;
+  session: any;
+}
 
 export default function DateFilter({
   startDate,
@@ -22,57 +31,81 @@ export default function DateFilter({
   onEndDateChange,
   onFilterApply,
   onReset,
-  onAllTime,  // Add this prop
-  data,
+  onAllTime,
   isLoading,
-   session 
+  session,
 }: DateFilterProps) {
-    console.log(data);
-    
+
+  // This internal state manages the visual selection in the calendar popup.
+  const [date, setDate] = useState<DateRange | undefined>(() => {
+    if (startDate && endDate) {
+      return { from: parseISO(startDate), to: parseISO(endDate) };
+    }
+    return undefined;
+  });
+
+  // This ensures the calendar UI updates if the parent state changes (e.g., after clicking Reset or All Time).
+  useEffect(() => {
+    if (startDate && endDate) {
+      setDate({ from: parseISO(startDate), to: parseISO(endDate) });
+    } else {
+      setDate(undefined);
+    }
+  }, [startDate, endDate]);
+
+  // This function is called when the user selects a date in the calendar.
+  // It updates the parent component's state via the on...Change props.
+  const handleDateSelect = (selectedDate: DateRange | undefined) => {
+    setDate(selectedDate);
+    onStartDateChange(selectedDate?.from ? format(selectedDate.from, 'yyyy-MM-dd') : '');
+    onEndDateChange(selectedDate?.to ? format(selectedDate.to, 'yyyy-MM-dd') : '');
+  };
+
   return (
-    <div className="md:flex items-center justify-between space-x-4 mb-4  hidden  ">
-      {/* <Calendar className="text-gray-500 w-5 h-5" /> */}
-      <div className="flex items-center space-x-2">
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => onStartDateChange(e.target.value)}
-          className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <span className="text-gray-500">to</span>
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => onEndDateChange(e.target.value)}
-          className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          onClick={onFilterApply}
-          disabled={!startDate || !endDate || isLoading}
-          className="bg-blue-500 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-600 transition-colors disabled:bg-blue-300"
-        >
-          {isLoading ? 'Loading...' : 'Apply Filter'}
-        </button>
-        <button
-          onClick={onAllTime}
-          disabled={isLoading}
-          className="bg-green-500 text-white px-4 py-2 rounded-md text-sm hover:bg-green-600 transition-colors disabled:bg-green-300"
-        >
-          All Time
-        </button>
-        <button
-          onClick={onReset}
-          disabled={isLoading}
-          className="text-gray-500 hover:text-gray-700 px-4 py-2 rounded-md text-sm"
-        >
-          Reset
-        </button>
+    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-800">{session?.user?.shopName || 'Dashboard'}</h1>
+        <p className="text-gray-500">Welcome back, {session?.user?.name || 'User'}</p>
       </div>
-      <div className="flex justify-center   items-center mb-4">
-          <h2 className="text-xl font-semibold">{session?.user?.name} </h2><h1> - </h1>
-          <p className="text-gray-500 text-[14px]"> ({session?.user?.shopName})</p>
-      
-        {/* Rest of the header content */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              id="date"
+              variant={"outline"}
+              className={cn("w-[280px] justify-start text-left font-normal bg-white", !date && "text-muted-foreground")}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date?.from ? (
+                date.to ? (
+                  <>
+                    {format(date.from, "LLL dd, yyyy")} -{" "}
+                    {format(date.to, "LLL dd, yyyy")}
+                  </>
+                ) : (
+                  format(date.from, "LLL dd, yyyy")
+                )
+              ) : (
+                <span>Pick a date range</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={date?.from}
+              selected={date}
+              onSelect={handleDateSelect}
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+        <Button onClick={onFilterApply} disabled={isLoading || !startDate || !endDate}>
+          {isLoading ? 'Applying...' : 'Apply Filter'}
+        </Button>
+        <Button onClick={onAllTime} variant="secondary">All Time</Button>
+        <Button onClick={onReset} variant="ghost">Reset</Button>
       </div>
     </div>
   );

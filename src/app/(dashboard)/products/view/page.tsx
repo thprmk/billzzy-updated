@@ -258,7 +258,7 @@ export default function ViewProductsPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <h1 className="text-2xl font-bold">Products</h1>
+        <h1 className="text-2xl font-semibold">Products</h1>
         <div className="flex items-center space-x-2">
           <ShopifyImportButton onImportComplete={handleImportComplete} />
           <Link href="/products/add">

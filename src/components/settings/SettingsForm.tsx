@@ -15,8 +15,8 @@ import { TaxSettings } from '@/components/settings/TaxSettings';
 import ShopifySettings from './ShopifySettings';
 import QrCodeSettings from './QrCodeSettings ';
 
-
-
+// Define the possible tab values for type safety
+type ActiveTab = 'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'shopify' | 'billing' | 'tax' | 'qrcode';
 
 interface ExtendedOrganisationDetails extends OrganisationDetails {
   subscriptionType?: string;
@@ -24,68 +24,61 @@ interface ExtendedOrganisationDetails extends OrganisationDetails {
   activeMandate?: any;
 }
 
-export default function SettingsForm({ organisation, initialData }: { initialData: ExtendedOrganisationDetails }) {
+// Rename the component to be more descriptive of its role
+export default function SettingsManager({ organisation, initialData }: { organisation: ExtendedOrganisationDetails, initialData: ExtendedOrganisationDetails }) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<ActiveTab>('shop');
 
-  console.log(initialData.endDate);
-
-  const [activeTab, setActiveTab] = useState<
-    'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'shopify' | 'billing' | 'tax'
-  >('shop');
+  // A helper function to render the correct content based on the active tab
+  const renderActiveTab = () => {
+    switch (activeTab) {
+      case 'shop':
+        return <ShopSettings initialData={organisation} onSuccess={() => router.refresh()} />;
+      case 'password':
+        return <PasswordSettings onSuccess={() => router.refresh()} />;
+      case 'shopify':
+        return <ShopifySettings initialDomain={organisation.shopifyDomain} initialToken={organisation.shopifyToken} />;
+      case 'shipping':
+        return <ShippingSettings />;
+      case 'whatsapp':
+        return <WhatsAppSettings initialNumber={initialData.whatsappNumber || ''} onSuccess={() => router.refresh()} />;
+      case 'integrations':
+        return <IntegrationsSettings razorpayConnected={!!initialData.razorpayAccessToken} onRazorpayUpdate={() => router.refresh()} />;
+      case 'billing':
+        return <BillingTab initialSubscriptionType={initialData.subscriptionType} mandates={initialData.mandates} endDate={initialData.endDate} activeMandate={initialData.activeMandate} />;
+      case 'tax':
+        return <TaxSettings />;
+      case 'qrcode':
+        return <QrCodeSettings />;
+      default:
+        return null; // Or a default component
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 md:p-4">
-      <div className="max-w-[1280px] min-h-[90vh] mx-auto bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="flex flex-col min-h-[100vh] md:flex-row">
-          {/* Left side: Tabs */}
-          <SettingsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="p-4 md:p-6 lg:p-8">
+      {/* --- NEW: Page Header --- */}
+      <div className="mb-8">
+        <h1 className="text-2xl text-gray-800 font-semibold">Settings</h1>
+        <p className="text-gray-500 mt-1">Manage your shop details, security, and integrations.</p>
+      </div>
+
+      {/* --- NEW: Main Layout Container --- */}
+  
+        {/* --- NEW: Grid Layout for Sidebar and Content --- */}
+        <div className="grid grid-cols-1 md:grid-cols-4 min-h-[70vh]">
+          
+          {/* Left side: Tabs (Sidebar) */}
+          <div className="col-span-1 border-r border-gray-200 bg-gray-50/50 p-4">
+            <SettingsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+          </div>
 
           {/* Right side: Content Area */}
-          <div className="flex-1 min-h-[90vh] p-4 md:p-4">
-            {activeTab === 'shop' && (
-              <ShopSettings initialData={organisation} onSuccess={() => router.refresh()} />
-            )}
-            {activeTab === 'password' && (
-              <PasswordSettings onSuccess={() => router.refresh()} />
-            )}
-            {activeTab === 'shopify' && (
-              <ShopifySettings
-                initialDomain={organisation.shopifyDomain}
-                initialToken={organisation.shopifyToken}
-              />)}
-            {activeTab === 'shipping' && <ShippingSettings />}
-            {activeTab === 'whatsapp' && (
-              <WhatsAppSettings
-                initialNumber={initialData.whatsappNumber || ''}
-                onSuccess={() => router.refresh()}
-              />
-            )}
-            {activeTab === 'integrations' && (
-              <IntegrationsSettings
-                razorpayConnected={!!initialData.razorpayAccessToken}
-                onRazorpayUpdate={() => router.refresh()}
-              />
-            )}
-            {activeTab === 'billing' && (
-              <BillingTab
-                initialSubscriptionType={initialData.subscriptionType}
-                mandates={initialData.mandates}
-                endDate={initialData.endDate}
-                activeMandate={initialData.activeMandate}
-              />
-            )}
-
-            {activeTab === 'tax' && (
-              <TaxSettings />
-            )}
-                    {/* This is the new part for your QR Code settings */}
-        {activeTab === 'qrcode' && (
-          <QrCodeSettings />
-        )}
-            
+          <div className="col-span-3 p-6 md:p-8">
+            {renderActiveTab()}
           </div>
+
         </div>
       </div>
-    </div>
   );
 }

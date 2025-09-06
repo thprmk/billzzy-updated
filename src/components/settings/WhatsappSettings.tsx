@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useSession } from 'next-auth/react';
 import { z } from 'zod';
+import Image from 'next/image';
+import Link from 'next/link';
 
 const whatsappSchema = z.object({
   whatsappNumber: z.string().regex(/^\+?\d{10,15}$/, 'Invalid WhatsApp number format'),
@@ -251,21 +253,38 @@ export function WhatsAppSettings({
 
   return (
     <div className="max-w-2xl mx-auto p-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="text-lg font-semibold text-blue-800 mb-2">GoWhats Integration Setup</h3>
-        <p className="text-blue-700 text-sm">
-          Configure your GoWhats API settings to enable WhatsApp notifications for order updates, packing confirmations, and tracking information.
-        </p>
-        
-        {hasExistingData && (
-          <div className="mt-2 text-green-700 text-sm flex items-center">
-            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            WhatsApp integration is configured
-          </div>
-        )}
-      </div>
+
+<div className=" p-4 mb-4">
+  <div className="flex items-center gap-4">
+    {/* The clickable logo */}
+    <Link href="https://gowhatslandingpage.netlify.app/" target="_blank" rel="noopener noreferrer" className="flex-shrink-0 p-2 mb-6">
+      <Image 
+        src="/assets/gowhatswordmark.png" // IMPORTANT: Update this path
+        alt="GoWhats Logo"
+        width={100}
+        height={30}
+        className="object-contain"
+      />
+    </Link>
+    {/* The text content */}
+    <div>
+      <h3 className="text-lg font-semibold mb-2 ">Integration Setup</h3>
+      <p className="text-sm">
+      Configure your GoWhats API settings to enable WhatsApp notifications for order updates, packing confirmations, and tracking information
+      </p>
+    </div>
+  </div>
+  
+  {/* The "Configured" status, now with a clean top border */}
+  {hasExistingData && (
+    <div className="mt-3 pt-3  text-green-600 text-sm flex items-center">
+      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+      </svg>
+      WhatsApp integration is configured
+    </div>
+  )}
+</div>
 
       {isFetching && (
         <div className="text-center py-4">
@@ -349,28 +368,24 @@ export function WhatsAppSettings({
           </div>
         )}
 
-        <div className="flex gap-4">
-          <Button
-            type="submit"
-            isLoading={isLoading}
-            disabled={isLoading || isFetching || !orgId || status !== 'authenticated'}
-            className="flex-1"
-          >
-            {isLoading ? 'Updating...' : hasExistingData ? 'Update WhatsApp Settings' : 'Save WhatsApp Settings'}
-          </Button>
-          
-          {hasExistingData && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={fetchExistingSettings}
-              disabled={isLoading || isFetching}
-              className="px-4"
-            >
-              Refresh
-            </Button>
-          )}
-        </div>
+<div className="flex justify-end gap-3 pt-4">
+  {hasExistingData && (
+    <Button
+      type="button"
+      variant="secondary" // 'secondary' is often a better choice for non-primary actions
+      onClick={fetchExistingSettings}
+      disabled={isLoading || isFetching}
+    >
+      Refresh
+    </Button>
+  )}
+  <Button
+    type="submit"
+    disabled={isLoading || isFetching || !orgId || status !== 'authenticated'}
+  >
+    {isLoading ? 'Saving...' : 'Save Changes'}
+  </Button>
+</div>
 
         {/* Debug info in development */}
         {/* {process.env.NODE_ENV === 'development' && (

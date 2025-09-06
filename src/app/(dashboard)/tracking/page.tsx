@@ -110,7 +110,7 @@ export default function TrackingPage() {
   return (
     <div className="container mx-auto px-2 py-8">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold hidden md:block mb-6">Enter Tracking Details</h1>
+        <h1 className="text-2xl font-semibold hidden md:block mb-6">Enter Tracking Details</h1>
 
         <div className="bg-white shadow-lg rounded-lg overflow-hidden">
           <div className="p-6">

@@ -120,7 +120,7 @@ const DailyReport: React.FC = () => {
   return (
     <div className="container mx-auto p-4 md:p-6 lg:p-8">
       <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Sales Report</h1>
+        <h1 className="text-2xl md:text-2xl font-semibold text-gray-800">Sales Report</h1>
         
         {/* --- NEW, PROFESSIONAL FILTER BAR --- */}
         <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
