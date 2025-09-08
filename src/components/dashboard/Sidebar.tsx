@@ -26,7 +26,7 @@ import { toast } from 'react-toastify';
 import EnhancedLogoutButton from '../ui/LogoutBtn';
 import RazorpayConnect from '../ui/RazorpayConnect';
 import { MandateModal } from '../mandate/MandateModal';
-
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Types
 
@@ -368,8 +368,8 @@ export default function Sidebar({
               <Image
               src="/assets/billzzy-logo.png"
               alt="Billzzy Logo"
-              width={110}  // Reduced width
-              height={110}  // Much smaller height
+              width={120}  // Reduced width
+              height={120}  // Much smaller height
               className="w-auto h-18 -mr-8 mt-1"  // Control size with Tailwind classes
               />
             </div>
@@ -445,32 +445,46 @@ export default function Sidebar({
                         />
                         {item.name}
                       </div>
-                      <ChevronDownIcon
-                        className={`h-5 w-5 transform transition-transform ${
-                          isItemOpen ? 'rotate-180' : ''
-                        }`}
-                      />
+                      <motion.div
+    animate={{ rotate: isItemOpen ? 180 : 0 }} // Animate the chevron icon
+    transition={{ duration: 0.2 }}
+  >
+    <ChevronDownIcon className="h-5 w-5" />
+  </motion.div>
                     </button>
 
                     {/* Child links */}
-                    {isItemOpen && (
-                      <div className="ml-8 space-y-1">
-                        {item.children.map((child) => (
-                          <Link
-                            key={child.name}
-                            href={child.href}
-                            className={`block px-2 py-2 text-sm rounded-md ${
-                              pathname === child.href
-                                ? 'text-indigo-600'
-                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                            }`}
-                            onClick={() => setIsOpen(false)}
-                          >
-                            {child.name}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
+                    <AnimatePresence>
+  {isItemOpen && (
+    <motion.div
+      key="content" // A unique key is important for AnimatePresence
+      initial="collapsed"
+      animate="open"
+      exit="collapsed"
+      variants={{
+        open: { opacity: 1, height: 'auto' },
+        collapsed: { opacity: 0, height: 0 },
+      }}
+      transition={{ duration: 0.2, ease: 'easeInOut' }}
+      className="ml-8 space-y-1 overflow-hidden" // `overflow-hidden` is crucial for height animation
+    >
+      {item.children.map((child) => (
+        <Link
+          key={child.name}
+          href={child.href}
+          className={`block px-2 py-2 text-sm rounded-md ${
+            pathname === child.href
+              ? 'text-indigo-600'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+          }`}
+          onClick={() => setIsOpen(false)}
+        >
+          {child.name}
+        </Link>
+      ))}
+    </motion.div>
+  )}
+</AnimatePresence>
                   </div>
                 );
               }
