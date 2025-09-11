@@ -9,6 +9,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 model Organisation {
   id                     Int       @id @default(autoincrement())
   password               String
@@ -49,6 +50,7 @@ model Organisation {
   billCounter            Int       @default(0) @map("bill_counter") // <-- ADD THIS LINE
 
   // Relations
+  productTypeTemplates ProductTypeTemplate[]
   productCategories   ProductCategory[]
   products            Product[]
   sellers             Seller[]
@@ -98,23 +100,26 @@ model ProductCategory {
   products  Product[]
   inventory Inventory[]
 
+
   @@map("product_categories")
 }
 
-model Product {
-  id             Int    @id @default(autoincrement())
-  name           String
-  productType    ProductType @default(STANDARD)
-  SKU            String?
-  netPrice       Float?  @map("net_price")
-  sellingPrice   Float?  @map("selling_price")
-  quantity       Int?
-  seller         String
-  organisationId Int    @map("organisation_id")
-  categoryId     Int?   @map("category_id")
 
-  size           String?
-  color          String?
+model Product {
+  id                      Int      @id @default(autoincrement())
+  name                    String
+  organisationId          Int      @map("organisation_id")
+  categoryId              Int?     @map("category_id")
+
+  // This is the new link to the template system
+  productTypeTemplateId   Int?     @map("product_type_template_id")
+  productTypeTemplate     ProductTypeTemplate? @relation(fields: [productTypeTemplateId], references: [id], onDelete: SetNull)
+
+  // These fields are now ONLY for "Standard" products (where productTypeTemplateId is null)
+  SKU                     String?
+  netPrice                Float?   @map("net-price")
+  sellingPrice            Float?   @map("selling-price")
+  quantity                Int?
 
   organisation     Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   category         ProductCategory?  @relation(fields: [categoryId], references: [id])
@@ -122,9 +127,9 @@ model Product {
   transactionItems TransactionItem[]
   variants         ProductVariant[]
   invoiceItems     InvoiceItem[]
+  
   @@map("products")
 }
-
 
 model Invoice {
   id                   Int       @id @default(autoincrement())
@@ -163,10 +168,29 @@ model InvoiceItem {
   @@map("invoice_items")
 }
 
-enum ProductType {
-  STANDARD
-  BOUTIQUE
+
+model ProductTypeTemplate {
+  id              Int      @id @default(autoincrement())
+  name            String   // This will store "Apparel", "Electronics", etc.
+  organisationId  Int      @map("organisation_id")
+  organisation    Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  attributes      AttributeTemplate[]
+  products        Product[]
+
+  @@unique([name, organisationId])
+  @@map("product_type_templates")
 }
+
+model AttributeTemplate {
+  id                  Int      @id @default(autoincrement())
+  name                String   // This will store "Size", "Color", etc. for a specific template
+  templateId          Int      @map("template_id")
+  template            ProductTypeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@map("attribute_templates")
+}
+
 
 model ProductVariant {
   id           Int      @id @default(autoincrement())
@@ -176,8 +200,8 @@ model ProductVariant {
   netPrice     Float    @map("net_price")
   sellingPrice Float    @map("selling_price")
   quantity     Int      // Stock for THIS variant
-  size         String?  // e.g., "M", "L"
-  color        String?  // e.g., "Red", "Blue"
+  
+  customAttributes Json? @map("custom_attributes")
   
   // --- Link back to the parent "Folder" product ---
   productId    Int      @map("product_id")

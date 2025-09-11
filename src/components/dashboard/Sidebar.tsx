@@ -273,7 +273,7 @@ export default function Sidebar({
       <>
         {/* Close button in top-right (mobile only) */}
         <button
-          className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-500 
+          className="md:hidden fixed top-4 right-4 z-50 p-2 rounded-md text-gray-800 
                     hover:text-gray-600 hover:bg-gray-100 focus:outline-none 
                     transition-transform duration-300 transform"
           onClick={() => setIsOpen(false)}
@@ -406,17 +406,17 @@ export default function Sidebar({
                     key={item.name}
                     onClick={() => setIsSharePopupOpen(true)}
                     className="w-full group flex items-center px-2 py-2 text-sm 
-                              font-medium rounded-md text-gray-600 
-                              hover:bg-gray-50 hover:text-gray-900"
+                              font-medium rounded-md text-gray-800 
+                              hover:bg-gray-200 hover:text-gray-800"
                   >
                     <item.icon 
-                      className="mr-3 h-6 w-6 text-gray-400 group-hover:text-gray-500" 
+                      className="mr-3 h-6 w-6 text-gray-800 group-hover:text-gray-800" 
                     />
                     {item.name}
                   </button>
                 );
               }
-
+              
               const isActive =
                 pathname === item.href ||
                 item.children?.some((child) => pathname === child.href);
@@ -432,7 +432,7 @@ export default function Sidebar({
                                   px-2 py-2 text-sm font-medium rounded-md ${
                         isActive
                           ? 'bg-indigo-100 text-indigo-900'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          : 'text-gray-800 hover:bg-gray-200 hover:text-gray-800'
                       }`}
                     >
                       <div className="flex items-center">
@@ -440,7 +440,7 @@ export default function Sidebar({
                           className={`mr-3 h-6 w-6 ${
                             isActive
                               ? 'text-indigo-600'
-                              : 'text-gray-400 group-hover:text-gray-500'
+                              : 'text-gray-800 group-hover:text-gray-800'
                           }`}
                         />
                         {item.name}
@@ -475,7 +475,7 @@ export default function Sidebar({
           className={`block px-2 py-2 text-sm rounded-md ${
             pathname === child.href
               ? 'text-indigo-600'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              : 'text-black hover:text-gray-900 hover:bg-gray-200'
           }`}
           onClick={() => setIsOpen(false)}
         >
@@ -498,7 +498,7 @@ export default function Sidebar({
                               rounded-md ${
                     isActive
                       ? 'bg-indigo-100 text-indigo-900'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      : 'text-gray-800 hover:bg-gray-200 hover:text-gray-800'
                   }`}
                   // Close sidebar on mobile link click
                   onClick={() => setIsOpen(false)}
@@ -507,7 +507,7 @@ export default function Sidebar({
                     className={`mr-3 h-6 w-6 ${
                       isActive
                         ? 'text-indigo-600'
-                        : 'text-gray-400 group-hover:text-gray-500'
+                        : 'text-gray-800 group-hover:text-gray-800'
                     }`}
                   />
                   {item.name}

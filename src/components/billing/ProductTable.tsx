@@ -15,14 +15,13 @@ interface ProductVariant {
   SKU: string;
   sellingPrice: number;
   quantity: number;
-  size?: string;
-  color?: string;
+  customAttributes: Record<string, string>;
 }
 
 export interface Product {
   id: number;
   name: string;
-  productType: 'STANDARD' | 'BOUTIQUE';
+  productTypeTemplate: { id: number, name: string, attributes: { name: string }[] } | null;
   SKU: string | null;
   sellingPrice: number | null;
   quantity: number | null;
@@ -145,8 +144,10 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
       try {
         const response = await fetch(`/api/products/search?search=${encodeURIComponent(query)}`);
         if (!response.ok) throw new Error('Search failed');
+
         const products = await response.json();
         setRows(prevRows => prevRows.map(row => row.id === rowId ? { ...row, productOptions: products } : row));
+      
       } catch (error: any) {
         toast.error('Failed to search products');
       } finally {
@@ -168,12 +169,27 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
       setSelectedOptionIndex(-1);
     }, []);
 
+
+    const handleClearRow = (rowId: string) => {
+      setRows(prevRows => 
+        prevRows.map(row => 
+          row.id === rowId ? createInitialRow() : row
+        )
+      );
+      // Optional: focus the input after clearing
+      setTimeout(() => {
+        inputRefs.current[rowId]?.focus();
+      }, 0);
+    };
+
     const handleProductSelect = useCallback((rowId: string, product: Product) => {
-      if (product.productType === 'BOUTIQUE') {
+
+      if (product.productTypeTemplate) { 
         setSelectedBoutiqueProduct(product);
         setActiveRowId(rowId);
         setIsVariantModalOpen(true);
       } else {
+
         const productPrice = product.sellingPrice || 0;
         setRows((prevRows) => {
           const updatedRows = prevRows.map((row) =>
@@ -196,29 +212,40 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
 
 
 
-    const handleVariantSelect = (variant: ProductVariant) => {
-      if (!activeRowId || !selectedBoutiqueProduct) return;
-      const productPrice = variant.sellingPrice || 0;
-      setRows((prevRows) => {
-        const updatedRows = prevRows.map((row) =>
-          row.id === activeRowId ? {
-            ...row,
-            productId: selectedBoutiqueProduct.id, productVariantId: variant.id,
-            productName: `${selectedBoutiqueProduct.name} (${variant.size || variant.color || 'Variant'})`,
-            availableQuantity: variant.quantity, sellingPrice: productPrice,
-            quantity: 1, total: productPrice,
-            productOptions: [], SKU: variant.SKU,
-          } : row
-        );
-        if (!updatedRows.some(r => !r.productId && !r.productVariantId)) {
-          if (updatedRows.length < maxRows) return [...updatedRows, createInitialRow()];
-        }
-        return updatedRows;
-      });
-      setIsVariantModalOpen(false);
-      setSelectedBoutiqueProduct(null);
-      setActiveRowId(null);
-    };
+const handleVariantSelect = (variant: ProductVariant) => {
+  if (!activeRowId || !selectedBoutiqueProduct) return;
+  const productPrice = variant.sellingPrice || 0;
+
+  // --- NEW: Create the readable details string ---
+  const variantDetails = Object.entries(variant.customAttributes)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(', ');
+
+  setRows((prevRows) => {
+    const updatedRows = prevRows.map((row) =>
+      row.id === activeRowId ? {
+        ...row,
+        productId: selectedBoutiqueProduct.id,
+        productVariantId: variant.id,
+        // The productName now includes the formatted details
+        productName: `${selectedBoutiqueProduct.name} - (${variantDetails})`,
+        availableQuantity: variant.quantity,
+        sellingPrice: productPrice,
+        quantity: 1,
+        total: productPrice,
+        productOptions: [],
+        SKU: variant.SKU,
+      } : row
+    );
+    if (!updatedRows.some(r => !r.productId && !r.productVariantId)) {
+      if (updatedRows.length < maxRows) return [...updatedRows, createInitialRow()];
+    }
+    return updatedRows;
+  });
+  setIsVariantModalOpen(false);
+  setSelectedBoutiqueProduct(null);
+  setActiveRowId(null);
+};
 
     const handleQuantityChange = useCallback((rowId: string, quantityStr: string) => {
       const quantity = parseInt(quantityStr, 10);
@@ -295,40 +322,59 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id}>
-                  <td className="px-4 py-2 border relative">
-                    <input
-                      ref={(el) => { inputRefs.current[row.id] = el; }}
-                      type="text"
-                      className='outline rounded outline-gray-200 w-full p-2'
-                      placeholder="Search product..."
-                      value={row.productName}
-                      onChange={(e) => handleInputChange(row.id, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, row.id)}
-                      disabled={!!row.productVariantId}
-                    />
-                    {loading[row.id] && <div className="absolute right-3 top-3"><LoadingSpinner /></div>}
-                    {row.productOptions.length > 0 && (
-                      <ul className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
-                        {row.productOptions.map((product, index) => (
-                          <li
-                            key={product.id}
-                            className={`p-2 cursor-pointer ${index === selectedOptionIndex ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
-                            onClick={() => handleProductSelect(row.id, product)}
-                          >
-                            <div className="flex justify-between">
-                              <span>{product.name}</span>
-                              <span>{product.productType === 'BOUTIQUE' ? 'Multiple Prices' : `₹${(product.sellingPrice || 0).toFixed(2)}`}</span>
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {product.productType === 'BOUTIQUE'
-                                ? <span className="font-semibold text-blue-600">Has Variants</span>
-                                : `SKU: ${product.SKU} | Stock: ${product.quantity}`}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </td>
+            <td className="px-4 py-2 border relative">
+              { (row.productId || row.productVariantId) ? (
+                // STATE 1: A product has been selected
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">{row.productName}</span>
+                  <button 
+                    type="button" 
+                    onClick={() => handleClearRow(row.id)}
+                    className="p-1 text-gray-400 rounded-full hover:bg-gray-200"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                // STATE 2: The row is empty, show the search input
+                <>
+                  <input
+                    ref={(el) => { inputRefs.current[row.id] = el; }}
+                    type="text"
+                    className='outline rounded outline-gray-200 w-full p-2'
+                    placeholder="Search product..."
+                    value={row.productName} // This will be the search term
+                    onChange={(e) => handleInputChange(row.id, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, row.id)}
+                  />
+                  {loading[row.id] && <div className="absolute right-3 top-3"><LoadingSpinner /></div>}
+                  {row.productOptions.length > 0 && (
+                    <ul className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                      {row.productOptions.map((product, index) => (
+                        <li
+                          key={product.id}
+                          className={`p-2 cursor-pointer ${index === selectedOptionIndex ? 'bg-gray-100' : 'hover:bg-gray-100'}`}
+                          onClick={() => handleProductSelect(row.id, product)}
+                        >
+                          <div className="flex justify-between">
+                            <span>{product.name}</span>
+                            <span>{product.productTypeTemplate ? 'Multiple Prices' : `₹${(product.sellingPrice || 0).toFixed(2)}`}</span>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {product.productTypeTemplate
+                              ? <span className="font-semibold text-blue-600">Has Variants</span>
+                              : `SKU: ${product.SKU} | Stock: ${product.quantity}`}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </td>
+
                   <td className="px-4 py-2 border text-center">{row.availableQuantity}</td>
                   <td className="px-4 py-2 border">
                     <Input
@@ -354,8 +400,7 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
             </tfoot>
           </table>
         </div>
-
-        {/* --- YOUR FULL MOBILE VIEW IS RESTORED HERE --- */}
+        
         <div className="md:hidden">
           <div className="space-y-4">
             {rows.map((row) => (
@@ -437,7 +482,7 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
           </div>
         </div>
         
-        <Modal
+  <Modal
   isOpen={isVariantModalOpen}
   onClose={() => setIsVariantModalOpen(false)}
   title={`Select Variant for ${selectedBoutiqueProduct?.name}`}
@@ -447,38 +492,38 @@ export const ProductTable = React.forwardRef<ProductTableRef, ProductTableProps>
   <div className="max-h-[60vh] overflow-y-auto">
     {selectedBoutiqueProduct && (
       <table className="w-full text-sm text-left">
-        <thead className="bg-gray-50 sticky top-0">
-          <tr>
-            <th className="px-4 py-2">SKU</th>
-            <th className="px-4 py-2">Size</th>
-            <th className="px-4 py-2">Color</th>
-            <th className="px-4 py-2 text-right">Price</th>
-            <th className="px-4 py-2 text-right">Stock</th>
-          </tr>
-        </thead>
-        <tbody>
-          {selectedBoutiqueProduct.variants && selectedBoutiqueProduct.variants.length > 0 ? (
-            selectedBoutiqueProduct.variants.map((variant) => (
-              <tr key={variant.id} onClick={() => handleVariantSelect(variant)} className="cursor-pointer hover:bg-gray-100 border-b">
-                <td className="px-4 py-2 font-medium">{variant.SKU}</td>
-                <td className="px-4 py-2">{variant.size || '-'}</td>
-                <td className="px-4 py-2">{variant.color || '-'}</td>
-                <td className="px-4 py-2 text-right">₹{variant.sellingPrice.toFixed(2)}</td>
-                <td className="px-4 py-2 text-right">{variant.quantity}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={5} className="text-center p-4 text-gray-500">
-                No variants found for this product.
-              </td>
-            </tr>
-          )}
-        </tbody>
+     <thead className="bg-gray-50 sticky top-0">
+  <tr>
+    {/* NEW: Dynamic headers */}
+    {selectedBoutiqueProduct.productTypeTemplate?.attributes.map(attr => (
+      <th key={attr.name} className="px-4 py-2">{attr.name}</th>
+    ))}
+    <th className="px-4 py-2">SKU</th>
+    <th className="px-4 py-2 text-right">Price</th>
+    <th className="px-4 py-2 text-right">Stock</th>
+  </tr>
+</thead>
+<tbody>
+  {selectedBoutiqueProduct.variants && selectedBoutiqueProduct.variants.length > 0 ? (
+    selectedBoutiqueProduct.variants.map((variant) => (
+      <tr key={variant.id} onClick={() => handleVariantSelect(variant)} className="cursor-pointer hover:bg-gray-100 border-b">
+        {/* NEW: Dynamic cells */}
+        {selectedBoutiqueProduct.productTypeTemplate?.attributes.map(attr => (
+          <td key={attr.name} className="px-4 py-2">{variant.customAttributes[attr.name] || '-'}</td>
+        ))}
+        <td className="px-4 py-2 font-medium">{variant.SKU}</td>
+        <td className="px-4 py-2 text-right">₹{variant.sellingPrice.toFixed(2)}</td>
+        <td className="px-4 py-2 text-right">{variant.quantity}</td>
+      </tr>
+    ))
+  ) : (
+    <tr><td colSpan={5} className="text-center p-4">No variants found.</td></tr>
+  )}
+</tbody>
       </table>
     )}
   </div>
-</Modal>
+  </Modal>
       </div>
     );
   }

@@ -20,34 +20,35 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
     }
 
-    const organisationId = parseInt(session.user.id, 10);
-
+    const organisationId = session.user.organisationId;
+    
     const bills = await prisma.transactionRecord.findMany({
       where: {
         organisationId: organisationId,
         billingMode: mode,
       },
-      include: {
-        customer: {
-          select: {
-            name: true,
-          },
-        },
-        items: {
-          include: {
-            // Include the standard product details if the item is linked to one
-            product: true, 
-            
-            // Include the variant details if the item is linked to one
-            productVariant: {
-              include: {
-                // Also include the parent product of the variant to get its name
-                product: true, 
-              },
-            },
-          },
+  // The NEW, CORRECT include block
+
+include: {
+  customer: {
+    select: {
+      name: true,
+    },
+  },
+  items: {
+    include: {
+      // For both standard products and variants, we need the parent product's details
+      product: {
+        include: {
+          // CRITICAL: This includes the template for variant products
+          productTypeTemplate: true,
         },
       },
+      // We still need the specific variant details
+      productVariant: true,
+    },
+  },
+},
       orderBy: {
         date: 'desc',
       },

@@ -65,7 +65,7 @@ export const authOptions: NextAuthOptions = {
           subscriptionType: user.subscriptionType,
           smsCount: user.smsCount,
           role: "user",
-          organisationId: user.id.toString(),
+          organisationId: user.id,
         };
       },
     }),
@@ -112,7 +112,7 @@ export const authOptions: NextAuthOptions = {
         session.user.endDate = token.endDate;
         session.user.subscriptionType = token.subscriptionType;
         session.user.smsCount = token.smsCount;
-        session.user.organisationId = token.organisationId as string;
+        session.user.organisationId = token.organisationId as number;
 
         // Include Razorpay state in session if present
         if (token.razorpayState) {

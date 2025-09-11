@@ -14,9 +14,12 @@ import { WhatsAppSettings } from './WhatsappSettings';
 import { TaxSettings } from '@/components/settings/TaxSettings';
 import ShopifySettings from './ShopifySettings';
 import QrCodeSettings from './QrCodeSettings ';
+import ProductAttributes from './ProductAttributes';
+import ProductTypes from './ProductTypes'; 
+
 
 // Define the possible tab values for type safety
-type ActiveTab = 'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'shopify' | 'billing' | 'tax' | 'qrcode';
+type ActiveTab = 'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'shopify' | 'billing' | 'tax' | 'qrcode'|'attributes' | 'product-types';
 
 interface ExtendedOrganisationDetails extends OrganisationDetails {
   subscriptionType?: string;
@@ -50,6 +53,12 @@ export default function SettingsManager({ organisation, initialData }: { organis
         return <TaxSettings />;
       case 'qrcode':
         return <QrCodeSettings />;
+
+        case 'attributes': // <-- 3. ADD THE NEW CASE
+        return <ProductAttributes />;
+
+        case 'product-types':
+  return <ProductTypes />;
       default:
         return null; // Or a default component
     }

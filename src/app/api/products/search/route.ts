@@ -7,11 +7,13 @@ import { authOptions } from '@/lib/auth-options';
 
 export async function GET(request: Request) {
   try {
+
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+
+    if (!session || !session.user || !session.user.organisationId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const organisationId = parseInt(session.user.id);
+    const organisationId = session.user.organisationId;
 
     const { searchParams } = new URL(request.url);
     const searchQuery = searchParams.get('search')?.trim();
@@ -49,30 +51,28 @@ export async function GET(request: Request) {
           },
         ],
       },
-      // --- THIS IS THE CORRECTED PART ---
-      // We use 'include' instead of 'select' to get all product fields
-      // AND the nested variants.
+
       include: {
-        variants: true, // This fetches all variants for boutique products
-      },
-      take: 15, // Limit results for better performance
-      orderBy: {
-        name: 'asc'
+        // CRITICAL: We must include the template and its attributes
+        productTypeTemplate: {
+          include: {
+            attributes: true
+          }
+        },
+        variants: true
       }
     });
 
-    // Filter out products that are out of stock (either standard or all variants)
-    const inStockProducts = products.filter(p => {
-      if (p.productType === 'BOUTIQUE') {
-        // Keep boutique products if they have at least one variant in stock
-        return p.variants && p.variants.some(v => v.quantity > 0);
-      } else {
-        // Keep standard products if they are in stock
-        return p.quantity && p.quantity > 0;
-      }
-    });
+const inStockProducts = products.filter(p => {
+  
+  if (p.productTypeTemplate) {
+    return p.variants && p.variants.some(v => v.quantity > 0);
+  } else {
+    return p.quantity && p.quantity > 0;
+  }
+});
 
-    return NextResponse.json(inStockProducts);
+  return NextResponse.json(inStockProducts);
 
   } catch (error) {
     console.error('Search error:', error);

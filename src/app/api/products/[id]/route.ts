@@ -67,116 +67,125 @@ export async function PATCH(
   }
 }
 
-// Replace the entire PUT function in src/app/api/products/[id]/route.ts
-// src/app/api/products/[id]/route.ts
-
-// The PATCH and DELETE functions remain the same.
-// Only replace the PUT function.
-
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user || !session.user.organisationId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const organisationId = session.user.organisationId;
+  const productId = parseInt(params.id, 10);
+
+  if (isNaN(productId)) {
+    return NextResponse.json({ error: 'Invalid Product ID' }, { status: 400 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.organisationId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const organisationId = Number(session.user.organisationId);
-    const productId = Number(params.id);
-
-    if (isNaN(productId)) {
-      return NextResponse.json({ error: 'Invalid Product ID' }, { status: 400 });
-    }
-
-    // Verify the product exists and belongs to the user's organization
-    const product = await prisma.product.findFirst({
-      where: {
-        id: productId,
-        organisationId: organisationId,
-      }
-    });
-
-    if (!product) {
-      return NextResponse.json({ error: 'Product not found or permission denied' }, { status: 404 });
-    }
-
     const body = await request.json();
-    const { productType, name, categoryId, variants, ...standardData } = body;
+    const { 
+      name, 
+      categoryId, 
+      productTypeTemplateId, 
+      variants, 
+      ...standardData 
+    } = body;
 
-    // --- LOGIC FOR BOUTIQUE PRODUCT UPDATE ---
-    if (productType === 'BOUTIQUE') {
-      if (!Array.isArray(variants) || variants.length === 0) {
-        return NextResponse.json({ error: 'Boutique products must have at least one variant.' }, { status: 400 });
+    // First, verify this product belongs to the user's organisation
+    const product = await prisma.product.findFirst({
+        where: { id: productId, organisationId }
+    });
+    if (!product) {
+        return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    // --- LOGIC FOR PRODUCTS WITH VARIANTS (using a template) ---
+    if (productTypeTemplateId) {
+      if (!variants || !Array.isArray(variants)) {
+        return NextResponse.json({ error: 'Variants array is required.' }, { status: 400 });
       }
 
-      const updatedBoutiqueProduct = await prisma.$transaction(async (tx) => {
-        // Step 1: Update the parent product's name and category
-        const parentProduct = await tx.product.update({
+      await prisma.$transaction(async (tx) => {
+        // 1. Update the parent product's details
+        await tx.product.update({
           where: { id: productId },
           data: {
-            name,
-            categoryId: categoryId ? Number(categoryId) : null,
-          }
+            name: name,
+            categoryId: categoryId,
+            productTypeTemplateId: productTypeTemplateId,
+            // Nullify standard fields since it's a variant product
+            SKU: null,
+            netPrice: null,
+            sellingPrice: null,
+            quantity: null,
+          },
         });
 
-        // Step 2: Delete all old variants for this product
+        // 2. Get the IDs of variants submitted from the frontend
+        const incomingVariantIds = variants
+          .map(v => v.id)
+          .filter(id => id != null && id !== undefined); // Filter out new variants which won't have an ID
+
+        // 3. Find variants in the DB that are NOT in the submission, and delete them
         await tx.productVariant.deleteMany({
-          where: { productId: productId }
+          where: {
+            productId: productId,
+            id: {
+              notIn: incomingVariantIds,
+            },
+          },
         });
 
-        // Step 3: Create the new variants from the request body
-        await tx.productVariant.createMany({
-          data: variants.map((variant: any) => ({
-            productId: productId, // Link to the parent product
-            SKU: variant.SKU,
-            size: variant.size,
-            color: variant.color,
-            netPrice: Number(variant.netPrice),
-            sellingPrice: Number(variant.sellingPrice),
-            quantity: Number(variant.quantity),
-          }))
-        });
+        // 4. Loop through incoming variants and either create new ones or update existing ones
+        for (const variant of variants) {
+          const { id, SKU, netPrice, sellingPrice, quantity, customAttributes } = variant;
+          const variantData = { SKU, netPrice, sellingPrice, quantity, customAttributes };
 
-        return parentProduct;
-      });
-
-      return NextResponse.json(updatedBoutiqueProduct);
-    }
-    
-    // --- LOGIC FOR STANDARD PRODUCT UPDATE ---
-    else { // Assumes productType is 'STANDARD' or undefined
-      const { SKU, netPrice, sellingPrice, quantity } = standardData;
-      
-      const updateData = {
-        name,
-        SKU,
-        netPrice: netPrice ? Number(netPrice) : undefined,
-        sellingPrice: sellingPrice ? Number(sellingPrice) : undefined,
-        quantity: quantity ? Number(quantity) : undefined,
-        categoryId: categoryId ? Number(categoryId) : null,
-      };
-      
-      const updatedStandardProduct = await prisma.product.update({
-        where: { id: productId },
-        data: updateData,
-      });
-
-      return NextResponse.json(updatedStandardProduct);
-    }
-
-  } catch (error: unknown) {
-    if (typeof error === 'object' && error !== null && 'code' in error) {
-        const prismaError = error as { code: string };
-        if (prismaError.code === 'P2002') {
-            return NextResponse.json({ error: 'A product with this SKU already exists.' }, { status: 409 });
+          if (id) {
+            // If it has an ID, it's an existing variant that needs an update
+            await tx.productVariant.update({
+              where: { id: id },
+              data: variantData,
+            });
+          } else {
+            // If it has no ID, it's a new variant that needs to be created
+            await tx.productVariant.create({
+              data: {
+                ...variantData,
+                productId: productId,
+              },
+            });
+          }
         }
+      });
+    } 
+    // --- LOGIC FOR STANDARD PRODUCTS ---
+    else {
+      await prisma.product.update({
+        where: { id: productId },
+        data: {
+          name: name,
+          categoryId: categoryId,
+          SKU: standardData.SKU,
+          netPrice: standardData.netPrice,
+          sellingPrice: standardData.sellingPrice,
+          quantity: standardData.quantity,
+          // Nullify the template link since it's a standard product
+          productTypeTemplateId: null,
+        },
+      });
+      // Also, delete any variants that might have existed if the user switched types
+      await prisma.productVariant.deleteMany({ where: { productId: productId }});
     }
-    console.error('Update product error:', error);
+
+    return NextResponse.json({ success: true, message: 'Product updated successfully' });
+
+  } catch (error) {
+    console.error(`Error updating product ${params.id}:`, error);
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
   }
 }
-
 // DELETE endpoint
 export async function DELETE(
   request: Request,

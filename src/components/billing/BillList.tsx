@@ -64,6 +64,16 @@ interface BillListProps {
   mode: 'online' | 'offline';
 }
 
+
+
+function formatAttributes(attributes: Record<string, string>): string {
+  if (!attributes) return '';
+  return Object.entries(attributes)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(', ');
+}
+
+
 export function BillList({ initialBills, mode }: BillListProps) {
   const router = useRouter();
   const [bills, setBills] = useState<Bill[]>(initialBills);

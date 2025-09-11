@@ -18,6 +18,7 @@ import { toast } from 'react-toastify';
 import React from 'react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import ShopifyImportButton from '@/components/products/ShopifyImportButton';
+import { ChevronDownIcon, ChevronRightIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 interface ProductVariant {
   id: number;
@@ -25,20 +26,18 @@ interface ProductVariant {
   netPrice: number; // Add netPrice for the modal
   sellingPrice: number;
   quantity: number;
-  size: string | null;
-  color: string | null;
+  customAttributes: Record<string, string>;
 }
 
 interface Product {
   id: number;
   name: string;
-  productType: 'STANDARD' | 'BOUTIQUE';
   SKU: string | null;
   netPrice: number | null;
   sellingPrice: number | null;
   quantity: number | null;
-  categoryId: number | null;
-  category?: { name: string; id: number };
+  category: { name: string; id: number } | null;
+  productTypeTemplate: { id: number, name: string, attributes: { name: string }[] } | null; 
   variants?: ProductVariant[];
   netWorth?: number;
 }
@@ -62,6 +61,9 @@ export default function ViewProductsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [showBoutiqueEditModal, setShowBoutiqueEditModal] = useState(false); // For BOUTIQUE products
+  const [expandedProducts, setExpandedProducts] = useState<Set<number>>(new Set());
+
+
 
   // --- DATA FETCHING ---
   useEffect(() => {
@@ -124,6 +126,21 @@ export default function ViewProductsPage() {
     }
   };
 
+
+  const toggleExpand = (productId: number) => {
+    setExpandedProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) newSet.delete(productId);
+      else newSet.add(productId);
+      return newSet;
+    });
+  };
+  
+  function formatAttributes(attributes: Record<string, string>): string {
+    if (!attributes) return '';
+    return Object.entries(attributes).map(([key, value]) => `${key}: ${value}`).join(', ');
+  }
+
   // Handler for STANDARD product edit modal
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
@@ -181,27 +198,50 @@ export default function ViewProductsPage() {
     setShowBoutiqueEditModal(true);
   };
 
-  const handleVariantChangeInModal = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVariantChangeInModal = (index: number, fieldName: string, value: string) => {
     if (!editingProduct?.variants) return;
-    const { name, value } = e.target;
+  
     const updatedVariants = [...editingProduct.variants];
-    const currentVariant = updatedVariants[index];
-    updatedVariants[index] = { ...currentVariant, [name]: value };
+    const variantToUpdate = { ...updatedVariants[index] };
+  
+    if (['SKU', 'netPrice', 'sellingPrice', 'quantity'].includes(fieldName)) {
+      // It's a standard field
+      variantToUpdate[fieldName] = fieldName === 'SKU' ? value.toUpperCase() : Number(value) || 0;
+    } else {
+      // It's a custom attribute
+      variantToUpdate.customAttributes = {
+        ...variantToUpdate.customAttributes,
+        [fieldName]: value,
+      };
+    }
+  
+    updatedVariants[index] = variantToUpdate;
     setEditingProduct({ ...editingProduct, variants: updatedVariants });
   };
 
   const addVariantInModal = () => {
-    if (!editingProduct) return;
-    const newVariant: ProductVariant = {
-      id: Date.now(), // Temporary ID for the key
+    if (!editingProduct || !editingProduct.productTypeTemplate) return;
+  
+    // This creates an empty object with keys from the template's attributes,
+    // e.g., { "Size": "", "Color": "" }
+    const newCustomAttributes = Object.fromEntries(
+      editingProduct.productTypeTemplate.attributes.map(attr => [attr.name, ""])
+    );
+  
+    // Note: The 'ProductVariant' type in your component needs to be updated
+    // to remove 'size' and 'color' and add 'customAttributes'
+    const newVariant = {
+      id: Date.now(), // Temporary ID for React key
       SKU: '',
       netPrice: 0,
       sellingPrice: 0,
       quantity: 0,
-      size: '',
-      color: '',
+      customAttributes: newCustomAttributes,
     };
-    setEditingProduct({ ...editingProduct, variants: [...(editingProduct.variants || []), newVariant] });
+  
+    // Ensure variants is an array before spreading
+    const existingVariants = editingProduct.variants || [];
+    setEditingProduct({ ...editingProduct, variants: [...existingVariants, newVariant] });
   };
 
   const removeVariantInModal = (index: number) => {
@@ -212,17 +252,23 @@ export default function ViewProductsPage() {
   const handleBoutiqueEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
+
     const submissionData = {
-      productType: 'BOUTIQUE',
       name: editingProduct.name,
       categoryId: editingProduct.categoryId,
-      variants: editingProduct.variants?.map(v => ({
-        ...v,
-        netPrice: Number(v.netPrice),
-        sellingPrice: Number(v.sellingPrice),
-        quantity: Number(v.quantity),
-      })),
+      productTypeTemplateId: editingProduct.productTypeTemplate?.id, // Send the template ID
+      variants: editingProduct.variants?.map(v => {
+        // We remove the old size/color fields and make sure customAttributes is sent
+        const { size, color, ...rest } = v;
+        return {
+          ...rest,
+          netPrice: Number(v.netPrice),
+          sellingPrice: Number(v.sellingPrice),
+          quantity: Number(v.quantity),
+        };
+      }),
     };
+    
     try {
       const response = await fetch(`/api/products/${editingProduct.id}`, {
         method: 'PUT',
@@ -318,51 +364,64 @@ export default function ViewProductsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {products.map((product) => (
-                <React.Fragment key={product.id}>
-                  <tr className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.name}
-                      {product.productType === 'BOUTIQUE' && (
-                        <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Boutique</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.productType === 'BOUTIQUE' ? <span className="text-gray-400">Multiple</span> : product.SKU}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      {product.productType === 'BOUTIQUE' ? <span className="text-gray-400">-</span> : `₹${product.sellingPrice?.toFixed(2) ?? '0.00'}`}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      {product.productType === 'BOUTIQUE' ? <span className="text-gray-400">-</span> : product.quantity}
-                    </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right font-semibold text-gray-800">
-        ₹{(product.netWorth || 0).toFixed(2)}
-      </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{product.category?.name || '-'}</td>
-
-   <td className="px-6 py-4 whitespace-nowrap text-center">
-  <div className="flex justify-center space-x-2">
-    {/* A single "Edit" button that calls the correct function based on type */}
-    <Button 
-      size="sm" 
-      variant="secondary" 
-      onClick={() => product.productType === 'BOUTIQUE' ? handleBoutiqueEdit(product) : handleEdit(product)}
-    >
-      Edit
-    </Button>
-    
-    {/* The Delete button remains the same */}
-    <Button size="sm" variant="destructive" onClick={() => setProductToDelete(product)}>
-      Delete
-    </Button>
-  </div>
-</td>
-                  
-                  </tr>
-                </React.Fragment>
-              ))}
-            </tbody>
+  {products.map((product) => (
+    <React.Fragment key={product.id}>
+      <tr className="hover:bg-gray-50">
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center">
+            {product.productTypeTemplate && product.variants && product.variants.length > 0 && (
+              <button onClick={() => toggleExpand(product.id)} className="mr-2 p-1 rounded-full hover:bg-gray-200">
+                {expandedProducts.has(product.id) ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
+              </button>
+            )}
+            {product.name}
+            {product.productTypeTemplate && (
+              <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                {product.productTypeTemplate.name}
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          {product.productTypeTemplate ? <span className="text-gray-400">Multiple</span> : product.SKU}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-right">
+          {product.productTypeTemplate ? <span className="text-gray-400">-</span> : `₹${product.sellingPrice?.toFixed(2) ?? '0.00'}`}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-right">
+          {product.productTypeTemplate ? <span className="text-gray-400">-</span> : product.quantity}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-right font-semibold text-gray-800">
+          ₹{(product.netWorth || 0).toFixed(2)}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">{product.category?.name || '-'}</td>
+        <td className="px-6 py-4 whitespace-nowrap text-center">
+          <div className="flex justify-center space-x-2">
+            <Button 
+              size="sm" 
+              variant="secondary" 
+              onClick={() => product.productTypeTemplate ? handleBoutiqueEdit(product) : handleEdit(product)}
+            >
+              Edit
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => setProductToDelete(product)}>
+              Delete
+            </Button>
+          </div>
+        </td>
+      </tr>
+      {expandedProducts.has(product.id) && product.variants?.map(variant => (
+        <tr key={variant.id} className="bg-white">
+          <td className="pl-12 pr-6 py-3 whitespace-nowrap text-sm text-gray-600">{formatAttributes(variant.customAttributes)}</td>
+          <td className="px-6 py-3 whitespace-nowrap text-sm">{variant.SKU}</td>
+          <td className="px-6 py-3 whitespace-nowrap text-right text-sm">₹{variant.sellingPrice.toFixed(2)}</td>
+          <td className="px-6 py-3 whitespace-nowrap text-right text-sm">{variant.quantity}</td>
+          <td colSpan={3}></td>
+        </tr>
+      ))}
+    </React.Fragment>
+  ))}
+</tbody>
           </table>
         </div>
       </div>
@@ -492,88 +551,85 @@ export default function ViewProductsPage() {
         )}
       </Modal>
 
-      <Modal isOpen={showBoutiqueEditModal} onClose={() => setShowBoutiqueEditModal(false)} title="Edit Boutique Product" className="max-w-6xl w-full">
-        {editingProduct && (
-          <form onSubmit={handleBoutiqueEditSubmit} className="w-full">
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                  <Input value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} required />
+<Modal isOpen={showBoutiqueEditModal} onClose={() => setShowBoutiqueEditModal(false)} title="Edit Product with Variants" className="max-w-4xl w-full">
+  {editingProduct && (
+    <form onSubmit={handleBoutiqueEditSubmit} className="w-full">
+      <div className="p-6 space-y-6">
+        {/* Basic Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+            <Input value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <Select value={editingProduct.categoryId ? String(editingProduct.categoryId) : "none"} onValueChange={(value) => setEditingProduct(prev => prev ? { ...prev, categoryId: value === "none" ? null : Number(value) } : null)}>
+              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {categories.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        {/* Variants Section */}
+        <div>
+          <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
+            {/* Table Header */}
+            {editingProduct.variants && editingProduct.variants.length > 0 && editingProduct.productTypeTemplate && (
+              <div className="hidden md:grid grid-cols-12 gap-x-3 text-xs font-medium text-gray-500 mb-1">
+                {editingProduct.productTypeTemplate.attributes.map(attr => (
+                  <div key={attr.name} className="col-span-2">{attr.name}</div>
+                ))}
+                <div className="col-span-2">SKU</div>
+                <div className="col-span-1">Net Price</div>
+                <div className="col-span-2">Selling Price</div>
+                <div className="col-span-1">Stock</div>
+                <div className="col-span-1"></div>
+              </div>
+            )}
+            {/* Table Rows */}
+            {editingProduct.variants?.map((variant, index) => (
+              <div key={variant.id || index} className="grid grid-cols-12 gap-x-3 items-center">
+                {editingProduct.productTypeTemplate?.attributes.map(attr => (
+                  <div key={attr.name} className="col-span-2">
+                    <Input 
+                      name={attr.name} 
+                      value={variant.customAttributes[attr.name] || ''} 
+                      onChange={(e) => handleVariantChangeInModal(index, attr.name, e.target.value)}
+                    />
+                  </div>
+                ))}
+                <div className="col-span-2">
+                  <Input name="SKU" value={variant.SKU} onChange={(e) => handleVariantChangeInModal(index, 'SKU', e.target.value)} required />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                  <Select value={editingProduct.categoryId ? String(editingProduct.categoryId) : "none"} onValueChange={(value) => setEditingProduct(prev => prev ? { ...prev, categoryId: value === "none" ? null : Number(value) } : null)}>
-                    <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">None</SelectItem>
-                      {categories.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <div className="col-span-1">
+                  <Input type="number" name="netPrice" value={variant.netPrice} onChange={(e) => handleVariantChangeInModal(index, 'netPrice', e.target.value)} required />
+                </div>
+                <div className="col-span-2">
+                  <Input type="number" name="sellingPrice" value={variant.sellingPrice} onChange={(e) => handleVariantChangeInModal(index, 'sellingPrice', e.target.value)} required />
+                </div>
+                <div className="col-span-1">
+                  <Input type="number" name="quantity" value={variant.quantity} onChange={(e) => handleVariantChangeInModal(index, 'quantity', e.target.value)} required />
+                </div>
+                <div className="col-span-1 flex justify-end">
+                  <button type="button" onClick={() => removeVariantInModal(index)} className="p-1 text-gray-400 rounded-full hover:bg-red-100 hover:text-red-600">
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-medium text-gray-800">Variants</h3>
-                  <Button type="button" size="sm" onClick={addVariantInModal}>Add Variant</Button>
-                </div>
-                <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-2">
-                 {editingProduct.variants?.map((variant, index) => (
-  <div key={variant.id || index} className="grid grid-cols-8 gap-3 p-2 border rounded-md bg-gray-50 items-end"> {/* CHANGE: grid-cols-8 and gap-3 */}
-    
-    <div className="col-span-2"> {/* CHANGE: SKU now takes up 2 of 8 columns */}
-      <label className="text-xs font-medium text-gray-600">SKU</label>
-      <Input name="SKU" value={variant.SKU} onChange={(e) => handleVariantChangeInModal(index, e)} required />
-    </div>
-
-    <div> {/* Size takes 1 column */}
-      <label className="text-xs font-medium text-gray-600">Size</label>
-      <Input name="size" value={variant.size || ''} onChange={(e) => handleVariantChangeInModal(index, e)} />
-    </div>
-
-    <div> {/* Color takes 1 column */}
-      <label className="text-xs font-medium text-gray-600">Color</label>
-      <Input name="color" value={variant.color || ''} onChange={(e) => handleVariantChangeInModal(index, e)} />
-    </div>
-
-    <div> {/* Net Price takes 1 column */}
-      <label className="text-xs font-medium text-gray-600">Net Price</label>
-      <Input type="number" name="netPrice" value={variant.netPrice || ''} onChange={(e) => handleVariantChangeInModal(index, e)} required />
-    </div>
-
-    <div> {/* Sell Price takes 1 column */}
-      <label className="text-xs font-medium text-gray-600">Sell Price</label>
-      <Input type="number" name="sellingPrice" value={variant.sellingPrice} onChange={(e) => handleVariantChangeInModal(index, e)} required />
-    </div>
-
-    <div className="col-span-2 flex items-end gap-2"> {/* CHANGE: Stock + Button container takes up last 2 columns */}
-      <div className="flex-grow">
-        <label className="text-xs font-medium text-gray-600">Stock</label>
-        <Input type="number" name="quantity" value={variant.quantity} onChange={(e) => handleVariantChangeInModal(index, e)} required />
+            ))}
+          </div>
+        </div>
       </div>
-      <Button 
-        type="button" 
-        size="icon" 
-        variant="destructive" 
-        onClick={() => removeVariantInModal(index)} 
-        disabled={editingProduct.variants && editingProduct.variants.length <= 1}
-        className="flex-shrink-0" // This keeps the button from shrinking
-      >
-        X
-      </Button>
-    </div>
-  </div>
-))}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2 p-4 bg-gray-50 border-t">
-              <Button type="button" variant="secondary" onClick={() => setShowBoutiqueEditModal(false)}>Cancel</Button>
-              <Button type="submit">Save Changes</Button>
-            </div>
-          </form>
-        )}
-      </Modal>
+      <div className="flex justify-end space-x-2 p-4 bg-gray-50 border-t">
+        <Button type="button" variant="secondary" onClick={() => setShowBoutiqueEditModal(false)}>Cancel</Button>
+        <Button type="submit">Save Changes</Button>
+      </div>
+    </form>
+  )}
+</Modal>
 
       <Modal isOpen={!!productToDelete} onClose={() => setProductToDelete(null)} title="Confirm Deletion">
         <div className="p-6">

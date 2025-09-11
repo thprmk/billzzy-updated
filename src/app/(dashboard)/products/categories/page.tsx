@@ -136,7 +136,7 @@ export default function CategoriesPage() {
     <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Product Categories</h1>
+          <h1 className="text-2xl font-semibold text-gray-800">Product Categories</h1>
           <p className="text-sm text-gray-500 mt-1">Add, edit, and manage your product groups.</p>
         </div>
         <div className="flex items-center gap-2">

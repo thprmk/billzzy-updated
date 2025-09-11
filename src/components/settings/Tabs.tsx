@@ -3,14 +3,12 @@
 import { cn } from '@/lib/utils';
 import React from 'react';
 import {
-  Store, KeyRound, Truck, MessageCircle, CreditCard, Share2, QrCode, IndianRupee ,
+  Store, KeyRound, Truck, MessageCircle, CreditCard, Share2, QrCode, IndianRupee ,Tags, Package,
 } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShopify } from '@fortawesome/free-brands-svg-icons';
 
-
-
-type ActiveTab = 'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'shopify' | 'billing' | 'tax' | 'qrcode';
+type ActiveTab = 'shop' | 'password' | 'shipping' | 'whatsapp' | 'integrations' | 'shopify' | 'billing' | 'tax' | 'qrcode'|'attributes'| 'product-types';
 
 export function SettingsTabs({
   activeTab,
@@ -29,6 +27,8 @@ export function SettingsTabs({
     { name: 'QR Code', key: 'qrcode', icon: QrCode },
     { name: 'Integrations', key: 'integrations', icon: Share2 },
     { name: 'Tax', key: 'tax', icon: IndianRupee  },
+    { name: 'Product Attributes', key: 'attributes', icon: Tags },
+    { name: 'Product Types', key: 'product-types', icon: Package },
   ];
 
   return (

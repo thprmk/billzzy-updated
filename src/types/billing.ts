@@ -1,10 +1,17 @@
 export interface BillItem {
-    productId: number;
-    quantity: number;
-    price: number;
-    total: number;
-    productWeight?: number; 
-  }
+  // Use productVariantId to uniquely identify a specific variant
+  productVariantId?: number; 
+  // Use productId for standard, non-variant products
+  productId: number; 
+  // We will still store productName for easy display
+  productName: string;  
+  // NEW: This will store the formatted string, e.g., "Size: M, Color: Red"
+  variantDetails: string | null; 
+  quantity: number;
+  price: number;
+  total: number;
+  productWeight?: number;
+}
   
   export interface CustomerDetails {
     id?: number;

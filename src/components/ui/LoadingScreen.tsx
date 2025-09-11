@@ -10,13 +10,13 @@ export const LoadingScreen = () => {
         <img 
           src="/assets/billzzy-logo.png" // Assumes your logo is in the `public` folder
           alt="Billzzy Logo" 
-          className="h-12 w-auto mx-auto mb-6 animate-pulse" 
+          className="h-10 w-auto mx-auto mb-6 animate-pulse" 
         />
         
         {/* <LoadingSpinner className="h-8 w-8 text-indigo-500 mx-auto" /> */}
         
         <p className="mt-4 text-sm text-gray-500">
-          Getting things ready...
+          Loading...
         </p>
 
       </div>

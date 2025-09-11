@@ -24,23 +24,29 @@ export default async function BillsPage({ params }: PageProps) {
   try {
       const bills = await prisma.transactionRecord.findMany({
       where: {
-        organisationId: parseInt(session.user.id),
+        organisationId: session.user.organisationId,
         billingMode: mode
       },
-      include: {
-        customer: true, // Fetch the full customer
-        items: {
-          include: {
-            product: true, // Fetch the full product
-            productVariant: { // Also fetch the variant
-              include: {
-                product: true, // And the variant's parent product
-              }
-            }
-          }
-        },
-        TransactionShipping: true, // Fetch shipping info
+  // The NEW, CORRECT include block
+
+include: {
+  customer: true,
+  items: {
+    include: {
+      // For every item, get its parent product...
+      product: {
+        include: {
+          // ...and if that product has a template, get the template details.
+          productTypeTemplate: true,
+        }
+
       },
+      // Also include the specific variant details
+      productVariant: true,
+    }
+  },
+  TransactionShipping: true,
+},
       orderBy: {
         companyBillNo: 'desc'
       }
