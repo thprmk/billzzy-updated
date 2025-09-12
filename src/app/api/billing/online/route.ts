@@ -41,6 +41,7 @@ const createBillSchema = z.object({
     })
     .nullable()
     .optional(),
+    salesSource: z.string().optional(),
 });
 
 interface TransactionOptions {
@@ -209,7 +210,8 @@ async function createTransactionRecord(
   notes: string | null,
   taxAmount: number,
   companyBillNo: number,
-  shippingCost: number
+  shippingCost: number,
+  salesSource?: string | null
 ) {
   const lastBill = await tx.transactionRecord.findFirst({
     orderBy: { billNo: 'desc' },
@@ -241,6 +243,7 @@ async function createTransactionRecord(
       notes: notes,
       taxAmount: taxAmount,
       shippingCost: shippingCost,
+      salesSource: salesSource,
     },
   });
 }
@@ -264,7 +267,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { customerId, items, billingMode, notes, shippingMethodId, taxAmount, customShipping } = parsedData.data;
+    const { customerId, items, billingMode, notes, shippingMethodId, taxAmount, customShipping, salesSource } = parsedData.data;
     const organisationId = parseInt(session.user.id, 10);
 
     const organisation = await prisma.organisation.findUnique({
@@ -440,7 +443,8 @@ export async function POST(request: Request) {
           notes || null,
           parsedTaxAmount,
           newCompanyBillNo,
-          roundedShippingCost
+          roundedShippingCost,
+          salesSource 
         );
 
 

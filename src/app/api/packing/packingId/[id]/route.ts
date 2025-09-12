@@ -16,9 +16,8 @@ type TransactionWithRelations = TransactionRecord & {
   organisation: Organisation | null;
 };
 
-// ===================================================================
 //  GET: Fetches bill details for the packing screen.
-// ===================================================================
+
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -62,7 +61,7 @@ export async function GET(
         return {
           id: item.productVariant.id,
           SKU: item.productVariant.SKU,
-          name: `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || ''})`.trim(),
+          name: item.productVariant.product.name,
           quantity: item.quantity,
         };
       }

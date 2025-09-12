@@ -1,25 +1,16 @@
 // components/dashboard/Sidebar.tsx
 'use client';
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
-import {
-  HomeIcon,
-  ShoppingBagIcon,
-  UsersIcon,
-  CogIcon,
-  ChartBarIcon,
-  ChevronDownIcon,
-  ShareIcon,
-  BellIcon,
-  CreditCardIcon,
-} from '@heroicons/react/24/outline';
+import { 
+  PackageIcon, PrinterIcon, Truck, FileDown, ClipboardList, 
+  Home, CreditCard, BarChartBig, Share2, ShoppingBag, 
+  Users, Settings, ChevronDown, Bell 
+} from 'lucide-react';
 
-
-import { PackageIcon, PrinterIcon, Truck, FileDown, ClipboardList } from 'lucide-react';
 import useSWR from 'swr';
 import { parseISO, differenceInCalendarDays, isAfter } from 'date-fns';
 import { toast } from 'react-toastify';
@@ -28,7 +19,7 @@ import RazorpayConnect from '../ui/RazorpayConnect';
 import { MandateModal } from '../mandate/MandateModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Types
+import SharePopup from '../ui/SharedPopup';
 
 
 interface Organisation {
@@ -71,10 +62,10 @@ const fetcher = (url: string) =>
 // Navigation
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
   {
     name: 'Billing',
-    icon: CreditCardIcon,
+    icon: CreditCard,
     children: [
       { name: 'Online Bills', href: '/billing/online' },
       { name: 'Offline Bills', href: '/billing/offline' },
@@ -83,7 +74,7 @@ const navigation = [
   
   {
     name: 'Transactions',
-    icon: ChartBarIcon,
+    icon: BarChartBig,
     children: [
       { name: 'Online', href: '/transactions/online' },
       { name: 'Offline', href: '/transactions/offline' },
@@ -99,22 +90,22 @@ const navigation = [
     ],
   },
   
-  { name: 'Share Form Link', icon: ShareIcon, isShareButton: true },
+  { name: 'Share Form Link', icon: Share2, isShareButton: true },
   { name: 'Printing', href: '/printing', icon: PrinterIcon },
   { name: 'Packing', href: '/packing', icon: PackageIcon },
   { name: 'Tracking Number', href: '/tracking', icon: Truck },  
   { name: 'Order sheet', href: '/ordersheet', icon: Truck },
   {
     name: 'Products',
-    icon: ShoppingBagIcon,
+    icon: ShoppingBag,
     children: [
       { name: 'Add Product', href: '/products/add' },
       { name: 'Add Category', href: '/products/categories' },
       { name: 'View Products', href: '/products/view' },
     ],
   },
-  { name: 'Customers', href: '/customers', icon: UsersIcon },
-  { name: 'Settings', href: '/settings', icon: CogIcon },
+  { name: 'Customers', href: '/customers', icon: Users },
+  { name: 'Settings', href: '/settings', icon: Settings },
 
   {
     name: 'Report Download',
@@ -125,95 +116,7 @@ const navigation = [
 ];
 
 
-// Share Popup
-
-function SharePopup({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
-  const [link, setLink] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      generateAndShareLink();
-    }
-  }, [isOpen]);
-
-  const generateAndShareLink = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/billing/generateLink', { method: 'POST' });
-      const data = await response.json();
-      setLink(data.link);
-    } catch (error) {
-      toast.error('Failed to generate link');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(link);
-    toast.success('Link copied!');
-    onClose();
-  };
-
-  const shareToWhatsApp = () => {
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(link)}`;
-    window.open(whatsappUrl, '_blank');
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/20 backdrop-blur-md p-4">
-      <div className="w-full max-w-sm md:max-w-md lg:max-w-lg bg-white rounded-md shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Share Link</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            &times;
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center py-4">
-            <div className="loader border-t-transparent border-blue-500"></div>
-          </div>
-        ) : (
-          <>
-            <div className="mb-4 break-words">{link}</div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
-                onClick={copyToClipboard}
-              >
-                Copy Link
-              </button>
-              <button
-                className="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition-colors"
-                onClick={shareToWhatsApp}
-              >
-                Share on WhatsApp
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-
 // Sidebar Component
-
 export default function Sidebar({
   isOpen,
   setIsOpen,
@@ -383,7 +286,7 @@ export default function Sidebar({
                   router.push('/billing/pendingBills');
                 }}
               >
-                <BellIcon className="h-6 w-6" />
+                <Bell className="h-6 w-6" />
                 {pendingCount > 0 && (
                   <span className="absolute top-0 right-0 inline-flex items-center 
                                   justify-center px-1 py-0.5 text-xs font-bold 
@@ -449,10 +352,9 @@ export default function Sidebar({
     animate={{ rotate: isItemOpen ? 180 : 0 }} // Animate the chevron icon
     transition={{ duration: 0.2 }}
   >
-    <ChevronDownIcon className="h-5 w-5" />
+    <ChevronDown className="h-5 w-5" />
   </motion.div>
                     </button>
-
                     {/* Child links */}
                     <AnimatePresence>
   {isItemOpen && (
@@ -597,7 +499,6 @@ function FooterSection({
           </div>
         </div>
       )}
-
       <EnhancedLogoutButton />
     </div>
   );

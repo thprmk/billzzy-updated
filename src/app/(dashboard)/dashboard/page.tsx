@@ -6,6 +6,17 @@ import { prisma } from '@/lib/prisma';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import React from 'react';
 
+
+const formatVariantAttributes = (attributes: any): string => {
+  if (!attributes || typeof attributes !== 'object' || Object.keys(attributes).length === 0) {
+    return '(Variant)'; // Fallback text
+  }
+  const formatted = Object.entries(attributes)
+    .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`)
+    .join(', ');
+  return `(${formatted})`;
+};
+
 async function getDashboardData(organisationId: string) {
    const orgId = parseInt(organisationId);
 
@@ -70,7 +81,7 @@ async function getDashboardData(organisationId: string) {
     prisma.product.findMany({
       where: {
         organisationId: orgId,
-        productType: 'STANDARD',
+        productTypeTemplateId: null,
         quantity: {
           lte: 10, // Your low stock threshold
         },
@@ -170,7 +181,7 @@ async function getDashboardData(organisationId: string) {
     lowStockProducts: [
       ...lowStockStandardProducts.map(p => ({ id: p.id, name: p.name, quantity: p.quantity })),
       // Use the correct variable name: lowStockVariantList
-      ...lowStockVariantList.map(v => ({ id: v.id, name: `${v.product.name} (${v.size || v.color || 'Variant'})`, quantity: v.quantity }))
+      ...lowStockVariantList.map(v => ({ id: v.id,  name: `${v.product.name} ${formatVariantAttributes(v.customAttributes)}`, quantity: v.quantity }))
     ],
     // THE FIX: Combine the lengths of the two arrays for the stat card
     lowStockCount: lowStockStandardProducts.length + lowStockVariantList.length,// This is the combined NUMBER for the stat card

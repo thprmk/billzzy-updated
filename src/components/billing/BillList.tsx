@@ -74,6 +74,21 @@ function formatAttributes(attributes: Record<string, string>): string {
 }
 
 
+const formatVariantAttributes = (attributes: any): string => {
+  if (!attributes || typeof attributes !== 'object' || Object.keys(attributes).length === 0) {
+    return ''; // Return empty string if no attributes
+  }
+
+  const formatted = Object.entries(attributes)
+    .map(([key, value]) => 
+      `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`
+    )
+    .join(', ');
+
+  return `(${formatted})`;
+};
+
+
 export function BillList({ initialBills, mode }: BillListProps) {
   const router = useRouter();
   const [bills, setBills] = useState<Bill[]>(initialBills);
@@ -96,6 +111,7 @@ export function BillList({ initialBills, mode }: BillListProps) {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [weight, setWeight] = useState('');
   const trackingInputRef = React.useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     fetchBills(currentPage);
@@ -543,16 +559,24 @@ export function BillList({ initialBills, mode }: BillListProps) {
       let key = '';
       let displayName = 'Product Not Found';
       let sku = '';
-
+    
+      // --- START: NEW AND IMPROVED LOGIC ---
       if (item.productVariant && item.productVariant.product) {
         key = `variant_${item.productVariant.id}`;
         sku = item.productVariant.SKU ? `[${item.productVariant.SKU}] ` : '';
-        displayName = `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || 'Variant'})`.trim();
+        
+        // Use the helper function to get the real attributes
+        const attributesString = formatVariantAttributes(item.productVariant.customAttributes);
+        
+        // Combine the product name with the formatted attributes
+        displayName = `${item.productVariant.product.name} ${attributesString}`.trim();
+    
       } else if (item.product) {
         key = `product_${item.product.id}`;
         sku = item.product.SKU ? `[${item.product.SKU}] ` : '';
         displayName = item.product.name;
       }
+      // --- END: NEW AND IMPROVED LOGIC ---
       
       if (key) {
         const existing = groupedItems.get(key);

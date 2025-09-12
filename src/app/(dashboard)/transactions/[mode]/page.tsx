@@ -1,4 +1,4 @@
-// app/billing/[mode]/page.tsx
+
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';

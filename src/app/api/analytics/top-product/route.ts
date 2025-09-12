@@ -1,4 +1,5 @@
 // src/app/api/analytics/top-product/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
@@ -15,9 +16,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid User ID' }, { status: 400 });
     }
     
-    // ==========================================================
-    // ===          THIS IS THE MISSING DATE LOGIC            ===
-    // ==========================================================
+
+    //THIS IS THE MISSING DATE LOGIC         
     const searchParams = request.nextUrl.searchParams;
     const timeRange = searchParams.get('timeRange') || 'week';
 
@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
       case 'year': startDate.setFullYear(today.getFullYear() - 1); break;
       default: startDate.setDate(today.getDate() - 7);
     }
-    // ==========================================================
 
     // 1. Fetch all PAID transactions and their items
     const paidTransactions = await prisma.transactionRecord.findMany({
@@ -57,7 +56,7 @@ export async function GET(request: NextRequest) {
         let name = 'Unknown';
         if (item.productVariant) {
           key = `variant-${item.productVariantId}`;
-          name = `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || 'Variant'})`.trim();
+          name = name = item.productVariant.product.name;
         } else if (item.product) {
           key = `product-${item.productId}`;
           name = item.product.name;

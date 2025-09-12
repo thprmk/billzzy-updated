@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-        const companyBillId = parseInt(params.id); // This is now the company-specific bill ID
+    const companyBillId = parseInt(params.id); // This is now the company-specific bill ID
 
 
     const organisationId = parseInt(session.user.id);
@@ -96,7 +96,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         // If it's a variant, use variant details
         if (item.productVariant) {
           return {
-            productName: `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || ''})`.trim(),
+            productName: item.productVariant.product.name,
             quantity: item.quantity,
             unitPrice: item.productVariant.sellingPrice,
             amount: item.totalPrice,
@@ -145,7 +145,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const products = bill.items.map((item: any) => {
       if (item.productVariant) {
-        return `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || ''})`.trim();
+        return item.productVariant.product.name;
       }
       if (item.product) {
         return item.product.name;

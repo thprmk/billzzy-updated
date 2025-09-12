@@ -48,6 +48,7 @@ model Organisation {
   shopifyToken           String?   @map("shopify_token")
   shopifyDomain          String?   @map("shopify_domain")
   billCounter            Int       @default(0) @map("bill_counter") // <-- ADD THIS LINE
+  logoUrl                String?   @map("logo_url")
 
   // Relations
   productTypeTemplates ProductTypeTemplate[]

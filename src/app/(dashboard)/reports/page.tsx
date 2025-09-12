@@ -211,7 +211,7 @@ const DailyReport: React.FC = () => {
                                 {
                                   // Check for variant name first
                                   item.productVariant?.product?.name ? 
-                                    `${item.productVariant.product.name} (${item.productVariant.size || item.productVariant.color || 'Variant'})`
+                                    item.productVariant.product.name
                                   // Then check for standard product name
                                   : item.product?.name || 'N/A'
                                 }

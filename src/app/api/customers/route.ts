@@ -4,8 +4,6 @@ import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth-options';
 
-
-
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -54,34 +52,34 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const {
-      name,
-      phone,
-      email,
-      flatNo,
-      street,
-      district,
-      state,
-      pincode
-    } = body;
+    const { name, phone, email, flatNo, street, district, state, pincode } = body;
 
-    // Check if customer exists with same phone number
-    const existingCustomer = await prisma.customer.findFirst({
+    if (!name || !phone) {
+        return NextResponse.json({ error: 'Name and phone are required' }, { status: 400 });
+    }
+
+    const organisationId = parseInt(session.user.id);
+
+    const customer = await prisma.customer.upsert({
       where: {
-        phone,
-        organisationId: parseInt(session.user.id)
-      }
-    });
-
-    // if (existingCustomer) {
-    //   return NextResponse.json(
-    //     { error: 'Customer with this phone number already exists' },
-    //     { status: 400 }
-    //   );
-    // }
-
-    const customer = await prisma.customer.create({
-      data: {
+        // This is the unique key Prisma looks for
+        phone_organisationId: {
+          phone: phone,
+          organisationId: organisationId,
+        },
+      },
+      update: {
+        // If the customer is found, update these fields
+        name,
+        email,
+        flatNo,
+        street,
+        district,
+        state,
+        pincode,
+      },
+      create: {
+        // If not found, create a new customer with these fields
         name,
         phone,
         email,
@@ -90,14 +88,15 @@ export async function POST(request: Request) {
         district,
         state,
         pincode,
-        organisationId: parseInt(session.user.id)
-      }
+        organisationId: organisationId,
+      },
     });
 
     return NextResponse.json(customer, { status: 201 });
   } catch (error) {
+    console.error("Failed to upsert customer:", error); // Log the actual error
     return NextResponse.json(
-      { error: 'Failed to create customer' },
+      { error: 'Failed to create or update customer' },
       { status: 500 }
     );
   }

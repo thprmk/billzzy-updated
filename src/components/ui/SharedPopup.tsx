@@ -1,9 +1,13 @@
-// components/ui/SharePopup.tsx
+// src/components/ui/SharePopup.tsx
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { ShareIcon, ClipboardIcon } from '@heroicons/react/24/outline';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Copy, Check, MessageCircle } from 'lucide-react';
 
 interface SharePopupProps {
   isOpen: boolean;
@@ -11,76 +15,85 @@ interface SharePopupProps {
 }
 
 export default function SharePopup({ isOpen, onClose }: SharePopupProps) {
-  const [link, setLink] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
+  const [link, setLink] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
-  const generateAndShareLink = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/billing/generateLink', {
-        method: 'POST',
-      });
-      const data = await response.json();
-      setLink(data.link);
-    } catch (error) {
-      toast.error('Failed to generate link');
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (isOpen) {
+      setIsCopied(false);
+      setLink('');
+
+      const generateAndShareLink = async () => {
+        setIsLoading(true);
+        try {
+          const response = await fetch('/api/billing/generateLink', { method: 'POST' });
+          if (!response.ok) throw new Error('Failed to generate');
+          const data = await response.json();
+          setLink(data.link);
+        } catch (error) {
+          toast.error('Failed to generate link.');
+          onClose();
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      generateAndShareLink();
     }
-  };
+  }, [isOpen, onClose]);
 
   const copyToClipboard = () => {
+    if (!link) return;
     navigator.clipboard.writeText(link);
-    toast.success('Link copied!');
+    toast.success('Link copied to clipboard!');
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
   };
 
   const shareToWhatsApp = () => {
+    if (!link) return;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(link)}`;
     window.open(whatsappUrl, '_blank');
   };
 
-  React.useEffect(() => {
-    if (isOpen) {
-      generateAndShareLink();
-    }
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg p-6 w-80 space-y-4 transform transition-all duration-300 ease-in-out animate-fadeIn">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">Share Link</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
-            ×
-          </button>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          {/* --- TEXT CORRECTED HERE --- */}
+          <DialogTitle className="text-xl">Share Address Link</DialogTitle>
+          <DialogDescription>
+            Send this link to your customer to securely collect their shipping address.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label htmlFor="share-link" className="text-sm font-medium">
+                Address Collection Link
+              </label>
+              <div className="relative flex items-center">
+                <Input id="share-link" value={link} readOnly className="pr-12 text-sm text-gray-700" />
+                <Button size="icon" variant="ghost" className="absolute right-1 h-8 w-8" onClick={copyToClipboard}>
+                  {isCopied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
-        
-        {isLoading ? (
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <button
-              onClick={copyToClipboard}
-              className="w-full flex items-center justify-center space-x-2 p-2 rounded bg-gray-100 hover:bg-gray-200 transition-colors"
-            >
-              <ClipboardIcon className="h-5 w-5" />
-              <span>Copy Link</span>
-            </button>
-            
-            <button
-              onClick={shareToWhatsApp}
-              className="w-full flex items-center justify-center space-x-2 p-2 rounded bg-green-500 text-white hover:bg-green-600 transition-colors"
-            >
-              <ShareIcon className="h-5 w-5" />
-              <span>Share on WhatsApp</span>
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+        <DialogFooter className="sm:justify-start">
+          <Button onClick={shareToWhatsApp} disabled={isLoading || !link} className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white">
+            <MessageCircle className="mr-2 h-4 w-4" />
+            Share on WhatsApp
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
