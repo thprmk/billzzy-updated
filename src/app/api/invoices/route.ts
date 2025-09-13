@@ -135,3 +135,172 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+
+
+// // app/api/invoices/[id]/pdf/route.ts
+// import { NextRequest, NextResponse } from 'next/server'
+// import { PrismaClient } from '@prisma/client'
+// import jsPDF from 'jspdf'
+// import fs from 'fs'
+// import path from 'path'
+
+// const prisma = new PrismaClient()
+
+// export async function GET(
+//   request: NextRequest,
+//   { params }: { params: { id: string } }
+// ) {
+//   try {
+//     const invoiceId = parseInt(params.id)
+
+//     // Fetch invoice with items and attachments
+//     const invoice = await prisma.invoice.findUnique({
+//       where: { id: invoiceId },
+//       include: {
+//         items: true,
+//         attachments: true
+//       }
+//     })
+
+//     if (!invoice) {
+//       return NextResponse.json(
+//         { error: 'Invoice not found' },
+//         { status: 404 }
+//       )
+//     }
+
+//     // Create PDF
+//     const pdf = new jsPDF()
+//     let yPosition = 20
+
+//     // Add invoice header
+//     pdf.setFontSize(20)
+//     pdf.text('INVOICE', 20, yPosition)
+//     yPosition += 10
+
+//     pdf.setFontSize(12)
+//     pdf.text(`Invoice #: ${invoice.invoiceNumber}`, 20, yPosition)
+//     yPosition += 10
+
+//     // Add invoice details
+//     pdf.text(`Issue Date: ${invoice.issueDate.toLocaleDateString()}`, 20, yPosition)
+//     yPosition += 8
+//     pdf.text(`Due Date: ${invoice.dueDate.toLocaleDateString()}`, 20, yPosition)
+//     yPosition += 8
+//     pdf.text(`Status: ${invoice.status}`, 20, yPosition)
+//     yPosition += 15
+
+//     // Add customer info
+//     pdf.text('Bill To:', 20, yPosition)
+//     yPosition += 8
+//     const customerLines = invoice.customerInfo.split('\n')
+//     customerLines.forEach(line => {
+//       pdf.text(line, 20, yPosition)
+//       yPosition += 6
+//     })
+//     yPosition += 10
+
+//     // Add items table
+//     pdf.text('Items:', 20, yPosition)
+//     yPosition += 10
+
+//     // Table headers
+//     pdf.text('Description', 20, yPosition)
+//     pdf.text('Qty', 120, yPosition)
+//     pdf.text('Price', 140, yPosition)
+//     pdf.text('Total', 170, yPosition)
+//     yPosition += 8
+
+//     // Table items
+//     invoice.items.forEach(item => {
+//       pdf.text(item.description, 20, yPosition)
+//       pdf.text(item.quantity.toString(), 120, yPosition)
+//       pdf.text(`$${item.unitPrice.toFixed(2)}`, 140, yPosition)
+//       pdf.text(`$${item.total.toFixed(2)}`, 170, yPosition)
+//       yPosition += 8
+//     })
+
+//     yPosition += 10
+
+//     // Add totals
+//     pdf.text(`Subtotal: $${invoice.subTotal.toFixed(2)}`, 140, yPosition)
+//     yPosition += 8
+//     pdf.text(`Tax: $${invoice.totalTax.toFixed(2)}`, 140, yPosition)
+//     yPosition += 8
+//     pdf.setFontSize(14)
+//     pdf.text(`Total: $${invoice.totalAmount.toFixed(2)}`, 140, yPosition)
+//     yPosition += 15
+
+//     // Add notes if any
+//     if (invoice.notes) {
+//       pdf.setFontSize(12)
+//       pdf.text('Notes:', 20, yPosition)
+//       yPosition += 8
+//       const noteLines = invoice.notes.split('\n')
+//       noteLines.forEach(line => {
+//         pdf.text(line, 20, yPosition)
+//         yPosition += 6
+//       })
+//     }
+
+//     // Add images if any (on a new page if needed)
+//     if (invoice.attachments.length > 0) {
+//       pdf.addPage()
+//       yPosition = 20
+      
+//       pdf.setFontSize(16)
+//       pdf.text('Attachments', 20, yPosition)
+//       yPosition += 20
+
+//       for (const attachment of invoice.attachments) {
+//         if (attachment.mimeType.startsWith('image/')) {
+//           try {
+//             const imagePath = path.join(process.cwd(), 'public', attachment.filePath)
+//             if (fs.existsSync(imagePath)) {
+//               const imageData = fs.readFileSync(imagePath)
+//               const base64Image = `data:${attachment.mimeType};base64,${imageData.toString('base64')}`
+              
+//               // Add image to PDF (adjust size as needed)
+//               const imgWidth = 80
+//               const imgHeight = 60
+              
+//               pdf.addImage(base64Image, 'JPEG', 20, yPosition, imgWidth, imgHeight)
+              
+//               // Add filename below image
+//               pdf.setFontSize(10)
+//               pdf.text(attachment.originalName, 20, yPosition + imgHeight + 10)
+              
+//               yPosition += imgHeight + 20
+              
+//               // Start new page if running out of space
+//               if (yPosition > 250) {
+//                 pdf.addPage()
+//                 yPosition = 20
+//               }
+//             }
+//           } catch (error) {
+//             console.error('Error adding image to PDF:', error)
+//           }
+//         }
+//       }
+//     }
+
+//     // Generate PDF buffer
+//     const pdfBuffer = Buffer.from(pdf.output('arraybuffer'))
+
+//     return new NextResponse(pdfBuffer, {
+//       headers: {
+//         'Content-Type': 'application/pdf',
+//         'Content-Disposition': `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`
+//       }
+//     })
+
+//   } catch (error) {
+//     console.error('Error generating PDF:', error)
+//     return NextResponse.json(
+//       { error: 'Failed to generate PDF' },
+//       { status: 500 }
+//     )
+//   }
+// }

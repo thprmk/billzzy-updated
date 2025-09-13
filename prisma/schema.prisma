@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,180 +7,166 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Expense {
+  id        Int      @id @default(autoincrement())
+  title     String
+  amount    Float
+  category  String
+  date      DateTime
+  notes     String? 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
 model Organisation {
-  id                     Int       @id @default(autoincrement())
+  id                     Int                   @id @default(autoincrement())
   password               String
-  resetToken             String?   @map("reset_token")
-  resetTokenExpiry       DateTime? @map("reset_token_expiry")
-  email                  String    @unique
+  resetToken             String?               @map("reset_token")
+  resetTokenExpiry       DateTime?             @map("reset_token_expiry")
+  email                  String                @unique
   phone                  String
   name                   String
-  companySize            String    @map("company_size")
-  shopName               String    @map("shop_name")
-  flatNo                 String    @map("flatno")
+  companySize            String                @map("company_size")
+  shopName               String                @map("shop_name")
+  flatNo                 String                @map("flatno")
   street                 String
   district               String
   city                   String?
   state                  String
-  smsCount               Int       @default(0) @map("sms_count")
-  smsCost                Float     @default(0) @map("sms_cost")
+  smsCount               Int                   @default(0) @map("sms_count")
+  smsCost                Float                 @default(0) @map("sms_cost")
   country                String
   pincode                String
-  mobileNumber           String    @map("mobile_number")
-  landlineNumber         String?   @map("landline_number")
-  websiteAddress         String?   @map("website_address")
-  gstNumber              String?   @map("gst_number")
-  subscriptionType       String    @map("subscription_type")
-  endDate                DateTime  @map("end_date") @db.DateTime
-  whatsappNumber         String?   @map("whatsapp_number")
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-  razorpayAccessToken    String?   @map("razorpay_access_token") @db.Text
-  razorpayRefreshToken   String?   @map("razorpay_refresh_token") @db.Text
-  razorpayTokenExpiresAt DateTime? @map("razorpay_token_expires_at")
-  razorpayAccountId      String?   @map("razorpay_account_id")
-  razorpayState          String?   @map("razorpay_state")
-  razorpayStateExpiresAt DateTime? @map("razorpay_state_expires_at")
-  monthlyUsage           Int       @default(0)
-  shopifyToken           String?   @map("shopify_token")
-  shopifyDomain          String?   @map("shopify_domain")
-  billCounter            Int       @default(0) @map("bill_counter") // <-- ADD THIS LINE
-
-  // Relations
-  productCategories   ProductCategory[]
-  products            Product[]
-  sellers             Seller[]
-  transactions        TransactionRecord[]
-  customers           Customer[]
-  inventory           Inventory[]
-  CustomerSubmission  CustomerSubmission[]
-  ShippingMethod      ShippingMethod[]
-  Mandate             Mandate[]
-  activeMandates      ActiveMandate?
-  MandateNotification MandateNotification[]
-  customShippings     CustomShipping[] // <--- NEW RELATION
-  taxes               Tax[] // <--- NEW RELATION
-  gowhats   Gowhats?
-  invoices            Invoice[]
+  mobileNumber           String                @map("mobile_number")
+  landlineNumber         String?               @map("landline_number")
+  websiteAddress         String?               @map("website_address")
+  gstNumber              String?               @map("gst_number")
+  subscriptionType       String                @map("subscription_type")
+  endDate                DateTime              @map("end_date") @db.DateTime(0)
+  whatsappNumber         String?               @map("whatsapp_number")
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  razorpayAccessToken    String?               @map("razorpay_access_token") @db.Text
+  razorpayRefreshToken   String?               @map("razorpay_refresh_token") @db.Text
+  razorpayTokenExpiresAt DateTime?             @map("razorpay_token_expires_at")
+  razorpayAccountId      String?               @map("razorpay_account_id")
+  razorpayState          String?               @map("razorpay_state")
+  razorpayStateExpiresAt DateTime?             @map("razorpay_state_expires_at")
+  monthlyUsage           Int                   @default(0)
+  shopifyToken           String?               @map("shopify_token")
+  shopifyDomain          String?               @map("shopify_domain")
+  billCounter            Int                   @default(0) @map("bill_counter")
+  activeMandates         ActiveMandate?
+  customShippings        CustomShipping[]
+  customers              Customer[]
+  customersubmission     customersubmission[]
+  gowhats                gowhats?
+  inventory              Inventory[]
+  invoices               Invoice[]
+  MandateNotification    MandateNotification[]
+  Mandate                Mandate[]
+  productCategories      ProductCategory[]
+  products               Product[]
+  sellers                Seller[]
+  ShippingMethod         ShippingMethod[]
+  taxes                  Tax[]
+  transactions           TransactionRecord[]
 
   @@index([resetToken])
   @@map("organisation")
-}
-
-model CustomerSubmission {
-  id             Int      @id @default(autoincrement())
-  token          String   @unique
-  organisationId Int
-  customerId     Int?
-  notes          String?
-  status         String   @default("pending")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organisation Organisation @relation(fields: [organisationId], references: [id])
-  customers    Customer?    @relation(fields: [customerId], references: [id])
-
-  @@index([organisationId])
-  @@map("CustomerSubmission") // Corrected map name
 }
 
 model ProductCategory {
   id             Int          @id @default(autoincrement())
   name           String
   organisationId Int          @map("organisation_id")
+  inventory      Inventory[]
   organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  products       Product[]
 
-  products  Product[]
-  inventory Inventory[]
-
+  @@index([organisationId], map: "product_categories_organisation_id_fkey")
   @@map("product_categories")
 }
 
 model Product {
-  id             Int    @id @default(autoincrement())
-  name           String
-  productType    ProductType @default(STANDARD)
-  SKU            String?
-  netPrice       Float?  @map("net_price")
-  sellingPrice   Float?  @map("selling_price")
-  quantity       Int?
-  seller         String
-  organisationId Int    @map("organisation_id")
-  categoryId     Int?   @map("category_id")
-
-  size           String?
-  color          String?
-
-  organisation     Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  category         ProductCategory?  @relation(fields: [categoryId], references: [id])
+  id               Int               @id @default(autoincrement())
+  name             String
+  productType      ProductType       @default(STANDARD)
+  SKU              String?
+  netPrice         Float?            @map("net_price")
+  sellingPrice     Float?            @map("selling_price")
+  quantity         Int?
+  seller           String
+  organisationId   Int               @map("organisation_id")
+  categoryId       Int?              @map("category_id")
+  size             String?
+  color            String?
   inventory        Inventory[]
-  transactionItems TransactionItem[]
-  variants         ProductVariant[]
   invoiceItems     InvoiceItem[]
+  variants         ProductVariant[]
+  category         ProductCategory?  @relation(fields: [categoryId], references: [id])
+  organisation     Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  transactionItems TransactionItem[]
+
+  @@index([categoryId], map: "products_category_id_fkey")
+  @@index([organisationId], map: "products_organisation_id_fkey")
   @@map("products")
 }
 
-
 model Invoice {
-  id                   Int       @id @default(autoincrement())
-  invoiceNumber        String    @map("invoice_number")
-  issueDate            DateTime  @db.Date
-  dueDate              DateTime  @db.Date
-  status               String    @default("DRAFT")
-  notes                String?   @db.Text
-  subTotal             Float     @map("sub_total")
-  totalTax             Float     @map("total_tax")
-  totalAmount          Float     @map("total_amount")
-  customerId           Int?      @map("customer_id")
-  customer             Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  organisationId       Int       @map("organisation_id")
-  organisation         Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  id                   Int           @id @default(autoincrement())
+  invoiceNumber        String        @map("invoice_number")
+  issueDate            DateTime      @db.Date
+  dueDate              DateTime      @db.Date
+  status               String        @default("DRAFT")
+  notes                String?       @db.Text
+  subTotal             Float         @map("sub_total")
+  totalTax             Float         @map("total_tax")
+  totalAmount          Float         @map("total_amount")
+  customerId           Int?          @map("customer_id")
+  organisationId       Int           @map("organisation_id")
+  createdTransactionId Int?          @unique @map("created_transaction_id")
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
   items                InvoiceItem[]
-  createdTransactionId Int?      @unique @map("created_transaction_id")
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  customer             Customer?     @relation(fields: [customerId], references: [id])
+  organisation         Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
   @@unique([organisationId, invoiceNumber])
+  @@index([customerId], map: "invoices_customer_id_fkey")
   @@map("invoices")
 }
 
 model InvoiceItem {
-  id          Int     @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   description String
   quantity    Float
-  unitPrice   Float   @map("unit_price")
+  unitPrice   Float    @map("unit_price")
   total       Float
-  productId   Int?    @map("product_id")
-  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  invoiceId   Int     @map("invoice_id")
-  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId   Int?     @map("product_id")
+  invoiceId   Int      @map("invoice_id")
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
 
+  @@index([invoiceId], map: "invoice_items_invoice_id_fkey")
+  @@index([productId], map: "invoice_items_product_id_fkey")
   @@map("invoice_items")
 }
 
-enum ProductType {
-  STANDARD
-  BOUTIQUE
-}
-
 model ProductVariant {
-  id           Int      @id @default(autoincrement())
-  
-  // --- Variant-specific data ---
-  SKU          String   @unique
-  netPrice     Float    @map("net_price")
-  sellingPrice Float    @map("selling_price")
-  quantity     Int      // Stock for THIS variant
-  size         String?  // e.g., "M", "L"
-  color        String?  // e.g., "Red", "Blue"
-  
-  // --- Link back to the parent "Folder" product ---
-  productId    Int      @map("product_id")
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  // --- Link to sales records ---
+  id               Int               @id @default(autoincrement())
+  SKU              String            @unique
+  netPrice         Float             @map("net_price")
+  sellingPrice     Float             @map("selling_price")
+  quantity         Int
+  size             String?
+  color            String?
+  productId        Int               @map("product_id")
+  product          Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
   transactionItems TransactionItem[]
 
+  @@index([productId], map: "product_variants_product_id_fkey")
   @@map("product_variants")
 }
 
@@ -194,114 +178,96 @@ model Seller {
   organisationId Int          @map("organisation_id")
   organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
+  @@index([organisationId], map: "sellers_organisation_id_fkey")
   @@map("sellers")
 }
 
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  EXPIRED
-}
-
 model TransactionRecord {
-  id             Int           @id @default(autoincrement())
-  billNo         Int           @unique @map("bill_no")
-  totalPrice     Float         @map("total_price")
-  paymentMethod  String        @map("payment_method")
-  amountPaid     Float         @default(0) @map("amount_paid")
-  balance        Float         @default(0)
-  billingMode    String        @map("billing_mode")
-  organisationId Int           @map("organisation_id")
-  date           DateTime      @db.Date
-  companyBillNo  Int?          @map("company_bill_no") // <-- ADD THIS LINE
-  time           DateTime      @db.Time
-  trackingNumber String?       @map("tracking_number")
-  weight         Float?
-  customerId     Int?          @map("customer_id")
-  status         String        @default("confirmed")
-  notes          String?       @db.Text
-  paymentId      String?       @map("payment_id")
-  paymentStatus  PaymentStatus @default(PENDING) @map("payment_status")
-  isEdited       Boolean       @default(false) @map("isEdited") // Updated mapping for consistency if db is is_edited
-
-  // --- NEW FIELDS ADDED TO THE DATABASE ---
-  gstAmount        Float? @map("gst_amount")
-  gstPercent       Float? @map("gst_percent")
-  shippingCost     Float? // Assumes DB column name is 'shippingCost'
-  shippingMethodId Int? // Assumes DB column name is 'shippingMethodId'
-  // Optional: ADD @relation to ShippingMethod if desired
-  // shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], name: "TransactionShippingMethod")
-  taxAmount        Float? // Assumes DB column name is 'taxAmount'
-
-  salesSource     String? @map("sales_source")
-
-  organisation        Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  customer            Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  id                  Int                   @id @default(autoincrement())
+  billNo              Int                   @unique @map("bill_no")
+  totalPrice          Float                 @map("total_price")
+  paymentMethod       String                @map("payment_method")
+  amountPaid          Float                 @default(0) @map("amount_paid")
+  balance             Float                 @default(0)
+  billingMode         String                @map("billing_mode")
+  organisationId      Int                   @map("organisation_id")
+  date                DateTime              @db.Date
+  companyBillNo       Int?                  @map("company_bill_no")
+  time                DateTime              @db.Time(0)
+  trackingNumber      String?               @map("tracking_number")
+  weight              Float?
+  customerId          Int?                  @map("customer_id")
+  status              String                @default("confirmed")
+  notes               String?               @db.Text
+  paymentId           String?               @map("payment_id")
+  paymentStatus       PaymentStatus         @default(PENDING) @map("payment_status")
+  isEdited            Boolean               @default(false) @map("isEdited")
+  gstAmount           Float?                @map("gst_amount")
+  gstPercent          Float?                @map("gst_percent")
+  shippingCost        Float?
+  shippingMethodId    Int?
+  taxAmount           Float?
+  salesSource         String?               @map("sales_source")
   items               TransactionItem[]
+  customer            Customer?             @relation(fields: [customerId], references: [id])
+  organisation        Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   TransactionShipping TransactionShipping[]
 
+  @@index([customerId], map: "transaction_record_customer_id_fkey")
+  @@index([organisationId], map: "transaction_record_organisation_id_fkey")
   @@map("transaction_record")
 }
 
 model TransactionItem {
-  id            Int   @id @default(autoincrement())
-  transactionId Int   @map("transaction_id")
-  quantity      Int
-  totalPrice    Float @map("total_price")
+  id               Int               @id @default(autoincrement())
+  transactionId    Int               @map("transaction_id")
+  quantity         Int
+  totalPrice       Float             @map("total_price")
+  productId        Int?              @map("product_id")
+  productVariantId Int?              @map("product_variant_id")
+  product          Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productVariant   ProductVariant?   @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  transaction      TransactionRecord @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
-  // --- MODIFIED FIELDS: Now links to EITHER a standard product OR a variant ---
-  productId        Int? @map("product_id")
-  productVariantId Int? @map("product_variant_id")
-
-  // --- RELATIONS ---
-  transaction    TransactionRecord @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  product        Product?          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productVariant ProductVariant?   @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
-
+  @@index([productId], map: "transaction_items_product_id_fkey")
+  @@index([productVariantId], map: "transaction_items_product_variant_id_fkey")
+  @@index([transactionId], map: "transaction_items_transaction_id_fkey")
   @@map("transaction_items")
 }
-model Gowhats {
-  id              Int           @id @default(autoincrement())
-  organisation    Organisation  @relation(fields: [organisationId], references: [id])
-  organisationId  Int           @unique
-  whatsappNumber  String
-  accessToken    String   @db.Text  // 👈 This is the key change - from String to Text
-  businessId      String
-  phoneNumberId   String
-}
+
 model Customer {
-  id             Int     @id @default(autoincrement())
-  name           String
-  phone          String
-  district       String?
-  state          String?
-  pincode        String?
-  email          String?
-  flatNo         String? @map("flat_no")
-  street         String?
-  organisationId Int     @map("organisation_id")
-
+  id                 Int                  @id @default(autoincrement())
+  name               String
+  phone              String
+  district           String?
+  state              String?
+  pincode            String?
+  email              String?
+  flatNo             String?              @map("flat_no")
+  street             String?
+  organisationId     Int                  @map("organisation_id")
   organisation       Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  customersubmission customersubmission[]
+  invoices           Invoice[]
   transactions       TransactionRecord[]
-  CustomerSubmission CustomerSubmission[]
-  invoices Invoice[]
 
+  @@index([organisationId], map: "customers_organisation_id_fkey")
   @@map("customers")
 }
 
 model Inventory {
-  id             Int  @id @default(autoincrement())
-  productId      Int  @map("product_id")
-  categoryId     Int? @map("category_id")
-  organisationId Int  @map("organisation_id")
+  id             Int              @id @default(autoincrement())
+  productId      Int              @map("product_id")
+  categoryId     Int?             @map("category_id")
+  organisationId Int              @map("organisation_id")
   quantity       Int
-
-  product      Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  category     ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  category       ProductCategory? @relation(fields: [categoryId], references: [id])
+  organisation   Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  product        Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, organisationId])
+  @@index([categoryId], map: "inventory_category_id_fkey")
+  @@index([organisationId], map: "inventory_organisation_id_fkey")
   @@map("inventory")
 }
 
@@ -318,32 +284,22 @@ model SubscriptionDetails {
   @@map("subscription_details")
 }
 
-// --- MODIFIED ENUM and MODEL ShippingMethod ---
-enum ShippingMethodType {
-  FREE_SHIPPING
-  COURIER_PARTNER
-  CUSTOM_SHIPPING // <--- NEW ENUM VALUE
-}
-
 model ShippingMethod {
   id             Int                @id @default(autoincrement())
   name           String
-  type           ShippingMethodType // Uses the updated enum
+  type           ShippingMethodType
   minAmount      Float?             @map("min_amount")
   useWeight      Boolean            @default(false) @map("use_weight")
   ratePerKg      Float?             @map("rate_per_kg")
   fixedRate      Float?             @map("fixed_rate")
   isActive       Boolean            @default(true) @map("is_active")
   organisationId Int                @map("organisation_id")
-  customRate     Float? // <--- NEW FIELD (if db col is customRate)
-  //      use @map("custom_rate") if db col is custom_rate
-  organisation   Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  customRate     Float?
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
+  organisation   Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
-  // Optional: Add relation back to TransactionRecord if you made shippingMethodId a foreign key
-  // transactions   TransactionRecord[] @relation("TransactionShippingMethod")
-
+  @@index([organisationId], map: "shipping_methods_organisation_id_fkey")
   @@map("shipping_methods")
 }
 
@@ -351,13 +307,14 @@ model TransactionShipping {
   id            Int                @id @default(autoincrement())
   transactionId Int                @map("transaction_id")
   methodName    String             @map("method_name")
-  methodType    ShippingMethodType @map("method_type") // <--- USES THE UPDATED ENUM
+  methodType    ShippingMethodType @map("method_type")
   baseRate      Float?             @map("base_rate")
   weightCharge  Float?             @map("weight_charge")
   totalWeight   Float?             @map("total_weight")
   totalCost     Float              @map("total_cost")
   transaction   TransactionRecord  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
+  @@index([transactionId], map: "transaction_shipping_transaction_id_fkey")
   @@map("transaction_shipping")
 }
 
@@ -378,51 +335,49 @@ model Mandate {
   respCodeDescription String?
   organisation        Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
+  @@index([organisationId], map: "mandates_organisationId_fkey")
   @@map("mandates")
 }
 
 model ActiveMandate {
-  id                      Int       @id @default(autoincrement())
-  organisationId          Int       @unique
+  id                      Int          @id @default(autoincrement())
+  organisationId          Int          @unique
   UMN                     String?
-  mandateSeqNo            Int       @default(1)
+  mandateSeqNo            Int          @default(1)
   amount                  Float
-  notificationRetries     Int       @default(0)
-  retryCount              Int       @default(0)
-  status                  String    @default("INACTIVE")
+  notificationRetries     Int          @default(0)
+  retryCount              Int          @default(0)
+  status                  String       @default("INACTIVE")
   payerVA                 String
   payerName               String?
   payerMobile             String?
-  notified                Boolean   @default(false)
-  lastAttemptAt           DateTime? @db.Timestamp // Ensure this matches DB type
-  lastNotificationAttempt DateTime? @db.Timestamp // Ensure this matches DB type
-
-  organisation Organisation @relation(fields: [organisationId], references: [id])
+  notified                Boolean      @default(false)
+  lastAttemptAt           DateTime?    @db.Timestamp(0)
+  lastNotificationAttempt DateTime?    @db.Timestamp(0)
+  organisation            Organisation @relation(fields: [organisationId], references: [id])
 
   @@map("active_mandates")
 }
 
 model MandateNotification {
-  id             Int      @id @default(autoincrement())
+  id             Int          @id @default(autoincrement())
   organisationId Int
   type           String
   message        String
-  isRead         Boolean  @default(false)
-  createdAt      DateTime @default(now())
-
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
   @@index([organisationId])
   @@map("mandate_notifications")
 }
 
-// --- NEW MODELS ---
 model CustomShipping {
   id             Int          @id @default(autoincrement())
   price          Float
   name           String?
   organisationId Int
-  organisation   Organisation @relation(fields: [organisationId], references: [id]) // onDelete: RESTRICT by default on non-cascading FKs
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
 
   @@index([organisationId])
   @@map("custom_shippings")
@@ -434,9 +389,53 @@ model Tax {
   name           String
   type           String
   value          Float
-  autoApply      Boolean      @map("autoApply")   
-  organisation   Organisation @relation(fields: [organisationId], references: [id]) // onDelete: RESTRICT by default
+  autoApply      Boolean      @map("autoApply")
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
 
   @@index([organisationId])
   @@map("tax")
+}
+
+model customersubmission {
+  id             Int          @id @default(autoincrement())
+  token          String       @unique(map: "CustomerSubmission_token_key")
+  organisationId Int
+  customerId     Int?
+  notes          String?
+  status         String       @default("pending")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime
+  customers      Customer?    @relation(fields: [customerId], references: [id], map: "CustomerSubmission_customerId_fkey")
+  organisation   Organisation @relation(fields: [organisationId], references: [id], map: "CustomerSubmission_organisationId_fkey")
+
+  @@index([customerId], map: "CustomerSubmission_customerId_fkey")
+  @@index([organisationId], map: "CustomerSubmission_organisationId_idx")
+}
+
+model gowhats {
+  id             Int          @id @default(autoincrement())
+  organisationId Int          @unique(map: "Gowhats_organisationId_key")
+  whatsappNumber String
+  accessToken    String       @db.Text
+  businessId     String
+  phoneNumberId  String
+  organisation   Organisation @relation(fields: [organisationId], references: [id], map: "Gowhats_organisationId_fkey")
+}
+
+enum ProductType {
+  STANDARD
+  BOUTIQUE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
+enum ShippingMethodType {
+  FREE_SHIPPING
+  COURIER_PARTNER
+  CUSTOM_SHIPPING
 }
