@@ -1,12 +1,11 @@
 // src/components/invoices/InvoiceForm.tsx
 "use client"
 
-import type React from "react"
-import { useState, useMemo } from "react"
+import React, { useState, useMemo } from "react"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
 import { toast } from 'react-toastify';
-
+import { Input } from "@/components/ui/Input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/Select";
 
 // Type for a single line item
@@ -34,6 +33,22 @@ export function InvoiceForm() {
   const [invoiceDetails, setInvoiceDetails] = useState(initialInvoiceDetails)
   const [items, setItems] = useState<InvoiceItem[]>(initialItems)
   const [isLoading, setIsLoading] = useState(false)
+
+  const [logoPreview, setLogoPreview] = useState<string | null>(null); 
+  const [logoFile, setLogoFile] = useState<File | null>(null);     
+  
+  
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file); // Store the actual file
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string); // Set the preview URL
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Generic handler for all input, textarea, and select fields
   const handleDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -92,6 +107,13 @@ export function InvoiceForm() {
     event.preventDefault()
     setIsLoading(true)
 
+
+    const formData = new FormData();
+
+    if (logoFile) {
+      formData.append('logo', logoFile);
+    }
+
     const payload = {
       ...invoiceDetails,
       items: items,
@@ -99,13 +121,14 @@ export function InvoiceForm() {
       subTotal,
       totalTax,
       totalAmount,
-    }
+    };
+    formData.append('data', JSON.stringify(payload));
 
     try {
       const response = await fetch("/api/invoices", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+       
+        body: formData,
       })
 
       const data = await response.json();
@@ -117,6 +140,9 @@ export function InvoiceForm() {
 
       toast.success(`Invoice ${data.invoiceNumber} created successfully!`);      
       resetForm();
+
+      setLogoFile(null);
+      setLogoPreview(null);
 
     } catch (error) {
       let errorMessage = "An error occurred. Please try again."
@@ -143,6 +169,31 @@ export function InvoiceForm() {
 
       {/* Invoice Details */}
       <Card className="p-5 sm:p-6 rounded-xl border border-gray-200 shadow-sm bg-white">
+
+
+      <div className="mb-6">
+            <label htmlFor="logo-upload" className="block text-sm font-medium text-muted-foreground mb-2">
+              Company Logo (Optional)
+            </label>
+            <div className="flex items-center gap-4">
+              <div className="w-20 h-20 rounded-md border border-dashed flex items-center justify-center bg-gray-50">
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Logo Preview" className="h-full w-full object-contain" />
+                ) : (
+                  <span className="text-xs text-gray-400">Preview</span>
+                )}
+              </div>
+              <Input
+                id="logo-upload"
+                type="file"
+                accept="image/png, image/jpeg, image/webp"
+                onChange={handleLogoChange}
+                className="flex-1"
+              />
+            </div>
+        </div>
+
+
         <div className="mb-4">
           <h2 className="text-lg font-semibold">Invoice Details</h2>
         </div>
@@ -405,6 +456,9 @@ export function InvoiceForm() {
           </Button>
         </div>
       </div>
+
+
+
     </form>
   )
 }

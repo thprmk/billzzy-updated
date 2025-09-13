@@ -5,6 +5,11 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { generateInvoiceNumber } from '@/lib/generateInvoiceNumber';
 import { NextRequest, NextResponse } from 'next/server';
+import { v2 as cloudinary } from 'cloudinary';
+
+
+// The SDK automatically uses the CLOUDINARY_URL from your .env.local file
+cloudinary.config({ secure: true });
 
 // Define the expected structure for an item in the request body for type safety
 interface InvoiceItemInput {
@@ -29,6 +34,9 @@ export async function GET(req: NextRequest) {
       where: {
         organisationId: organisationId,
       },
+      include: {
+        customer: true, // Include the related customer data
+      },
       // Order by the most recently created
       orderBy: {
         createdAt: 'desc',
@@ -44,94 +52,89 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: Request) {
-  // 1. --- AUTHENTICATION ---
-  // Get the user's session from NextAuth to verify they are logged in.
+export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-
-  // If there's no session or the session doesn't link to an organization, block the request.
   if (!session?.user?.organisationId) {
     return NextResponse.json({ error: 'Not Authenticated' }, { status: 401 });
   }
-  
-  // Store the organization ID for later use. Ensure it's a number for Prisma.
   const organisationId = Number(session.user.organisationId);
 
-  console.log(`--- API: POST /api/invoices ---`);
-  console.log(`API INFO: Creating invoice for organisationId: ${organisationId}`);
-
   try {
-    // 2. --- DATA EXTRACTION & VALIDATION ---
-    // Parse the JSON data sent from the frontend.
-    const body = await req.json();
-    const { 
-      customerId, 
-      issueDate, 
-      dueDate, 
-      items, 
-      subTotal, 
-      totalTax, 
-      totalAmount, 
-      notes,
-      status 
-    } = body;
+    // 1. PARSE FORMDATA
+    const formData = await req.formData();
+    const logoFile = formData.get('logo') as File | null;
+    const invoiceDataString = formData.get('data') as string | null;
 
-    // Perform basic validation to ensure the most critical data is present.
+    if (!invoiceDataString) {
+      return NextResponse.json({ error: 'Missing invoice data.' }, { status: 400 });
+    }
+    
+    const body = JSON.parse(invoiceDataString);
+    const { 
+      customerId, issueDate, dueDate, items, 
+      subTotal, totalTax, totalAmount, notes, status 
+    } = body;
+    
     if (!issueDate || !dueDate || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: 'Missing required fields: issueDate, dueDate, and items are required.' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required invoice fields.' }, { status: 400 });
     }
 
-    // 3. --- LOGIC ---
-    // Call our utility function to get the next sequential invoice number for this specific organization.
+    let uploadedLogoUrl: string | null = null;
+
+    // 2. UPLOAD LOGO TO CLOUDINARY if it exists
+    if (logoFile) {
+      const buffer = Buffer.from(await logoFile.arrayBuffer());
+
+      const uploadResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: 'invoice_logos' }, // Organizes uploads in Cloudinary
+          (error, result) => {
+            if (error) reject(error);
+            resolve(result);
+          }
+        ).end(buffer);
+      });
+
+      uploadedLogoUrl = (uploadResult as any).secure_url;
+    }
+
+    // 3. DATABASE OPERATION
     const newInvoiceNumber = await generateInvoiceNumber(organisationId);
 
-    // 4. --- DATABASE OPERATION ---
-    // Use prisma.invoice.create to save the new invoice to the database.
-    // This is a single, atomic operation thanks to Prisma's nested create feature.
-    // If creating an item fails, the entire invoice creation will be rolled back.
     const newInvoice = await prisma.invoice.create({
       data: {
         invoiceNumber: newInvoiceNumber,
         issueDate: new Date(issueDate),
         dueDate: new Date(dueDate),
-        status: status || 'DRAFT', // All new invoices must start as drafts.
+        status: status || 'DRAFT',
         subTotal,
         totalTax,
         totalAmount,
         notes,
-        // Connect the invoice to the logged-in user's organization.
+        logoUrl: uploadedLogoUrl, // Save the Cloudinary URL to the database
         organisation: {
           connect: { id: organisationId }
         },
-
-        // Create all line items and connect them to this new invoice.
         items: {
           create: items.map((item: InvoiceItemInput) => ({
             description: item.description,
-            quantity: parseFloat(item.quantity as any), // Convert string to number
-            unitPrice: parseFloat(item.unitPrice as any), // Convert string to number
-            total: item.total, // This is already a number
-            product: item.productId ? {
-              connect: { id: Number(item.productId) }
-            } : undefined,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+            product: item.productId ? { connect: { id: Number(item.productId) } } : undefined,
           })),
         },
       },
-      // Include the newly created items in the response sent back to the frontend.
       include: {
-        items: true, 
+        items: true,
       },
     });
 
-    console.log('API RESULT: Successfully created new invoice:', newInvoice);
-
-    // 5. --- RESPONSE ---
-    // Send back the complete new invoice object with a 201 "Created" status.
+    // 4. RESPONSE
     return NextResponse.json(newInvoice, { status: 201 });
 
   } catch (error) {
-    // If any part of the process fails, log the error and send a generic 500 server error.
-    console.error("[INVOICE_POST_ERROR]", error);
+    console.error("[INVOICE_POST_CLOUDINARY_ERROR]", error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -48,7 +48,6 @@ model Organisation {
   shopifyToken           String?   @map("shopify_token")
   shopifyDomain          String?   @map("shopify_domain")
   billCounter            Int       @default(0) @map("bill_counter") // <-- ADD THIS LINE
-  logoUrl                String?   @map("logo_url")
 
   // Relations
   productTypeTemplates ProductTypeTemplate[]
@@ -150,6 +149,7 @@ model Invoice {
   createdTransactionId Int?      @unique @map("created_transaction_id")
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
+  logoUrl              String?   @map("logo_url") 
 
   @@unique([organisationId, invoiceNumber])
   @@map("invoices")

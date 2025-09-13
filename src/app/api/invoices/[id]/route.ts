@@ -37,10 +37,25 @@ export async function GET(
   try {
     const invoice = await prisma.invoice.findFirst({
       where: { id: invoiceId, organisationId },
-      include: { 
+      // Use `select` to be absolutely sure we get every piece of data we need.
+      select: {
+        // Select all the original invoice fields
+        id: true,
+        invoiceNumber: true,
+        status: true,
+        issueDate: true,
+        dueDate: true,
+        notes: true,
+        subTotal: true,
+        totalTax: true,
+        totalAmount: true,
+        logoUrl: true, // <-- THIS IS THE CRITICAL FIX
+        
+        // And include the related data
         items: true,
+        customer: true,
         organisation: true
-      },
+      }
     });
 
     if (!invoice) {

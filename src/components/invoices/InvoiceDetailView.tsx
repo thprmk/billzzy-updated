@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Invoice } from '@/types/invoice'; 
+import Image from 'next/image';
 
 
 export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
@@ -46,13 +47,26 @@ export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
+                    {/* --- FIX: DISPLAY THE LOGO --- */}
+                    {currentInvoice.logoUrl && (
+            <Image 
+              src={currentInvoice.logoUrl} 
+              alt="Company Logo"
+              width={150}
+              height={70}
+              className="mb-4 object-contain h-auto"
+            />
+          )}
+
           <h1 className="text-3xl font-bold text-gray-800">Invoice</h1>
           <p className="text-gray-500">{currentInvoice.invoiceNumber}</p>
         </div>
         <div className="flex flex-col items-end gap-4">
           <div className="text-right">
-            <p className="font-semibold">Your Company Name</p>
-            <p className="text-sm text-gray-600">123 Your Street, Your City</p>
+            {/* --- FIX: USE REAL ORGANISATION DATA --- */}
+            <p className="font-semibold">{currentInvoice.organisation.shopName}</p>
+            <p className="text-sm text-gray-600">{currentInvoice.organisation.street}, {currentInvoice.organisation.flatNo}</p>
+            <p className="text-sm text-gray-600">{currentInvoice.organisation.city}, {currentInvoice.organisation.state} - {currentInvoice.organisation.pincode}</p>
           </div>
           <div className="flex items-center gap-2">
     {/* The existing "Mark as Paid" button */}
@@ -64,10 +78,10 @@ export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
     
     {/* The new "Download PDF" button */}
     <a 
-      href={`/api/invoices/${currentInvoice.id}?format=pdf`} 
-      target="_blank" // Opens the download in a new tab
-      rel="noopener noreferrer"
-    >
+        href={`/api/invoices/${currentInvoice.id}/download`} 
+        target="_blank"
+        rel="noopener noreferrer"
+      >
       <Button variant="outline">Download PDF</Button> {/* Assuming you have an outline variant */}
     </a>
   </div>
@@ -78,15 +92,22 @@ export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
       <div className="grid grid-cols-2 gap-8 mb-8">
         <div>
           <h2 className="font-semibold text-gray-700 mb-2">Bill To:</h2>
-          <div className="text-gray-600 whitespace-pre-line">{customerInfo}</div>
-        </div>
-        <div className="text-right">
-          {/* CORRECT: Use currentInvoice for all dynamic data */}
+          {/* --- FIX: USE REAL CUSTOMER DATA --- */}
+          {currentInvoice.customer ? (
+            <div className="text-gray-600 whitespace-pre-line">
+              <p className="font-semibold">{currentInvoice.customer.name}</p>
+              <p>{currentInvoice.customer.street}, {currentInvoice.customer.flatNo}</p>
+              <p>{currentInvoice.customer.district}, {currentInvoice.customer.state} - {currentInvoice.customer.pincode}</p>
+            </div>
+          ) : (
+            <p>Walk-in Customer</p>
+          )}
+      </div>
+
+      <div className="text-right">
           <p><span className="font-semibold">Issue Date:</span> {new Date(currentInvoice.issueDate).toLocaleDateString()}</p>
           <p><span className="font-semibold">Due Date:</span> {new Date(currentInvoice.dueDate).toLocaleDateString()}</p>
-          <p><span className={`font-semibold px-3 py-1 rounded-full text-sm mt-2 inline-block ${
-              currentInvoice.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-            }`}>{currentInvoice.status}</span></p>
+          <p><span className={`font-semibold px-3 py-1 rounded-full text-sm mt-2 inline-block ${currentInvoice.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{currentInvoice.status}</span></p>
         </div>
       </div>
       

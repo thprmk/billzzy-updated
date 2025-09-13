@@ -1,8 +1,8 @@
 // src/app/api/invoices/[id]/download/route.tsx
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+import puppeteer from 'puppeteer';
 
+// Helper function to get the base URL, works in dev and prod
 function getBaseUrl() {
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return `http://localhost:${process.env.PORT || 3000}`;
@@ -18,20 +18,12 @@ export async function GET(
 
   let browser = null;
   try {
-    // --- THIS IS THE FINAL, MOST ROBUST LAUNCH CONFIG ---
-    // Forcing chromium.headless to be true or false explicitly
-    const headless = chromium.headless === 'new' ? true : chromium.headless;
-
     browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: headless, // Use the corrected headless value
-      ignoreHTTPSErrors: true,
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-    // --------------------------------------------------
-
     const page = await browser.newPage();
+
     await page.goto(invoiceUrl, { waitUntil: 'networkidle0' });
 
     const pdfBuffer = await page.pdf({
