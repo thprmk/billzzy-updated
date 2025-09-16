@@ -2,9 +2,7 @@
 import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
 
-// Helper function to get the base URL, works in dev and prod
 function getBaseUrl() {
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return `http://localhost:${process.env.PORT || 3000}`;
 }
 
@@ -18,18 +16,28 @@ export async function GET(
 
   let browser = null;
   try {
+    // CRITICAL: Make sure this path is correct for YOUR computer
+    const executablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+
     browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      executablePath: executablePath,
+      args: ['--no-sandbox']
     });
+
     const page = await browser.newPage();
-
+    
+    // Go to the page and wait for everything to load
     await page.goto(invoiceUrl, { waitUntil: 'networkidle0' });
-
+    
+    // Generate the PDF
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
     });
+
+    await browser.close();
+    browser = null;
 
     return new Response(pdfBuffer, {
       headers: {
@@ -39,10 +47,7 @@ export async function GET(
     });
   } catch (error) {
     console.error("Puppeteer PDF generation failed:", error);
+    if (browser) { await browser.close(); }
     return new NextResponse('Failed to generate PDF.', { status: 500 });
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
   }
 }

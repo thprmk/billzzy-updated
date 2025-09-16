@@ -8,47 +8,31 @@ import { Invoice } from '@/types/invoice';
 import Image from 'next/image';
 
 
+// --- 1. DEFINE THE TYPE FOR THE RENDER PROP ---
+// This explicitly tells TypeScript what the `loading`, `error`, etc. variables are.
+interface PDFLinkRenderProps {
+  blob: Blob | null;
+  url: string | null;
+  loading: boolean;
+  error: Error | null;
+}
+
 export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
-  // Use the passed-in invoice as the initial state
   const [currentInvoice, setCurrentInvoice] = useState(invoice);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // Safely handle the 'notes' property, checking if it is null
-  const notes = currentInvoice.notes || ''; // Default to an empty string if notes is null
-  const customerInfo = notes.split('\n\n')[0];
-  const additionalNotes = notes.split('\n\n')[1] || '';
+  // --- 2. REMOVE UNUSED VARIABLES ---
+  const additionalNotes = currentInvoice.notes ? currentInvoice.notes.split('\n\n')[1] || '' : '';
 
-  const handleMarkAsPaid = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/invoices/${currentInvoice.id}/pay`, {
-        method: 'PATCH',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to mark invoice as paid');
-      }
-      const updatedInvoice = await response.json();
-      setCurrentInvoice(prevInvoice => ({
-        ...prevInvoice!, // This keeps all the old data, including the 'items' array.
-        ...updatedInvoice, // This overwrites any updated fields, like 'status'.
-      })); // Update local state to re-render the component
-      router.refresh(); // Tells Next.js to re-fetch server data for consistency
-    } catch (error) {
-      console.error(error);
-      alert('An error occurred.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const handleMarkAsPaid = async () => { /* ... (no changes needed here) ... */ };
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-lg max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
-                    {/* --- FIX: DISPLAY THE LOGO --- */}
-                    {currentInvoice.logoUrl && (
+          {currentInvoice.logoUrl && (
             <Image 
               src={currentInvoice.logoUrl} 
               alt="Company Logo"
@@ -57,34 +41,34 @@ export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
               className="mb-4 object-contain h-auto"
             />
           )}
-
           <h1 className="text-3xl font-bold text-gray-800">Invoice</h1>
           <p className="text-gray-500">{currentInvoice.invoiceNumber}</p>
         </div>
         <div className="flex flex-col items-end gap-4">
           <div className="text-right">
-            {/* --- FIX: USE REAL ORGANISATION DATA --- */}
             <p className="font-semibold">{currentInvoice.organisation.shopName}</p>
             <p className="text-sm text-gray-600">{currentInvoice.organisation.street}, {currentInvoice.organisation.flatNo}</p>
             <p className="text-sm text-gray-600">{currentInvoice.organisation.city}, {currentInvoice.organisation.state} - {currentInvoice.organisation.pincode}</p>
           </div>
           <div className="flex items-center gap-2">
-    {/* The existing "Mark as Paid" button */}
-    {currentInvoice.status !== 'PAID' && (
-      <Button onClick={handleMarkAsPaid} disabled={isLoading}>
-        {isLoading ? 'Processing...' : 'Mark as Paid'}
-      </Button>
-    )}
-    
-    {/* The new "Download PDF" button */}
-    <a 
-        href={`/api/invoices/${currentInvoice.id}/download`} 
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-      <Button variant="outline">Download PDF</Button> {/* Assuming you have an outline variant */}
-    </a>
-  </div>
+            {currentInvoice.status !== 'PAID' && (
+              <Button onClick={handleMarkAsPaid} disabled={isLoading}>
+                {isLoading ? 'Processing...' : 'Mark as Paid'}
+              </Button>
+            )}
+            
+            {/* --- 3. APPLY THE TYPE TO THE RENDER PROP --- */}
+            <PDFDownloadLink
+              document={<InvoicePDF invoice={currentInvoice} />}
+              fileName={`invoice-${currentInvoice.invoiceNumber}.pdf`}
+            >
+              {({ loading }: PDFLinkRenderProps) => ( // We only need 'loading'
+                <Button variant="outline" disabled={loading}>
+                  {loading ? 'Generating PDF...' : 'Download PDF'}
+                </Button>
+              )}
+            </PDFDownloadLink>
+          </div>
         </div>
       </div>
       
@@ -92,9 +76,9 @@ export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
       <div className="grid grid-cols-2 gap-8 mb-8">
         <div>
           <h2 className="font-semibold text-gray-700 mb-2">Bill To:</h2>
-          {/* --- FIX: USE REAL CUSTOMER DATA --- */}
+          {/* --- 4. USE THE REAL CUSTOMER OBJECT --- */}
           {currentInvoice.customer ? (
-            <div className="text-gray-600 whitespace-pre-line">
+            <div className="text-gray-600">
               <p className="font-semibold">{currentInvoice.customer.name}</p>
               <p>{currentInvoice.customer.street}, {currentInvoice.customer.flatNo}</p>
               <p>{currentInvoice.customer.district}, {currentInvoice.customer.state} - {currentInvoice.customer.pincode}</p>
@@ -102,7 +86,7 @@ export function InvoiceDetailView({ invoice }: { invoice: Invoice }) {
           ) : (
             <p>Walk-in Customer</p>
           )}
-      </div>
+        </div>
 
       <div className="text-right">
           <p><span className="font-semibold">Issue Date:</span> {new Date(currentInvoice.issueDate).toLocaleDateString()}</p>

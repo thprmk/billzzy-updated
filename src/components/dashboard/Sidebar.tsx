@@ -89,6 +89,12 @@ const navigation = [
       { name: 'View All Invoices', href: '/invoices/list' },
     ],
   },
+
+  {
+    name: 'Expenses',
+    href: '/expenses',
+    icon: CreditCard,
+  },
   
   { name: 'Share Form Link', icon: Share2, isShareButton: true },
   { name: 'Printing', href: '/printing', icon: PrinterIcon },

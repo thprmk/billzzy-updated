@@ -1,8 +1,27 @@
 // src/app/invoice-template/[id]/page.tsx
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import './invoice.css'; // We will create this CSS file next
-import React from 'react'; // Add this import
+import './invoice.css';
+import React from 'react';
+
+// --- HELPER FUNCTION TO PRE-FETCH THE IMAGE ---
+// This function downloads the image from the URL and converts it to a base64 data URI
+async function getImageAsBase64(url: string) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Failed to fetch image for PDF: ${response.statusText}`);
+      return null;
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get('content-type') || 'image/png';
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
+  } catch (error) {
+    console.error('Error converting image to base64 for PDF:', error);
+    return null;
+  }
+}
 
 export default async function InvoiceTemplatePage({ params }: { params: { id: string } }) {
   const invoiceId = Number(params.id);
@@ -15,10 +34,12 @@ export default async function InvoiceTemplatePage({ params }: { params: { id: st
     include: { items: true, customer: true, organisation: true },
   });
 
-  if (!invoice) {
-    notFound();
-  }
+  if (!invoice) { notFound(); }
 
+  // --- PRE-FETCH THE LOGO IMAGE ---
+  const logoDataUri = invoice.logoUrl ? await getImageAsBase64(invoice.logoUrl) : null;
+
+  // Defensive data handling
   const org = invoice.organisation || {};
   const cust = invoice.customer;
   const subTotal = invoice.subTotal || 0;
@@ -31,7 +52,8 @@ export default async function InvoiceTemplatePage({ params }: { params: { id: st
         <div className="invoice-box">
           <header>
             <div className="company-info">
-              {invoice.logoUrl && <img src={invoice.logoUrl} alt="Logo" className="logo" />}
+              {/* --- USE THE EMBEDDED IMAGE DATA --- */}
+              {logoDataUri && <img src={logoDataUri} alt="Logo" className="logo" />}
               <h1>{org.shopName || 'Your Company'}</h1>
               <div>{org.street}, {org.flatNo}</div>
               <div>{org.city}, {org.state} - {org.pincode}</div>
@@ -62,9 +84,9 @@ export default async function InvoiceTemplatePage({ params }: { params: { id: st
             <thead>
               <tr>
                 <th>Description</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Total</th>
+                <th className="center">Qty</th>
+                <th className="right">Price</th>
+                <th className="right">Total</th>
               </tr>
             </thead>
             <tbody>

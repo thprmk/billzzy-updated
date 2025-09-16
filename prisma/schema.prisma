@@ -1,5 +1,20 @@
 // prisma/schema.prisma
 
+enum PaymentMode {
+  CASH
+  BANK_TRANSFER
+  CREDIT_CARD
+  UPI
+  CHEQUE
+}
+
+enum ExpenseStatus {
+  PENDING_REIMBURSEMENT
+  REIMBURSED
+  BILLED
+}
+
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -48,6 +63,9 @@ model Organisation {
   shopifyToken           String?   @map("shopify_token")
   shopifyDomain          String?   @map("shopify_domain")
   billCounter            Int       @default(0) @map("bill_counter") // <-- ADD THIS LINE
+  expenseCategories  ExpenseCategory[]
+  vendors            Vendor[]
+  expenses           Expense[]
 
   // Relations
   productTypeTemplates ProductTypeTemplate[]
@@ -150,6 +168,7 @@ model Invoice {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   logoUrl              String?   @map("logo_url") 
+  expenses             Expense[]
 
   @@unique([organisationId, invoiceNumber])
   @@map("invoices")
@@ -333,9 +352,9 @@ model Customer {
   transactions       TransactionRecord[]
   CustomerSubmission CustomerSubmission[]
   invoices Invoice[]
+  expenses Expense[]
+
   @@unique([phone, organisationId])
-
-
   @@map("customers")
 }
 
@@ -488,4 +507,72 @@ model Tax {
 
   @@index([organisationId])
   @@map("tax")
+}
+
+
+// PASTE THIS CODE AT THE END OF prisma/schema.prisma
+
+model ExpenseCategory {
+  id             Int          @id @default(autoincrement())
+  name           String
+  organisationId Int          @map("organisation_id")
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  expenses       Expense[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([name, organisationId])
+  @@map("expense_categories")
+}
+
+model Vendor {
+  id             Int          @id @default(autoincrement())
+  name           String
+  organisationId Int          @map("organisation_id")
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  expenses       Expense[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([name, organisationId])
+  @@map("vendors")
+}
+
+model Expense {
+  id                Int      @id @default(autoincrement())
+  date              DateTime
+  amount            Decimal  @db.Decimal(10, 2)
+  notes             String?  @db.VarChar(500)
+  invoiceBillNumber String?  @map("invoice_bill_number")
+  paymentMode       PaymentMode
+  receiptUrl        String?  @map("receipt_url")
+  status            ExpenseStatus @default(PENDING_REIMBURSEMENT)
+
+  // --- Relationships ---
+  categoryId        Int      @map("category_id")
+  category          ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  vendorId          Int?     @map("vendor_id")
+  vendor            Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  // For billable expenses (future use)
+  customerId        Int?     @map("customer_id")
+  customer          Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  
+  // To link to an invoice (future use)
+  invoiceId         Int?     @map("invoice_id")
+  invoice           Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  // We need to add a relation for the User who created the expense.
+  // Assuming you have a User model. If not, we can remove this for now.
+  // userId            String    
+  // user              User      @relation(fields: [userId], references: [id], onDelete:Restrict)
+
+  organisationId    Int      @map("organisation_id")
+  organisation      Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("expenses")
 }

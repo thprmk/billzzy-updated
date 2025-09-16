@@ -1,10 +1,10 @@
 // src/app/api/invoices/[id]/download/route.tsx
 import { NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
+// Use the FULL puppeteer package, not puppeteer-core
+import puppeteer from 'puppeteer';
 
 function getBaseUrl() {
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // This is fine for local development
   return `http://localhost:${process.env.PORT || 3000}`;
 }
 
@@ -18,18 +18,18 @@ export async function GET(
 
   let browser = null;
   try {
-    // --- THIS IS THE FINAL, MOST ROBUST LAUNCH CONFIG ---
-    // Forcing chromium.headless to be true or false explicitly
-    const headless = chromium.headless === 'new' ? true : chromium.headless;
+    // --- THIS IS THE NEW, DIRECT, AND SIMPLE APPROACH ---
+
+    // CRITICAL: REPLACE THIS PATH WITH THE EXACT PATH TO YOUR CHROME.EXE
+    // USE DOUBLE BACKSLASHES (\\) FOR THE PATH.
+    const executablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
     browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: headless, // Use the corrected headless value
-      ignoreHTTPSErrors: true,
+      headless: true,
+      executablePath: executablePath, // Directly use the local Chrome
+      args: ['--no-sandbox'] // A safety argument
     });
-    // --------------------------------------------------
+    // ----------------------------------------------------------
 
     const page = await browser.newPage();
     await page.goto(invoiceUrl, { waitUntil: 'networkidle0' });
@@ -38,6 +38,10 @@ export async function GET(
       format: 'A4',
       printBackground: true,
     });
+
+    // Close the browser BEFORE returning the response
+    await browser.close();
+    browser = null; // Set to null to prevent the finally block from running again
 
     return new Response(pdfBuffer, {
       headers: {
@@ -49,6 +53,7 @@ export async function GET(
     console.error("Puppeteer PDF generation failed:", error);
     return new NextResponse('Failed to generate PDF.', { status: 500 });
   } finally {
+    // Ensure the browser is closed even if an error occurs
     if (browser) {
       await browser.close();
     }
