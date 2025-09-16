@@ -1,55 +1,49 @@
 // src/components/expenses/ExpenseList.tsx
 "use client";
 
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import { format } from 'date-fns';
 import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Expense } from '@/app/(dashboard)/expenses/page'; // Import the shared type
 
-// Define the structure of an Expense object for TypeScript
-interface Expense {
-  id: number;
-  date: string;
-  amount: number;
-  notes: string | null;
-  paymentMode: string;
-  category: {
-    id: number;
-    name: string;
-  };
-  vendor: {
-    id: number;
-    name: string;
-  } | null;
+// Define the props for this component
+interface ExpenseListProps {
+  onEdit: (expense: Expense) => void;
 }
 
-const fetcher = (url: string) => fetch(url).then(res => {
-  if (!res.ok) {
-    throw new Error('An error occurred while fetching the data.');
-  }
-  return res.json();
-});
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-export default function ExpenseList() {
-  // CORRECTED: We get 'data' from useSWR, not 'expenses' directly
+export default function ExpenseList({ onEdit }: ExpenseListProps) {
   const { data, error, isLoading } = useSWR<Expense[]>('/api/expenses', fetcher);
 
-  if (isLoading) {
-    return <div className="text-center p-8">Loading expenses...</div>;
-  }
+  const handleDelete = async (expenseId: number) => {
+    if (!confirm('Are you sure you want to delete this expense? This action cannot be undone.')) {
+      return;
+    }
 
-  if (error) {
-    return <div className="text-center p-8 text-red-500">Failed to load expenses. Please try again later.</div>;
-  }
+    try {
+      const response = await fetch(`/api/expenses/${expenseId}`, {
+        method: 'DELETE',
+      });
 
-  // Now, we can safely work with the 'data' variable.
-  // We also handle the case where data might not be an array.
+      if (!response.ok) throw new Error('Failed to delete the expense.');
+      
+      alert('Expense deleted successfully!');
+      mutate('/api/expenses');
+    } catch (err) {
+      console.error(err);
+      alert('An error occurred while deleting the expense.');
+    }
+  };
+
+  if (isLoading) return <div className="text-center p-8">Loading expenses...</div>;
+  if (error) return <div className="text-center p-8 text-red-500">Failed to load expenses. Please try again.</div>;
   if (!Array.isArray(data)) {
-      console.error("Data received from API is not an array:", data);
-      return <div className="text-center p-8 text-red-500">Received invalid data from the server.</div>;
+    console.error("Data received from API is not an array:", data);
+    return <div className="text-center p-8 text-red-500">Received invalid data from the server.</div>;
   }
   
-  // If we've passed all checks, we can now call our data 'expenses'
   const expenses = data;
 
   if (expenses.length === 0) {
@@ -88,10 +82,10 @@ export default function ExpenseList() {
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">{expense.notes || '-'}</td>
               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div className="flex justify-end space-x-2">
-                  <Button variant="outline" size="icon" disabled> {/* Disabled for now */}
+                  <Button variant="outline" size="icon" onClick={() => onEdit(expense)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" disabled> {/* Disabled for now */}
+                  <Button variant="outline" size="icon" onClick={() => handleDelete(expense.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

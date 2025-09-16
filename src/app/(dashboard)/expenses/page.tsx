@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { PlusCircle } from "lucide-react";
 import ExpenseList from "@/components/expenses/ExpenseList";
 import ExpenseForm from "@/components/expenses/ExpenseForm";
+import ExpenseStats from "@/components/expenses/ExpenseStats";
 
 // Define the Expense type here to be shared between components.
 // This is the full structure, matching our API's GET response.
@@ -44,7 +45,7 @@ export default function ExpensesPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Expenses</h2>
+        <h2 className="text-3xl font-semibold tracking-tight">Expenses</h2>
         <div className="flex items-center space-x-2">
           <Button onClick={handleOpenAddModal}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add Expense
@@ -52,8 +53,13 @@ export default function ExpensesPage() {
         </div>
       </div>
       
+      <ExpenseStats />
+      
       {/* Pass the edit handler down to the list */}
-      <ExpenseList onEdit={handleOpenEditModal} />
+       <div>
+        <h3 className="text-xl font-bold tracking-tight mb-4">Recent Expenses</h3>
+        <ExpenseList onEdit={handleOpenEditModal} />
+      </div>
 
       {/* The form is now smarter, controlled by both states */}
       <ExpenseForm 

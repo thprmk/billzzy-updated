@@ -510,8 +510,6 @@ model Tax {
 }
 
 
-// PASTE THIS CODE AT THE END OF prisma/schema.prisma
-
 model ExpenseCategory {
   id             Int          @id @default(autoincrement())
   name           String
@@ -521,7 +519,11 @@ model ExpenseCategory {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  @@unique([name, organisationId])
+  parentId       Int?         @map("parent_id")
+  parent         ExpenseCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children       ExpenseCategory[] @relation("CategoryHierarchy")
+
+  @@unique([name, organisationId, parentId])
   @@map("expense_categories")
 }
 
