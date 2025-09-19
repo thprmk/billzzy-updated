@@ -141,5 +141,5 @@ export default function CategoryManager({ isOpen, onClose }: CategoryManagerProp
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
+   );
+    }

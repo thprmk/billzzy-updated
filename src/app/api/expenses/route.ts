@@ -1,3 +1,5 @@
+
+
 // src/app/api/expenses/route.ts
 
 import { NextResponse } from 'next/server';
@@ -6,13 +8,12 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
-// Zod schema for validating the incoming expense data
 const expenseSchema = z.object({
-  date: z.string().datetime(), // Expecting ISO 8601 string from the client
+  date: z.string().datetime(),
   amount: z.number().positive('Amount must be positive'),
   categoryId: z.number().int(),
   paymentMode: z.enum(["CASH", "BANK_TRANSFER", "CREDIT_CARD", "UPI", "CHEQUE"]),
-  notes: z.string().max(500, 'Notes must be 500 characters or less').optional(),
+  notes: z.string().max(500).optional(),
   invoiceBillNumber: z.string().optional(),
   vendorId: z.number().int().optional(),
   customerId: z.number().int().optional(),
@@ -20,30 +21,17 @@ const expenseSchema = z.object({
 });
 
 // GET /api/expenses
-// Fetches all expenses for the organization with filtering
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.organisationId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { searchParams } = new URL(req.url);
-  // We will add filtering logic here later (e.g., by date, category)
-  // For now, we fetch all expenses
-
   try {
     const expenses = await prisma.expense.findMany({
-      where: {
-        organisationId: session.user.organisationId,
-      },
-      include: {
-        category: true, // Include related category name
-        vendor: true,   // Include related vendor name
-        customer: true, // Include related customer name
-      },
-      orderBy: {
-        date: 'desc', // Show most recent first
-      },
+      where: { organisationId: session.user.organisationId },
+      include: { category: true, vendor: true, customer: true },
+      orderBy: { date: 'desc' },
     });
     return NextResponse.json(expenses);
   } catch (error) {
@@ -53,7 +41,6 @@ export async function GET(req: Request) {
 }
 
 // POST /api/expenses
-// Creates a new expense record
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user?.organisationId) {
@@ -68,28 +55,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid input', details: validation.error.flatten() }, { status: 400 });
     }
 
-    const { date, amount, categoryId, paymentMode, ...rest } = validation.data;
-    
-    // We can add logic here to verify categoryId, vendorId etc. belong to the org
-    
+    const { date, amount, categoryId, vendorId, paymentMode, ...rest } = validation.data;
+    const orgId = session.user.organisationId;
+
+    // ✅ FIXED: Use expenseCategory instead of category
+    const categoryExists = await prisma.expenseCategory.findFirst({
+      where: { id: categoryId, organisationId: orgId },
+    });
+    if (!categoryExists) return NextResponse.json({ error: 'Invalid category ID' }, { status: 400 });
+
+    if (vendorId) {
+      const vendorExists = await prisma.vendor.findFirst({
+        where: { id: vendorId, organisationId: orgId },
+      });
+      if (!vendorExists) return NextResponse.json({ error: 'Invalid vendor ID' }, { status: 400 });
+    }
+
     const newExpense = await prisma.expense.create({
       data: {
         date: new Date(date),
         amount,
         categoryId,
+        vendorId,
         paymentMode,
-        ...rest, // includes optional fields like notes, vendorId etc.
-        organisationId: session.user.organisationId,
+        ...rest,
+        organisationId: orgId,
       },
     });
 
     return NextResponse.json(newExpense, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating expense:', error);
-    // Handle specific Prisma errors, e.g., foreign key constraint
-    if (error.code === 'P2003') {
-        return NextResponse.json({ error: 'Invalid category, vendor, or customer ID provided.' }, { status: 400 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

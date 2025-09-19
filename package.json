@@ -55,6 +55,7 @@
     "html2canvas": "^1.4.1",
     "jsbarcode": "^3.11.6",
     "jspdf": "^3.0.2",
+    "jspdf-autotable": "^5.0.2",
     "lodash": "^4.17.21",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.460.0",
